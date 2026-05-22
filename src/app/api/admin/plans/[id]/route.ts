@@ -34,7 +34,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     const body = await req.json();
-    const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, cta, highlighted, sortOrder, isActive } = body;
+    const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, cta, ctaLink, highlighted, sortOrder, isActive } = body;
 
     await dbConnect();
 
@@ -47,6 +47,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (maxUsers !== undefined) update.maxUsers = maxUsers;
     if (extraFeatures !== undefined) update.extraFeatures = extraFeatures;
     if (cta !== undefined) update.cta = cta;
+    if (ctaLink !== undefined) update.ctaLink = ctaLink;
     if (highlighted !== undefined) update.highlighted = highlighted;
     if (sortOrder !== undefined) update.sortOrder = sortOrder;
     if (isActive !== undefined) update.isActive = isActive;

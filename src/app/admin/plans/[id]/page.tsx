@@ -32,6 +32,7 @@ export default function EditPlanPage() {
   const [description, setDescription] = useState('');
   const [maxUsers, setMaxUsers] = useState('1');
   const [cta, setCta] = useState('');
+  const [ctaLink, setCtaLink] = useState('');
   const [highlighted, setHighlighted] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [sortOrder, setSortOrder] = useState(0);
@@ -69,6 +70,7 @@ export default function EditPlanPage() {
           setDescription(p.description ?? '');
           setMaxUsers(String(p.maxUsers ?? 1));
           setCta(p.cta ?? '');
+          setCtaLink(p.ctaLink ?? '/register');
           setHighlighted(p.highlighted ?? false);
           setIsActive(p.isActive ?? true);
           setSortOrder(p.sortOrder ?? 0);
@@ -144,8 +146,9 @@ export default function EditPlanPage() {
           includedModules,
           maxUsers: Number(maxUsers),
           extraFeatures,
-          cta,
-          highlighted,
+      cta,
+      ctaLink,
+      highlighted,
           isActive,
           sortOrder: Number(sortOrder),
         }),
@@ -251,7 +254,26 @@ export default function EditPlanPage() {
         {/* modules */}
         <div className="rounded-md border border-slate-800 bg-slate-900 p-6">
           <h2 className="text-lg font-semibold text-white">Módulos incluidos</h2>
-          <p className="mt-1 text-xs text-slate-500">Selecciona los módulos que incluye este plan y ajusta su cuota si es necesario.</p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-xs text-slate-500">Selecciona los módulos que incluye este plan y ajusta su cuota si es necesario.</p>
+            <button type="button" onClick={() => {
+              if (selectedModules.length === availableModules.length) {
+                setSelectedModules([]);
+              } else {
+                setSelectedModules(
+                  availableModules.map((mod) => ({
+                    moduleId: mod._id,
+                    name: mod.name,
+                    key: mod.key,
+                    defaultQuota: mod.defaultQuota,
+                    quotaOverride: String(mod.defaultQuota),
+                  }))
+                );
+              }
+            }} className="text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+              {selectedModules.length === availableModules.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+            </button>
+          </div>
 
           <div className="mt-4 space-y-2">
             {availableModules.map((mod) => {
@@ -330,10 +352,19 @@ export default function EditPlanPage() {
                   className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
               </div>
               <div>
+                <label htmlFor="ctaLink" className="block text-sm font-medium text-slate-400">Link del botón</label>
+                <input id="ctaLink" type="text" value={ctaLink} onChange={(e) => setCtaLink(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white font-mono placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                  placeholder="/register o https://wa.me/..." />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <label htmlFor="sortOrder" className="block text-sm font-medium text-slate-400">Orden</label>
                 <input id="sortOrder" type="number" value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))}
                   className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
               </div>
+              <div></div>
             </div>
             <div className="flex items-center gap-3">
               <input id="highlighted" type="checkbox" checked={highlighted} onChange={(e) => setHighlighted(e.target.checked)}

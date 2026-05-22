@@ -14,6 +14,7 @@ export interface IPlan extends Document {
   maxUsers: number;
   extraFeatures: string[];
   cta: string;
+  ctaLink: string;
   highlighted: boolean;
   sortOrder: number;
   isActive: boolean;
@@ -70,6 +71,10 @@ const planSchema = new Schema<IPlan>(
     cta: {
       type: String,
       default: 'Empezar',
+    },
+    ctaLink: {
+      type: String,
+      default: '/register',
     },
     highlighted: {
       type: Boolean,

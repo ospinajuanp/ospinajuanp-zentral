@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, cta, highlighted, sortOrder, isActive } = body;
+    const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, cta, ctaLink, highlighted, sortOrder, isActive } = body;
 
     if (!name || !price) {
       return NextResponse.json({ error: 'name y price son requeridos' }, { status: 400 });
@@ -47,16 +47,15 @@ export async function POST(req: NextRequest) {
       maxUsers: maxUsers ?? 1,
       extraFeatures: extraFeatures ?? [],
       cta: cta ?? 'Empezar',
+      ctaLink: ctaLink ?? '/register',
       highlighted: highlighted ?? false,
       sortOrder: sortOrder ?? 0,
       isActive: isActive ?? true,
     });
 
-    const populated = await Plan.findById(plan._id)
-      .populate('includedModules.module', 'key name defaultQuota tier');
-
-    return NextResponse.json({ plan: populated }, { status: 201 });
-  } catch {
+    return NextResponse.json({ plan: await Plan.findById(plan._id).populate('includedModules.module', 'key name defaultQuota tier') }, { status: 201 });
+  } catch (err) {
+    console.error('[plans POST]', err);
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
   }
 }

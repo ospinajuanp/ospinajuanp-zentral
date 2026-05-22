@@ -25,6 +25,7 @@ export async function Pricing() {
             const p = plan as {
               _id: string; name: string; price: string; description: string;
               cta: string; highlighted: boolean; maxUsers: number;
+              ctaLink: string;
               extraFeatures: string[];
               includedModules?: Array<{
                 module: { name: string; key: string; defaultQuota: number };
@@ -98,15 +99,16 @@ export async function Pricing() {
                   ))}
                 </ul>
 
-                <button
-                  className={`mt-8 w-full rounded-md py-3 text-sm font-medium transition-all ${
+                <a
+                  href={p.ctaLink || '#'}
+                  className={`mt-8 block w-full rounded-md py-3 text-center text-sm font-medium transition-all ${
                     p.highlighted
                       ? 'bg-white text-zinc-900 hover:bg-zinc-100'
                       : 'border border-slate-700 text-slate-200 hover:bg-slate-800'
                   }`}
                 >
                   {p.cta}
-                </button>
+                </a>
               </div>
             );
           })}
