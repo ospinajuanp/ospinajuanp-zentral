@@ -105,7 +105,7 @@ export default function WorkspaceDetailPage() {
       .then((data) => {
         if (data.modules) setAvailableModules(data.modules);
       })
-      .catch(() => {});
+      .catch((err) => { console.error(err); setError('Error de conexión'); });
   }, []);
 
   useEffect(() => {

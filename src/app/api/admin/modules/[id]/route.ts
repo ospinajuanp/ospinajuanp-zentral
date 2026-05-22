@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db/mongoose';
 import { Module } from '@/lib/models/module';
+import { Plan } from '@/lib/models/plan';
 import { getApiAuth } from '@/lib/auth/api';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -66,6 +67,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const { id } = await params;
     await dbConnect();
+
+    const planCount = await Plan.countDocuments({ 'includedModules.module': id });
+    if (planCount > 0) {
+      return NextResponse.json(
+        { error: 'No se puede eliminar el módulo porque hay planes que lo incluyen.' },
+        { status: 409 }
+      );
+    }
 
     const mod = await Module.findByIdAndDelete(id);
 

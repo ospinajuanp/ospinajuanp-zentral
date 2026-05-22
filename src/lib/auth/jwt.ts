@@ -13,6 +13,7 @@ export interface JwtPayload {
   sub: string;
   role: Role;
   workspaceId: string | null;
+  purpose: 'session';
 }
 
 export async function signJwt(payload: JwtPayload): Promise<string> {
@@ -25,6 +26,9 @@ export async function signJwt(payload: JwtPayload): Promise<string> {
 
 export async function verifyJwt(token: string): Promise<JwtPayload> {
   const { payload } = await jwtVerify(token, SECRET);
+  if (payload.purpose !== 'session') {
+    throw new Error('Invalid token purpose');
+  }
   return payload as unknown as JwtPayload;
 }
 
@@ -43,6 +47,9 @@ export async function signResetToken(payload: ResetTokenPayload): Promise<string
 
 export async function verifyResetToken(token: string): Promise<ResetTokenPayload> {
   const { payload } = await jwtVerify(token, SECRET);
+  if (payload.purpose !== 'password-reset') {
+    throw new Error('Invalid token purpose');
+  }
   return payload as unknown as ResetTokenPayload;
 }
 
@@ -61,5 +68,8 @@ export async function signVerificationToken(payload: VerificationTokenPayload): 
 
 export async function verifyVerificationToken(token: string): Promise<VerificationTokenPayload> {
   const { payload } = await jwtVerify(token, SECRET);
+  if (payload.purpose !== 'email-verification') {
+    throw new Error('Invalid token purpose');
+  }
   return payload as unknown as VerificationTokenPayload;
 }

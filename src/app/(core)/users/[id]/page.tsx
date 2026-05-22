@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ErrorMessage, Button, StatusCard } from '@/components/ui';
 
@@ -14,7 +14,6 @@ interface UserData {
 }
 
 export default function EditUserPage() {
-  const router = useRouter();
   const params = useParams();
   const userId = params.id as string;
 

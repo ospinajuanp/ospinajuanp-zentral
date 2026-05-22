@@ -50,7 +50,16 @@ export async function PUT(
   const { name, slug, owner, isActive, isPayReady } = body;
 
   if (name !== undefined) workspace.name = name;
-  if (slug !== undefined) workspace.slug = slug;
+  if (slug !== undefined) {
+    const existingSlug = await Workspace.countDocuments({ slug, _id: { $ne: id } });
+    if (existingSlug > 0) {
+      return NextResponse.json(
+        { error: 'Ya existe un workspace con ese slug.' },
+        { status: 409 }
+      );
+    }
+    workspace.slug = slug;
+  }
   if (owner !== undefined) workspace.owner = owner || null;
   if (isActive !== undefined) workspace.isActive = isActive;
 

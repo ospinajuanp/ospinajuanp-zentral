@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ErrorMessage, Button, StatusCard } from '@/components/ui';
 import type { ModuleTier } from '@/types';
@@ -13,7 +12,6 @@ const moduleStatuses: { value: string; label: string }[] = [
 ];
 
 export default function CreateModulePage() {
-  const router = useRouter();
   const [key, setKey] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');

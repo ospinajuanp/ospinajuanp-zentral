@@ -16,9 +16,14 @@ const publicPrefixes = [
   '/api/auth/reset-password',
   '/api/auth/verify-email',
   '/api/auth/session',
+  '/_next',
+  '/favicon.ico',
+  '/icon.ico',
+  '/robots.txt',
+  '/sitemap.xml',
 ];
 
-export async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (publicExact.includes(pathname) || publicPrefixes.some((p) => pathname.startsWith(p))) {
@@ -35,21 +40,21 @@ export async function proxy(request: NextRequest) {
     const payload = await verifyJwt(token);
 
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-user-id', payload.sub);
-    requestHeaders.set('x-user-role', payload.role);
+    requestHeaders.set('x-user-id', payload.sub ?? '');
+    requestHeaders.set('x-user-role', payload.role ?? '');
     requestHeaders.set('x-workspace-id', payload.workspaceId ?? '');
-
-    const response = NextResponse.next({
-      request: { headers: requestHeaders },
-    });
 
     if (pathname.startsWith('/admin') && payload.role !== 'superadmin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    return response;
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   } catch {
-    return redirectToLogin(request);
+    const response = redirectToLogin(request);
+    response.cookies.delete('zentral_session');
+    return response;
   }
 }
 
@@ -60,5 +65,5 @@ function redirectToLogin(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.ico).*)'],
 };

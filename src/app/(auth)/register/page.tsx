@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent, useMemo, useEffect } from 'react';
+import { useState, FormEvent, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AuthLayout, InputField, ErrorMessage, Button, StatusCard } from '@/components/ui';

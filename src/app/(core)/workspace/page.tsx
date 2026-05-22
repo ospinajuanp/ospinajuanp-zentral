@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import { ErrorMessage, Button, StatusCard } from '@/components/ui';
 
 interface WorkspaceData {
@@ -12,7 +11,6 @@ interface WorkspaceData {
 }
 
 export default function WorkspaceSettingsPage() {
-  const router = useRouter();
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

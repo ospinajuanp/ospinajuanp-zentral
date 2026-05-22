@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Button } from './button';
 
 interface StatusCardProps {
   type: 'success' | 'error' | 'warning';

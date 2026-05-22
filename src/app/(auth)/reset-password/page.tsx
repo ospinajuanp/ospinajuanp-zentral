@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, FormEvent, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { InputField, ErrorMessage, Button, StatusCard } from '@/components/ui';
 import { AuthLayout } from '@/components/ui/auth-layout';
 
 function ResetPasswordForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 

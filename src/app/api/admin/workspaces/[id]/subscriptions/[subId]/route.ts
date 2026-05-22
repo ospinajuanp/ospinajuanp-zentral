@@ -10,7 +10,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    const { subId } = await params;
+    const { id, subId } = await params;
     const body = await req.json();
     const { tier, status, monthlyQuota } = body;
 
@@ -21,8 +21,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (status !== undefined) update.status = status;
     if (monthlyQuota !== undefined) update.monthlyQuota = monthlyQuota;
 
-    const sub = await ModuleSubscription.findByIdAndUpdate(
-      subId,
+    const sub = await ModuleSubscription.findOneAndUpdate(
+      { _id: subId, workspace: id },
       { $set: update },
       { new: true, runValidators: true }
     );
@@ -44,10 +44,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    const { subId } = await params;
+    const { id, subId } = await params;
     await dbConnect();
 
-    const sub = await ModuleSubscription.findByIdAndDelete(subId);
+    const sub = await ModuleSubscription.findOneAndDelete({ _id: subId, workspace: id });
 
     if (!sub) {
       return NextResponse.json({ error: 'Suscripción no encontrada' }, { status: 404 });

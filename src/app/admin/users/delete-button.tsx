@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ConfirmDialog } from '@/components/ui';
+import { ConfirmDialog, ErrorMessage } from '@/components/ui';
 
 export function DeleteUserButton({
   userId,
@@ -14,6 +14,7 @@ export function DeleteUserButton({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   async function handleDelete() {
     setLoading(true);
@@ -23,10 +24,10 @@ export function DeleteUserButton({
         router.refresh();
       } else {
         const data = await res.json();
-        alert(data.error ?? 'Error al eliminar usuario');
+        setError(data.error ?? 'Error al eliminar usuario');
       }
     } catch {
-      alert('Error de conexión');
+      setError('Error de conexión');
     } finally {
       setLoading(false);
       setOpen(false);
@@ -35,6 +36,7 @@ export function DeleteUserButton({
 
   return (
     <>
+      {error && <ErrorMessage message={error} />}
       <button
         onClick={() => setOpen(true)}
         className="text-sm font-medium text-rose-400 underline underline-offset-2 hover:text-rose-300"

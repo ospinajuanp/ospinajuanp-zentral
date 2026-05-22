@@ -3,7 +3,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ErrorMessage, Button, StatusCard, ConfirmDialog } from '@/components/ui';
+import { ErrorMessage, Button, ConfirmDialog } from '@/components/ui';
 import type { ModuleTier } from '@/types';
 
 interface ModuleData {

@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ErrorMessage, Button, StatusCard } from '@/components/ui';
 
 export default function CreateWorkspacePage() {
-  const router = useRouter();
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [error, setError] = useState('');

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { ErrorMessage } from '@/components/ui';
 
 interface ModuleSummary {
   _id: string;
@@ -32,6 +33,7 @@ interface PlanItem {
 export default function PlansPage() {
   const [plans, setPlans] = useState<PlanItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   function load() {
     setLoading(true);
@@ -40,7 +42,7 @@ export default function PlansPage() {
       .then((data) => {
         if (data.plans) setPlans(data.plans);
       })
-      .catch(() => {})
+      .catch((err) => { console.error(err); setError('Error de conexión'); })
       .finally(() => setLoading(false));
   }
 
@@ -65,6 +67,8 @@ export default function PlansPage() {
           + Nuevo plan
         </Link>
       </div>
+
+      {error && <ErrorMessage message={error} />}
 
       {loading ? (
         <div className="mt-8 flex justify-center py-12">

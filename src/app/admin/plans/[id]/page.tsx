@@ -3,7 +3,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ErrorMessage, Button, StatusCard, ConfirmDialog } from '@/components/ui';
+import { ErrorMessage, Button, ConfirmDialog } from '@/components/ui';
 
 interface ModuleOption {
   _id: string;
@@ -72,13 +72,13 @@ export default function EditPlanPage() {
       .then((data) => {
         if (data.modules) setAvailableModules(data.modules);
       })
-      .catch(() => {});
+      .catch((err) => { console.error(err); setError('Error de conexión'); });
     fetch('/api/admin/plans')
       .then((res) => res.json())
       .then((data) => {
         if (data.plans) setAvailablePlans(data.plans.filter((p: { _id: string }) => p._id !== planId));
       })
-      .catch(() => {});
+      .catch((err) => { console.error(err); setError('Error de conexión'); });
   }, [planId]);
 
   useEffect(() => {

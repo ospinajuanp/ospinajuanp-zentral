@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ErrorMessage, Button, StatusCard } from '@/components/ui';
 
@@ -33,7 +32,6 @@ interface PlanOption {
 }
 
 export default function CreatePlanPage() {
-  const router = useRouter();
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [monthlyPrice, setMonthlyPrice] = useState('');

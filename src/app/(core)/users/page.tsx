@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ConfirmDialog } from '@/components/ui';
+import { ConfirmDialog, ErrorMessage } from '@/components/ui';
 
 interface UserItem {
   _id: string;
@@ -14,9 +13,9 @@ interface UserItem {
 }
 
 export default function AdminUsersPage() {
-  const router = useRouter();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -28,7 +27,7 @@ export default function AdminUsersPage() {
       .then((data) => {
         if (data.users) setUsers(data.users);
       })
-      .catch(() => {})
+      .catch((err) => { console.error(err); setError('Error de conexión'); })
       .finally(() => setLoading(false));
   }
 
@@ -46,10 +45,10 @@ export default function AdminUsersPage() {
         loadUsers();
       } else {
         const data = await res.json();
-        alert(data.error ?? 'Error al eliminar');
+        setError(data.error ?? 'Error al eliminar');
       }
     } catch {
-      alert('Error de conexión');
+      setError('Error de conexión');
     } finally {
       setDeleting(false);
     }
@@ -71,6 +70,8 @@ export default function AdminUsersPage() {
           + Nuevo usuario
         </Link>
       </div>
+
+      {error && <ErrorMessage message={error} />}
 
       {loading ? (
         <div className="mt-8 flex justify-center py-12">

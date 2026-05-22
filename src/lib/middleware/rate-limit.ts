@@ -13,6 +13,9 @@ interface RateLimitConfig {
 const CONFIGS: Record<string, RateLimitConfig> = {
   login: { limit: 25, windowSeconds: 5 * 60 },
   register: { limit: 25, windowSeconds: 5 * 60 },
+  forgotPassword: { limit: 25, windowSeconds: 5 * 60 },
+  resetPassword: { limit: 25, windowSeconds: 5 * 60 },
+  verifyEmail: { limit: 25, windowSeconds: 5 * 60 },
 };
 
 function extractIp(request: Request): string {

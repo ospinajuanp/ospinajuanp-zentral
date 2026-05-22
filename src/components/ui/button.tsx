@@ -28,7 +28,10 @@ export function Button({
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? children : children}
+      {loading && (
+        <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      )}
+      {children}
     </button>
   );
 }

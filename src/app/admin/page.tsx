@@ -47,8 +47,6 @@ export default async function AdminDashboard() {
   // Subscription & billing
   const sTotal = allSubscriptions.length;
   const sActive = allSubscriptions.filter((s) => s.status === 'active').length;
-  const sPremium = allSubscriptions.filter((s) => s.tier === 'premium').length;
-
   let mrr = 0;
   for (const ws of allWorkspaces) {
     if (!ws.isActive || !ws.isPayReady) continue;

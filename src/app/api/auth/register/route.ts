@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         status: 429,
         headers: {
           'Retry-After': String(rateLimit.retryAfter),
-          'X-RateLimit-Limit': '3',
+          'X-RateLimit-Limit': '25',
           'X-RateLimit-Remaining': '0',
           'Cache-Control': 'no-store, max-age=0, must-revalidate',
         },
@@ -66,11 +66,16 @@ export async function POST(request: NextRequest) {
   // Determine which plan to use
   let selectedPlan = null;
   if (planId) {
-    selectedPlan = await Plan.findById(planId).lean();
+    selectedPlan = await Plan.findById(planId)
+      .populate('includedModules.module', 'key _id defaultQuota tier')
+      .lean();
   }
   // Fallback to first active plan sorted by sortOrder
   if (!selectedPlan) {
-    selectedPlan = await Plan.findOne({ isActive: true }).sort({ sortOrder: 1 }).lean();
+    selectedPlan = await Plan.findOne({ isActive: true })
+      .sort({ sortOrder: 1 })
+      .populate('includedModules.module', 'key _id defaultQuota tier')
+      .lean();
   }
 
   const workspaceName = companyName || `Workspace de ${name}`;

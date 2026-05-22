@@ -41,6 +41,7 @@ const userSchema = new Schema<IUser>(
       type: Schema.Types.ObjectId,
       ref: 'Workspace',
       default: null,
+      index: true,
     },
     isActive: {
       type: Boolean,

@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
         status: 429,
         headers: {
           'Retry-After': String(rateLimit.retryAfter),
-          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Limit': '25',
           'X-RateLimit-Remaining': '0',
           'Cache-Control': 'no-store, max-age=0, must-revalidate',
         },
@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
     sub: user._id.toString(),
     role: user.role,
     workspaceId: user.workspace?.toString() ?? null,
+    purpose: 'session',
   });
 
   const redirectTo = user.role === 'superadmin' ? '/admin' : '/dashboard';

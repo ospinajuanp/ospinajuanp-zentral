@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { ErrorMessage } from '@/components/ui';
 import type { ModuleInfo } from '@/types';
 
 export default function ModulesPage() {
   const [modules, setModules] = useState<ModuleInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   function load() {
     setLoading(true);
@@ -15,7 +17,7 @@ export default function ModulesPage() {
       .then((data) => {
         if (data.modules) setModules(data.modules);
       })
-      .catch(() => {})
+      .catch((err) => { console.error(err); setError('Error de conexión'); })
       .finally(() => setLoading(false));
   }
 
@@ -40,6 +42,8 @@ export default function ModulesPage() {
           + Nuevo módulo
         </Link>
       </div>
+
+      {error && <ErrorMessage message={error} />}
 
       {loading ? (
         <div className="mt-8 flex justify-center py-12">

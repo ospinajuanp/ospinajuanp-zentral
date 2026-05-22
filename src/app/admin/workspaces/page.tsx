@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { ErrorMessage } from '@/components/ui';
 
 interface WorkspaceItem {
   _id: string;
@@ -14,6 +15,7 @@ interface WorkspaceItem {
 export default function WorkspacesPage() {
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   function load() {
     setLoading(true);
@@ -22,7 +24,7 @@ export default function WorkspacesPage() {
       .then((data) => {
         if (data.workspaces) setWorkspaces(data.workspaces);
       })
-      .catch(() => {})
+      .catch((err) => { console.error(err); setError('Error de conexión'); })
       .finally(() => setLoading(false));
   }
 
@@ -47,6 +49,8 @@ export default function WorkspacesPage() {
           + Nuevo workspace
         </Link>
       </div>
+
+      {error && <ErrorMessage message={error} />}
 
       {loading ? (
         <div className="mt-8 flex justify-center py-12">

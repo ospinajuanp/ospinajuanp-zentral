@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import dbConnect from '@/lib/db/mongoose';
 import { User } from '@/lib/models/user';
+import { Workspace } from '@/lib/models/workspace';
 import { getApiAuth } from '@/lib/auth/api';
 import { hashPassword } from '@/lib/auth';
 
@@ -46,7 +47,7 @@ export async function PUT(
   const { name, email, role, isActive, workspace, password } = body;
 
   if (name !== undefined) user.name = name;
-  if (email !== undefined) user.email = email;
+  if (email !== undefined) user.email = email?.toLowerCase?.() ?? email;
   if (role !== undefined) {
     if (!['superadmin', 'admin', 'hijo'].includes(role)) {
       return NextResponse.json({ error: 'Rol inválido' }, { status: 400 });
@@ -73,6 +74,11 @@ export async function DELETE(
 
   await dbConnect();
   const { id } = await params;
+
+  const workspaceCount = await Workspace.countDocuments({ owner: id });
+  if (workspaceCount > 0) {
+    await Workspace.updateMany({ owner: id }, { $set: { owner: null } });
+  }
 
   const user = await User.findByIdAndDelete(id);
   if (!user) {
