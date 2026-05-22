@@ -1,70 +1,98 @@
-# Zentral — Micro-SaaS Studio
+# Zentral — Micro-SaaS de Herramientas Empresariales
 
-Ecosistema modular de herramientas de gestión empresarial (B2B) construido con Next.js.
-
+Ecosistema modular de herramientas de gestión B2B construido con Next.js 16.  
 Cada módulo es independiente, validable contra el estado de suscripción del workspace y accesible según el rol del usuario.
 
 ---
 
 ## Tech Stack
 
-| Tecnología | Versión | Propósito |
-|---|---|---|
-| Next.js | 16.2.6 (Turbopack) | Framework full-stack |
-| React | 19.2.4 | UI |
-| TypeScript | ^5 | Tipado |
-| MongoDB + Mongoose | ^9 | Base de datos |
-| Tailwind CSS | ^4 | Estilos |
-| jose | ^6 | JWT (Edge-compatible) |
-| bcryptjs | ^3 | Hashing de contraseñas |
+| Tecnología | Propósito |
+|---|---|
+| Next.js 16.2 (Turbopack) | Framework full-stack |
+| React 19.2 | UI |
+| TypeScript | Tipado |
+| MongoDB + Mongoose | Base de datos |
+| Tailwind CSS v4 | Estilos |
+| jose | JWT Edge-compatible |
+| bcryptjs | Hashing de contraseñas |
+| Upstash Redis | Rate limiting |
+| Resend | Emails transaccionales |
+| Embla Carousel | Carrusel de planes en landing |
 
 ---
 
-## RBAC (Role-Based Access Control)
+## RBAC
 
 | Rol | Acceso |
 |---|---|
-| **superadmin** | Global — gestiona workspaces, usuarios, suscripciones. Bypass de todas las guards |
-| **admin** | Dueño del workspace — gestiona usuarios hijos y activa módulos |
-| **hijo** | Operativo restringido — solo módulos asignados por el admin |
+| **superadmin** | Global — dashboard con stats, CRUD de workspaces, usuarios, módulos, planes, suscripciones |
+| **admin** | Dueño del workspace — dashboard, usuarios hijos, configuración del workspace |
+| **hijo** | Usuario operativo restringido — acceso limitado a módulos asignados por el admin |
 
 ---
 
 ## Estado Actual
 
-### Implementado
+### Landing Page
+- Header, Hero, Features, **Módulos** (desde DB, ordenados por status → tier), **Precios** (desde DB, con carrusel Embla 3+ planes, soporte drag + botones), About, CTA, Footer
+- Carrusel desktop para 3+ planes con arrastre (drag) y botones de navegación centrados debajo
+- Mobile: primeras 3 cards + botón "Ver X planes más" expandible
 
-- [x] Auth custom con JWT (jose) + httpOnly cookie + SameSite=Strict
-- [x] Edge proxy (`proxy.ts`) — verifica JWT, inyecta headers, protege rutas
-- [x] Middleware de ruta (`authenticate`, `withAuth`, `requireRole`, `requireModule`)
-- [x] Registro + login con email/contraseña
-- [x] Creación automática de workspace + admin + módulo gratuito TransferCheck
-- [x] Landing page: header, hero, features, módulos, pricing, about, CTA, footer (Free: TransferCheck + 1 usuario)
-- [x] Dashboard del workspace (módulos activos)
-- [x] Panel SuperAdmin: dashboard, workspaces list/detail/create, users list/detail
-- [x] Panel Admin: dashboard, users CRUD (admin/hijo), workspace rename
-- [x] Aislamiento por workspace (cada workspace tiene sus propios datos)
-- [x] Seed script (`pnpm run seed`)
-- [x] Logout (`POST /api/auth/logout`) + botón en sidebar/navbar
-- [x] Sesión por inactividad (15 min, auto-logout vía `SessionTimeout`)
-- [x] Redirección automática en `/login` si ya hay sesión activa
-- [x] Páginas de error personalizadas (404, 500) + loading spinners por segmento
-- [x] Recuperación de contraseña (Resend + JWT de 15 min)
-- [x] Verificación de email (registro con `isActive: false`, correo con enlace, token JWT 24h, endpoint `/verify-email`)
-- [x] Rate limiting en login/register (Upstash Redis, fixed window, 5/15min login — 3/30min register)
-- [x] Componentes UI compartidos: AuthLayout, InputField, Button, StatusCard, ErrorMessage, ConfirmDialog
-- [x] Tablas responsive (stack a cards en mobile)
-- [x] ConfirmDialog modal para confirmación de eliminación
-- [x] NavLink con estado activo (exact/startsWith)
-- [x] SidebarShell responsive: sidebar desktop + bottom nav mobile + bottom sheet "Más"
-- [x] Layout con sidebar para módulos (`(modules)/layout.tsx`)
-- [x] Seguridad: headers CSP/HSTS en `next.config.ts`, metadata OG/locale es_CO, sitemap/robots
+### Auth
+- JWT custom (jose) con httpOnly cookie, SameSite=Strict, 7d expiración
+- Login, registro, logout, recuperación de contraseña, verificación de email
+- Rate limiting: 25 intentos / 5 min para login y register (Upstash Redis, fixed window)
+- Sesión por inactividad (15 min, auto-logout)
+- Registro con plan: `/register?plan=PLAN_ID` asocia el workspace al plan seleccionado
 
-### Pendiente
+### Planes y Módulos (Catálogo Dinámico)
+- **Module CRUD**: superadmin puede crear/editar/eliminar módulos (key, name, tier, status, cuota)
+- **Plan CRUD**: planes de precios configurables desde BD con soporte para:
+  - Precio opcional (vacío = "Sin precio" en la landing)
+  - `isEnterprise`: planes a medida con borde punteado ámbar y CTA de WhatsApp
+  - `whatsappNumber`: genera link `https://wa.me/NUMBER` automáticamente
+  - `support`: ninguno, email, prioritario, canales, dedicado
+  - `onboarding`: ninguno, autoguiado, videos, documentación, dedicado
+  - `ctaLink`: autogenerado `/register?plan=ID` para planes normales
+  - "Basado en": hereda módulos + usuarios + características + soporte + onboarding de otro plan (solo lectura en checkboxes)
+  - Módulos heredados visibles como solo lectura; solo los extras son seleccionables
+  - Botones rápidos: Gratis / Premium / Todos / Ninguno para filtrar módulos
+- **Pricing Component**: server component que carga planes desde BD con populate de módulos
+  - Free: muestra cuota máxima entre módulos gratis
+  - Premium: muestra suma total de cuotas de módulos premium
+  - Enterprise: borde punteado, sin precio, CTA de WhatsApp
+- **Registration**: crea workspace + subscriptions según el plan seleccionado
+  - Planes gratis: `isPayReady = true`, subs `active`
+  - Planes de pago/enterprise: `isPayReady = false`, subs `inactive`
 
-- [ ] Módulos: AntecedentesCheck, Facturación, Cartera, etc.
-- [ ] UI de activación/gestión de módulos
-- [ ] Paginación en listas
+### Webhook de Pago / isPayReady
+- `Workspace.isPayReady`: flag booleano (default: false al registrarse con plan de pago)
+- Cuando `isPayReady = false`: módulos visibles en dashboard pero inactivos, con banner "Pago pendiente"
+- Superadmin togglea `isPayReady` desde el panel de workspace → activa todas las suscripciones
+- `Workspace.plan`: referencia al Plan asociado
+
+### Paneles de Administración
+- **Dashboard Superadmin**: stats agrupados en 4 secciones (Workspaces, Módulos, Planes, Usuarios + Suscripciones) con cards clicables
+  - MRR calculado de workspaces activos con pago confirmado
+  - Cards simplificadas con solo métricas accionables
+- **Admin**: dashboard, usuarios CRUD, workspace settings
+- **Superadmin**: workspaces list/detail/create/delete, users list/detail, módulos CRUD, planes CRUD, gestión de suscripciones por workspace
+
+### UI/UX
+- Responsive: sidebar desktop + bottom nav mobile + bottom sheet "Más"
+- Tablas responsive (stack a cards en mobile)
+- Sesión timeout con `SessionTimeout`
+- Error pages 404/500, loading spinners
+- Componentes compartidos: AuthLayout, InputField, Button, StatusCard, ErrorMessage, ConfirmDialog
+- SidebarShell con NavLink activo por pathname
+- Quota helper: `checkQuota()` y `getQuotaInfo()` para control de consumo por módulo
+
+### Seguridad y SEO
+- Seguridad: headers CSP/HSTS en `next.config.ts`
+- Metadata OG/locale es_CO, sitemap.xml, robots.txt
+- Proxy Edge protege rutas, inyecta headers de sesión
+- Workspace isolation en todas las queries
 
 ---
 
@@ -74,43 +102,60 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 |---|---|---|
 | `/` | Público | Landing page |
 | `/login` | Público | Inicio de sesión |
-| `/register` | Público | Registro de empresa |
+| `/register?plan=ID` | Público | Registro con plan opcional |
+| `/forgot-password` | Público | Recuperar contraseña |
+| `/reset-password` | Público | Restablecer contraseña |
+| `/verify-email` | Público | Verificar email |
 | `/dashboard` | Autenticado | Dashboard del workspace |
-| `/transfercheck` | Autenticado + módulo activo | Módulo TransferCheck |
+| `/transfercheck` | Autenticado | Módulo TransferCheck |
+| `/admin` | superadmin | Dashboard con stats |
+| `/admin/workspaces` | superadmin | Lista de workspaces |
+| `/admin/workspaces/create` | superadmin | Crear workspace |
+| `/admin/workspaces/[id]` | superadmin | Detalle + gestión de suscripciones |
+| `/admin/modules` | superadmin | Lista de módulos |
+| `/admin/modules/create` | superadmin | Crear módulo |
+| `/admin/modules/[id]` | superadmin | Editar módulo |
+| `/admin/plans` | superadmin | Lista de planes |
+| `/admin/plans/create` | superadmin | Crear plan |
+| `/admin/plans/[id]` | superadmin | Editar plan |
+| `/admin/users` | superadmin | Lista global de usuarios |
+| `/admin/users/[id]` | superadmin | Detalle de usuario |
 | `/users` | admin | Lista de usuarios del workspace |
 | `/users/create` | admin | Crear usuario |
 | `/users/[id]` | admin | Editar usuario |
 | `/workspace` | admin | Configuración del workspace |
-| `/admin` | superadmin | Dashboard admin |
-| `/admin/workspaces` | superadmin | Lista de workspaces |
-| `/admin/workspaces/create` | superadmin | Crear workspace |
-| `/admin/workspaces/[id]` | superadmin | Detalle de workspace |
-| `/admin/users` | superadmin | Lista de usuarios global |
-| `/admin/users/[id]` | superadmin | Detalle de usuario |
-| `POST /api/auth/login` | Público | Login endpoint |
-| `POST /api/auth/register` | Público | Registro endpoint |
-| `POST /api/auth/logout` | Autenticado | Cerrar sesión |
-| `GET /api/auth/session` | — | Verificar si hay sesión activa |
-| `/forgot-password` | Público | Solicitar recuperación de contraseña |
-| `/reset-password` | Público | Restablecer contraseña (vía token) |
-| `/verify-email` | Público | Verificar correo (vía token) |
-| `POST /api/auth/forgot-password` | Público | Enviar email con enlace de recuperación |
-| `POST /api/auth/reset-password` | Público | Ejecutar cambio de contraseña |
-| `POST /api/auth/verify-email` | Público | Verificar correo electrónico |
-| `GET /api/admin/users` | superadmin | Lista usuarios (filtrable por workspace) |
-| `GET/PUT/DELETE /api/admin/users/[id]` | superadmin | CRUD usuario global |
-| `GET/POST /api/admin/workspaces` | superadmin | Lista/Crear workspace |
-| `GET/PUT/DELETE /api/admin/workspaces/[id]` | superadmin | CRUD workspace (cascade delete) |
-| `GET/POST /api/users` | admin | Lista/Crear usuario del workspace |
-| `GET/PUT/DELETE /api/users/[id]` | admin | CRUD usuario del workspace |
-| `GET/PUT /api/workspaces/[id]` | admin | Ver/renombrar workspace |
+
+### API Routes
+
+| Ruta | Método | Acceso | Propósito |
+|---|---|---|---|
+| `/api/auth/login` | POST | Público | Login |
+| `/api/auth/register` | POST | Público | Registro (acepta planId) |
+| `/api/auth/logout` | POST | Autenticado | Cerrar sesión |
+| `/api/auth/forgot-password` | POST | Público | Enviar email de recuperación |
+| `/api/auth/reset-password` | POST | Público | Cambiar contraseña |
+| `/api/auth/verify-email` | POST | Público | Verificar email |
+| `/api/auth/session` | GET | — | Estado de sesión |
+| `/api/admin/stats` | GET | superadmin | Stats del dashboard |
+| `/api/admin/modules` | GET/POST | superadmin | Listar/Crear módulo |
+| `/api/admin/modules/[id]` | GET/PUT/DELETE | superadmin | CRUD módulo |
+| `/api/admin/plans` | GET/POST | superadmin | Listar/Crear plan |
+| `/api/admin/plans/[id]` | GET/PUT/DELETE | superadmin | CRUD plan |
+| `/api/admin/workspaces` | GET/POST | superadmin | Listar/Crear workspace |
+| `/api/admin/workspaces/[id]` | GET/PUT/DELETE | superadmin | CRUD workspace (con isPayReady) |
+| `/api/admin/workspaces/[id]/subscriptions` | GET/POST | superadmin | Gestionar suscripciones |
+| `/api/admin/workspaces/[id]/subscriptions/[subId]` | PUT/DELETE | superadmin | Editar/Eliminar suscripción |
+| `/api/admin/users` | GET | superadmin | Lista usuarios (filtrable) |
+| `/api/admin/users/[id]` | GET/PUT/DELETE | superadmin | CRUD usuario global |
+| `/api/users` | GET/POST | admin | Listar/Crear usuario del workspace |
+| `/api/users/[id]` | GET/PUT/DELETE | admin | CRUD usuario del workspace |
+| `/api/workspaces/[id]` | GET/PUT | admin | Ver/renombrar workspace |
 
 ---
 
 ## Getting Started
 
 ### Prerrequisitos
-
 - Node.js >= 18
 - pnpm
 - MongoDB (local o Atlas)
@@ -121,7 +166,7 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 pnpm install
 ```
 
-### Variables de entorno
+### Variables de entorno (`.env.local`)
 
 ```env
 MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net/zentral
@@ -140,121 +185,18 @@ pnpm run seed
 
 Crea:
 - SuperAdmin: `admin@zentral.dev` / `admin123`
-- Demo workspace + admin: `admin@demo-corp.com` / `demo123`
-- Suscripción gratuita a TransferCheck para el workspace demo
+- Workspace Demo (Premium, isPayReady=true): `admin@demo-corp.com` / `demo123` con todos los módulos
+- Workspace Free Test (Free, isPayReady=true): solo TransferCheck
+- Workspace Pending Corp (Premium, isPayReady=false): todos los módulos inactivos (para testear flujo de pago pendiente)
+- 4 módulos: TransferCheck, AntecedentesCheck, Facturación Electrónica, Cartera
+- 3 planes: Free, Premium, Enterprise
 
 ### Desarrollo
 
 ```bash
-pnpm run dev
-```
-
----
-
-## Estructura del Proyecto
-
-```
-src/
-├── proxy.ts                    # Edge proxy — JWT + route protection
-├── types/
-│   └── index.ts                # Tipos compartidos (Role, ModuleTier, etc.)
-├── components/
-│   ├── session-timeout.tsx     # Client component: auto-logout 15 min inactividad
-│   ├── logout-button.tsx       # Botón "Cerrar Sesión"
-│   ├── nav-link.tsx            # NavLink con estado activo (usePathname)
-│   ├── sidebar-shell.tsx       # Sidebar desktop + bottom nav mobile + bottom sheet
-│   ├── ui/
-│   │   ├── auth-layout.tsx     # Layout para páginas de auth
-│   │   ├── button.tsx          # Botón reutilizable con loading
-│   │   ├── confirm-dialog.tsx  # Modal de confirmación
-│   │   ├── error-message.tsx   # Mensaje de error
-│   │   ├── input-field.tsx     # Input con label + toggle password
-│   │   ├── status-card.tsx     # Card de estado (éxito/error)
-│   │   └── index.ts            # Barrel export
-│   └── landing/
-│       ├── header.tsx
-│       ├── hero.tsx
-│       ├── features.tsx
-│       ├── modules-grid.tsx
-│       ├── pricing.tsx
-│       ├── about.tsx
-│       ├── cta.tsx
-│       └── footer.tsx
-├── lib/
-│   ├── auth/
-│   │   ├── jwt.ts              # signJwt / verifyJwt (sesión) + signResetToken/verifyResetToken (reset pwd) + signVerificationToken/verifyVerificationToken (email)
-│   │   ├── password.ts         # hashPassword / verifyPassword (bcryptjs)
-│   │   ├── session.ts          # getSession (server components)
-│   │   └── api.ts              # getApiAuth() (API routes)
-│   ├── email/
-│   │   └── resend.ts           # sendResetPasswordEmail + sendVerificationEmail (Resend)
-│   ├── db/
-│   │   └── mongoose.ts         # Conexión a MongoDB (singleton)
-│   ├── middleware/
-│   │   ├── auth.ts             # authenticate() + withAuth()
-│   │   ├── require-role.ts     # requireRole()
-│   │   ├── require-module.ts   # requireModule()
-│   │   └── rate-limit.ts       # Upstash Redis rate limiter
-│   ├── models/
-│   │   ├── user.ts             # User schema
-│   │   ├── workspace.ts        # Workspace schema
-│   │   └── module-subscription.ts  # ModuleSubscription schema
-│   └── seed.ts                 # Lógica de seed
-├── app/
-│   ├── layout.tsx              # Root layout
-│   ├── page.tsx                # Landing page
-│   ├── not-found.tsx           # 404 personalizada
-│   ├── error.tsx               # Error boundary global
-│   ├── loading.tsx             # Loading spinner global
-│   ├── globals.css             # Tailwind v4
-│   ├── sitemap.ts              # Sitemap dinámico
-│   ├── robots.ts               # Robots.txt
-│   ├── (auth)/
-│   │   ├── login/page.tsx
-│   │   ├── register/page.tsx
-│   │   ├── forgot-password/page.tsx
-│   │   ├── reset-password/page.tsx
-│   │   └── verify-email/page.tsx
-│   ├── (core)/
-│   │   ├── layout.tsx          # Sidebar + bottom nav (admin/hijo)
-│   │   ├── loading.tsx
-│   │   ├── error.tsx
-│   │   ├── dashboard/page.tsx
-│   │   ├── users/page.tsx
-│   │   ├── users/create/page.tsx
-│   │   ├── users/[id]/page.tsx
-│   │   └── workspace/page.tsx
-│   ├── (modules)/
-│   │   ├── layout.tsx          # Sidebar + bottom nav para módulos
-│   │   └── transfercheck/page.tsx
-│   ├── admin/
-│   │   ├── layout.tsx          # Sidebar + bottom nav (superadmin)
-│   │   ├── page.tsx
-│   │   ├── loading.tsx
-│   │   ├── error.tsx
-│   │   ├── workspaces/page.tsx
-│   │   ├── workspaces/create/page.tsx
-│   │   ├── workspaces/[id]/page.tsx
-│   │   ├── users/page.tsx
-│   │   ├── users/[id]/page.tsx
-│   │   └── users/delete-button.tsx
-│   └── api/
-│       ├── auth/
-│       │   ├── login/route.ts
-│       │   ├── register/route.ts
-│       │   ├── logout/route.ts
-│       │   ├── forgot-password/route.ts
-│       │   ├── reset-password/route.ts
-│       │   ├── session/route.ts
-│       │   └── verify-email/route.ts
-│       ├── admin/
-│       │   ├── users/route.ts
-│       │   ├── users/[id]/route.ts
-│       │   ├── workspaces/route.ts
-│       │   └── workspaces/[id]/route.ts
-│       ├── users/route.ts
-│       ├── users/[id]/route.ts
-│       └── workspaces/[id]/route.ts
+pnpm run dev     # Next.js dev server (Turbopack)
+pnpm run build   # Build de producción
+pnpm run seed    # Poblar base de datos
 ```
 
 ---
@@ -268,8 +210,9 @@ src/
 | passwordHash | String | bcrypt |
 | name | String | — |
 | role | enum | superadmin \| admin \| hijo |
-| workspace | ref → Workspace | nullable (superadmin no tiene) |
-| isActive | Boolean | default: true (false al registrarse, se activa al verificar email) |
+| workspace | ref → Workspace | nullable |
+| isActive | Boolean | default: false (registro), se activa al verificar email |
+| createdBy | ref → User | nullable |
 
 ### Workspace
 | Campo | Tipo | Detalle |
@@ -278,44 +221,75 @@ src/
 | slug | String | único, lowercase |
 | owner | ref → User | nullable |
 | isActive | Boolean | default: true |
+| isPayReady | Boolean | default: false (pago pendiente hasta confirmación) |
+| plan | ref → Plan | Plan asociado (opcional) |
+
+### Module
+| Campo | Tipo | Detalle |
+|---|---|---|
+| key | String | Identificador único (slug) |
+| name | String | Nombre comercial |
+| description | String | Descripción |
+| tier | enum | free \| premium |
+| status | enum | active \| inactive \| coming_soon |
+| defaultQuota | Number | Cuota por defecto |
+| icon | String | Icono (opcional) |
 
 ### ModuleSubscription
 | Campo | Tipo | Detalle |
 |---|---|---|
-| workspace | ref → Workspace | index |
+| workspace | ref → Workspace | Índice |
 | moduleKey | String | ej. "transfercheck" |
 | tier | enum | free \| premium |
 | status | enum | active \| inactive \| suspended |
-| expiresAt | Date | nullable |
-| price, currency, billingPeriod, paymentProvider | ... | campos futuros de pago |
+| monthlyQuota | Number | Límite mensual |
+| usedQuota | Number | Consultas consumidas |
+| quotaResetAt | Date | Fecha de reseteo |
 
-Índice único compuesto: `{ workspace, moduleKey }`
+### Plan
+| Campo | Tipo | Detalle |
+|---|---|---|
+| name | String | Nombre del plan |
+| price | String | Texto del precio ("$12", "", "A medida") |
+| monthlyPrice | Number or null | Precio numérico mensual |
+| description | String | Descripción corta |
+| includedModules | Array | Módulos con cuota override |
+| maxUsers | Number | Usuarios máximos (0 = ilimitado) |
+| extraFeatures | String[] | Características extra |
+| support | String | Tipos: ninguno, email, prioritario, canales, dedicado |
+| onboarding | String | Tipos: ninguno, autoguiado, videos, documentación, dedicado |
+| cta | String | Texto del botón |
+| ctaLink | String | Link del botón (autogenerado `/register?plan=ID`) |
+| highlighted | Boolean | "Más popular" |
+| isEnterprise | Boolean | Plan a medida |
+| whatsappNumber | String | Solo para enterprise |
+| sortOrder | Number | Orden de aparición |
+| isActive | Boolean | Visible en landing |
+
+---
+
+## Documentación
+
+- [Catálogo de Módulos](docs/PLAN.md)
+- [Planes de Precios](docs/PLANES.md)
+- [Panel de Administración](docs/ADMIN.md)
+- [Design System](docs/DESIGN_SYSTEM.md)
 
 ---
 
 ## Seguridad
 
 - **Cookies**: httpOnly + SameSite=Strict + Secure (producción)
-- **JWT**: HS256, expiración 7 días, firmado con jose
-- **Proxy Edge**: verifica token antes de llegar a la ruta, inyecta headers `x-user-id`, `x-user-role`, `x-workspace-id`
-- **Route Guards**: middleware de ruta verifica headers + DB en cada request
-- **RBAC**: superadmin bypass, admin/hijo validados contra su workspace y rol
+- **JWT**: HS256, 7d sesión, 15min reset, 24h verificación
+- **Rate Limiting**: Upstash Redis, fixed window por IP, 25 intentos / 5 min
+- **RBAC**: superadmin bypass, admin/hijo validados contra su workspace
 - **Workspace Isolation**: cada query filtra por workspace del usuario
-- **Inactivity Timeout**: 15 min sin interacción → logout automático (SessionTimeout)
-- **Rate Limiting**: Upstash Redis, fixed window por IP (`x-forwarded-for`), login 5 intentos / 15 min, register 3 intentos / 30 min. Headers `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining` en respuestas 429. Bypass silencioso si Redis falla.
-- **Email Verification**: registro crea usuario `isActive: false`, se envía correo con token JWT (24h), login bloqueado hasta verificar en `/verify-email`.
-
----
-
-## Design System
-
-Ver [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) para la paleta completa: fondos, tipografía, inputs, botones, spinners e iconografía del estilo "Zentral Tech Core" (modo oscuro profesional).
+- **Email Verification**: bloqueo de login hasta verificación
+- **Edge Proxy**: protege rutas, inyecta headers de sesión
 
 ---
 
 ## Despliegue
-
-Construcción estándar de Next.js:
 
 ```bash
 pnpm run build

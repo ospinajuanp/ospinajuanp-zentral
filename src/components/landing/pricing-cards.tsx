@@ -71,9 +71,9 @@ export function PricingCards({ plans }: { plans: PlanCardData[] }) {
           </div>
         </div>
       ) : (
-        <div className="hidden sm:flex gap-8 justify-center items-stretch">
+        <div className="hidden sm:flex flex-wrap gap-8 justify-center items-stretch">
           {plans.map((p) => (
-            <div key={p._id} className="flex-1 max-w-sm flex flex-col">
+            <div key={p._id} className="w-[22rem] max-w-full flex flex-col">
               <PlanCard plan={p} />
             </div>
           ))}
