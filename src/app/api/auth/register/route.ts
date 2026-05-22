@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db/mongoose';
 import { User } from '@/lib/models/user';
 import { Workspace } from '@/lib/models/workspace';
 import { ModuleSubscription } from '@/lib/models/module-subscription';
+import { Module } from '@/lib/models/module';
+import { Plan } from '@/lib/models/plan';
 import { hashPassword, signVerificationToken } from '@/lib/auth';
 import { sendVerificationEmail } from '@/lib/email/resend';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
@@ -87,12 +89,34 @@ export async function POST(request: NextRequest) {
   workspace.owner = user._id;
   await workspace.save();
 
-  await ModuleSubscription.create({
-    workspace: workspace._id,
-    moduleKey: 'transfercheck',
-    tier: 'free',
-    status: 'active',
-  });
+  const freePlan = await Plan.findOne({ isActive: true }).sort({ sortOrder: 1 }).populate('includedModules.module', 'key').lean();
+
+  if (freePlan && freePlan.includedModules && freePlan.includedModules.length > 0) {
+    const allModules = await Module.find().lean();
+    const subs = freePlan.includedModules.map((im: { module: { key: string; _id: string }; quotaOverride: number | null }) => {
+      const mod = allModules.find((m) => m._id.toString() === im.module._id.toString());
+      return {
+        workspace: workspace._id,
+        moduleKey: mod?.key ?? im.module.key,
+        tier: 'free',
+        status: 'active',
+        monthlyQuota: im.quotaOverride ?? mod?.defaultQuota ?? 100,
+        usedQuota: 0,
+        quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+      };
+    });
+    await ModuleSubscription.insertMany(subs);
+  } else {
+    await ModuleSubscription.create({
+      workspace: workspace._id,
+      moduleKey: 'transfercheck',
+      tier: 'free',
+      status: 'active',
+      monthlyQuota: 100,
+      usedQuota: 0,
+      quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+    });
+  }
 
   const verificationToken = await signVerificationToken({
     email: user.email,
