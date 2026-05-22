@@ -183,13 +183,9 @@ KV_REST_API_TOKEN=tu-token-upstash
 pnpm run seed
 ```
 
-Crea:
-- SuperAdmin: `admin@zentral.dev` / `admin123`
-- Demo Corp (Premium, isPayReady=true): `admin@demo-corp.com` / `demo123` — todos los módulos activos
-- Plus Corp (Premium Plus, isPayReady=true): `admin@plus-corp.com` / `plus123` — todos los módulos activos
-  - Hijo: `hijo@plus-corp.com` / `hijo123`
-- 4 módulos: TransferCheck (activo), AntecedentesCheck, Facturación Electrónica, Cartera (próximamente)
-- 4 planes: Free ($0), Premium ($12), Premium Plus ($24), Enterprise (WhatsApp)
+Crea 4 módulos, 4 planes, 2 workspaces y 4 usuarios con datos de prueba.
+
+> Las credenciales exactas (usuarios, contraseñas, workspaces) están en `.seed-credentials.md` (incluido en `.gitignore` para no exponerlas en el repositorio).
 
 ### Desarrollo
 

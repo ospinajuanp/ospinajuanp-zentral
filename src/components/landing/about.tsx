@@ -18,7 +18,7 @@ export function About() {
           <p className="mt-4 text-lg font-medium text-slate-300">
             Creado por{' '}
             <a
-              href="https://github.com/ospinajuanp"
+              href="https://ospinajuanp-portafolio.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-white underline underline-offset-2 hover:text-slate-400"
