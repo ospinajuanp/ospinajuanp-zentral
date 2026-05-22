@@ -49,15 +49,15 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 - [x] Redirección automática en `/login` si ya hay sesión activa
 - [x] Páginas de error personalizadas (404, 500) + loading spinners por segmento
 - [x] Recuperación de contraseña (Resend + JWT de 15 min)
+- [x] Verificación de email (registro con `isActive: false`, correo con enlace, token JWT 24h, endpoint `/verify-email`)
+- [x] Rate limiting en login/register (Upstash Redis, fixed window, 5/15min login — 3/30min register)
 
 ### Pendiente
 
 - [ ] Módulos: AntecedentesCheck, Facturación, WhatsApp CRM, Cuentas de Cobro, Reportes SG-SST, Reservas PH, Agendamiento, Optimizador de Rutas, Cobro Preventivo
 - [ ] UI de activación/gestión de módulos
 - [ ] Edición de usuarios y workspaces
-- [x] Rate limiting en login/register (Upstash Redis, fixed window, 5/15min login — 3/30min register)
 - [ ] Paginación en listas
-- [x] Verificación de email (registro con isActive: false, token 24h vía jose, endpoint verify-email)
 
 ---
 
@@ -109,6 +109,8 @@ MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net/zentral
 JWT_SECRET=tu-secreto-seguro-aqui
 RESEND_API_KEY=re_...
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+KV_REST_API_URL=https://...upstash.io
+KV_REST_API_TOKEN=tu-token-upstash
 ```
 
 ### Seed
@@ -161,7 +163,8 @@ src/
 │   ├── middleware/
 │   │   ├── auth.ts             # authenticate() + withAuth()
 │   │   ├── require-role.ts     # requireRole()
-│   │   └── require-module.ts   # requireModule()
+│   │   ├── require-module.ts   # requireModule()
+│   │   └── rate-limit.ts       # Upstash Redis rate limiter
 │   ├── models/
 │   │   ├── user.ts             # User schema
 │   │   ├── workspace.ts        # Workspace schema
@@ -178,7 +181,8 @@ src/
 │   │   ├── login/page.tsx
 │   │   ├── register/page.tsx
 │   │   ├── forgot-password/page.tsx
-│   │   └── reset-password/page.tsx
+│   │   ├── reset-password/page.tsx
+│   │   └── verify-email/page.tsx
 │   ├── (core)/
 │   │   ├── layout.tsx          # Navbar + SessionTimeout + logout
 │   │   ├── loading.tsx
@@ -249,6 +253,8 @@ src/
 - **RBAC**: superadmin bypass, admin/hijo validados contra su workspace y rol
 - **Workspace Isolation**: cada query filtra por workspace del usuario
 - **Inactivity Timeout**: 15 min sin interacción → logout automático (SessionTimeout)
+- **Rate Limiting**: Upstash Redis, fixed window por IP (`x-forwarded-for`), login 5 intentos / 15 min, register 3 intentos / 30 min. Headers `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining` en respuestas 429. Bypass silencioso si Redis falla.
+- **Email Verification**: registro crea usuario `isActive: false`, se envía correo con token JWT (24h), login bloqueado hasta verificar en `/verify-email`.
 
 ---
 
