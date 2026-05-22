@@ -6,6 +6,7 @@ const plans = [
     features: [
       'Módulo TransferCheck',
       '1 usuario',
+      '100 consultas / mes',
     ],
     cta: 'Empezar gratis',
     highlighted: false,
@@ -17,6 +18,7 @@ const plans = [
     features: [
       'Todo lo de Free',
       '5 usuarios',
+      '500 consultas / mes',
       'Soporte por email',
       'Módulos en beta gratis',
     ],
@@ -29,6 +31,7 @@ const plans = [
     description: 'Solución personalizada para tu negocio.',
     features: [
       'Todo lo de Premium',
+      'Consultas ilimitadas',
       'Soporte prioritario',
       'Factura personalizada',
       'Onboarding dedicado',
