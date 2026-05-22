@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import useEmblaCarousel from 'embla-carousel-react';
 
-interface PlanCard {
+interface PlanCardData {
   _id: string;
   name: string;
   price: string;
@@ -18,74 +19,54 @@ interface PlanCard {
   }>;
 }
 
-export function PricingCards({ plans }: { plans: PlanCard[] }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+export function PricingCards({ plans }: { plans: PlanCardData[] }) {
   const [showAllMobile, setShowAllMobile] = useState(false);
-  const dragState = useRef<{ startX: number; scrollLeft: number; isDragging: boolean; moved: boolean }>({
-    startX: 0, scrollLeft: 0, isDragging: false, moved: false,
-  });
+  const isCarousel = plans.length > 3;
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!scrollRef.current || e.button !== 0) return;
-    const el = scrollRef.current;
-    dragState.current = {
-      startX: e.pageX,
-      scrollLeft: el.scrollLeft,
-      isDragging: true,
-      moved: false,
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    isCarousel ? { align: 'start', dragFree: false, loop: false } : undefined
+  );
+
+  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+
+  /* prevent link clicks during drag */
+  const draggedRef = useRef(false);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onPointerDown = () => { draggedRef.current = false; };
+    const onScroll = () => { draggedRef.current = true; };
+    emblaApi.on('pointerDown', onPointerDown);
+    emblaApi.on('scroll', onScroll);
+    return () => {
+      emblaApi.off('pointerDown', onPointerDown);
+      emblaApi.off('scroll', onScroll);
     };
-    el.style.cursor = 'grabbing';
-    el.style.userSelect = 'none';
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!dragState.current.isDragging || !scrollRef.current) return;
-    const dx = e.pageX - dragState.current.startX;
-    if (Math.abs(dx) > 5) dragState.current.moved = true;
-    scrollRef.current.scrollLeft = dragState.current.scrollLeft - dx;
-  };
-
-  const handleMouseUp = () => {
-    if (!scrollRef.current) return;
-    scrollRef.current.style.cursor = '';
-    scrollRef.current.style.userSelect = '';
-    dragState.current.isDragging = false;
-  };
-
-  const handleMouseLeave = () => {
-    if (dragState.current.isDragging) handleMouseUp();
-  };
+  }, [emblaApi]);
 
   const handleCardClick = (e: React.MouseEvent) => {
-    if (dragState.current.moved) {
+    if (draggedRef.current) {
       e.preventDefault();
       e.stopPropagation();
     }
   };
 
-  const scroll = (dir: 'left' | 'right') => {
-    if (!scrollRef.current) return;
-    const amount = scrollRef.current.clientWidth * 0.8;
-    scrollRef.current.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
-  };
-
   const visiblePlans = showAllMobile ? plans : plans.slice(0, 3);
-
-  const isCarousel = plans.length > 3;
 
   return (
     <div className="mt-16">
       {/* Desktop carousel controls */}
       {isCarousel && (
-        <div className="mb-6 hidden items-center justify-end gap-2 sm:flex">
-          <button onClick={() => scroll('left')}
-            className="rounded-full border border-slate-700 p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+        <div className="mb-8 hidden justify-center gap-3 sm:flex">
+          <button onClick={scrollPrev}
+            className="rounded-full border border-slate-700 p-2.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
             aria-label="Anterior"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           </button>
-          <button onClick={() => scroll('right')}
-            className="rounded-full border border-slate-700 p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+          <button onClick={scrollNext}
+            className="rounded-full border border-slate-700 p-2.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
             aria-label="Siguiente"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -93,25 +74,26 @@ export function PricingCards({ plans }: { plans: PlanCard[] }) {
         </div>
       )}
 
-      {/* Desktop: grid or carousel */}
-      <div
-        ref={scrollRef}
-        onMouseDown={isCarousel ? handleMouseDown : undefined}
-        onMouseMove={isCarousel ? handleMouseMove : undefined}
-        onMouseUp={isCarousel ? handleMouseUp : undefined}
-        onMouseLeave={isCarousel ? handleMouseLeave : undefined}
-        className={`hidden sm:flex gap-8 ${
-          isCarousel
-            ? 'overflow-x-auto snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden cursor-grab'
-            : 'justify-center'
-        }`}
-      >
-        {plans.map((p) => (
-          <div key={p._id} className={`${isCarousel ? 'w-[22rem] shrink-0 snap-start' : 'flex-1 max-w-sm'}`} onClick={handleCardClick}>
-            <PlanCard plan={p} />
+      {/* Desktop: grid or Embla carousel */}
+      {isCarousel ? (
+        <div className="hidden sm:block overflow-hidden -mx-4 px-4" ref={emblaRef}>
+          <div className="flex gap-8">
+            {plans.map((p) => (
+              <div key={p._id} className="min-w-0 shrink-0 grow-0 basis-[22rem]" onClick={handleCardClick}>
+                <PlanCard plan={p} />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className="hidden sm:flex gap-8 justify-center">
+          {plans.map((p) => (
+            <div key={p._id} className="flex-1 max-w-sm">
+              <PlanCard plan={p} />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Mobile: first 3 + expand button */}
       <div className="grid gap-8 sm:hidden">
@@ -137,7 +119,7 @@ export function PricingCards({ plans }: { plans: PlanCard[] }) {
   );
 }
 
-function PlanCard({ plan }: { plan: PlanCard }) {
+function PlanCard({ plan }: { plan: PlanCardData }) {
   const p = plan;
 
   const includedModules = (p.includedModules ?? []) as Array<{
@@ -170,7 +152,7 @@ function PlanCard({ plan }: { plan: PlanCard }) {
       }`}
     >
       {p.highlighted && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-zinc-800 px-4 py-1 text-xs font-medium text-zinc-300">
+        <span className="-mt-6 mb-4 mx-auto w-fit rounded-full bg-zinc-800 px-4 py-1 text-xs font-medium text-zinc-300">
           Más popular
         </span>
       )}
