@@ -22,6 +22,14 @@ function BuildingIcon() {
   );
 }
 
+function ModuleIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+    </svg>
+  );
+}
+
 function UsersIcon() {
   return (
     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -33,6 +41,7 @@ function UsersIcon() {
 const bottomNav = [
   { label: 'Dashboard', href: '/admin', icon: <HomeIcon />, exact: true },
   { label: 'Workspaces', href: '/admin/workspaces', icon: <BuildingIcon /> },
+  { label: 'Módulos', href: '/admin/modules', icon: <ModuleIcon /> },
   { label: 'Usuarios', href: '/admin/users', icon: <UsersIcon /> },
 ];
 
@@ -66,6 +75,7 @@ export default async function AdminLayout({
             <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
               <NavLink href="/admin" exact>Dashboard</NavLink>
               <NavLink href="/admin/workspaces">Workspaces</NavLink>
+              <NavLink href="/admin/modules">Módulos</NavLink>
               <NavLink href="/admin/users">Usuarios</NavLink>
             </nav>
 

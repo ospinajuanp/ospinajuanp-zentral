@@ -2,7 +2,43 @@ import dbConnect from './db/mongoose';
 import { User } from './models/user';
 import { Workspace } from './models/workspace';
 import { ModuleSubscription } from './models/module-subscription';
+import { Module } from './models/module';
 import { hashPassword } from './auth';
+
+const defaultModules = [
+  {
+    key: 'transfercheck',
+    name: 'TransferCheck',
+    description: 'Validación de transferencias bancarias y verificación de cuentas.',
+    tier: 'free' as const,
+    status: 'active' as const,
+    defaultQuota: 100,
+  },
+  {
+    key: 'antecedentes',
+    name: 'AntecedentesCheck',
+    description: 'Consulta de antecedentes judiciales, policivos y disciplinarios.',
+    tier: 'premium' as const,
+    status: 'coming_soon' as const,
+    defaultQuota: 500,
+  },
+  {
+    key: 'facturacion',
+    name: 'Facturación',
+    description: 'Gestión de facturación electrónica y documentos equivalentes.',
+    tier: 'premium' as const,
+    status: 'coming_soon' as const,
+    defaultQuota: 500,
+  },
+  {
+    key: 'cartera',
+    name: 'Cartera',
+    description: 'Gestión de cuentas de cobros, seguimiento de pagos y reconciliación.',
+    tier: 'premium' as const,
+    status: 'coming_soon' as const,
+    defaultQuota: 500,
+  },
+];
 
 export async function seed() {
   await dbConnect();
@@ -37,11 +73,19 @@ export async function seed() {
     createdBy: superAdmin._id,
   });
 
+  for (const mod of defaultModules) {
+    await Module.create(mod);
+    console.log(`[seed] Module created: ${mod.key}`);
+  }
+
   await ModuleSubscription.create({
     workspace: workspace._id,
     moduleKey: 'transfercheck',
     tier: 'free',
     status: 'active',
+    monthlyQuota: 100,
+    usedQuota: 0,
+    quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
   });
 
   workspace.owner = admin._id;

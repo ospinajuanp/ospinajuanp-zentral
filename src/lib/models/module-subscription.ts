@@ -13,6 +13,9 @@ export interface IModuleSubscription extends Document {
   billingPeriod?: BillingPeriod | null;
   paymentProvider?: string | null;
   paymentProviderId?: string | null;
+  monthlyQuota: number;
+  usedQuota: number;
+  quotaResetAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,6 +70,18 @@ const moduleSubscriptionSchema = new Schema<IModuleSubscription>(
     },
     paymentProviderId: {
       type: String,
+      default: null,
+    },
+    monthlyQuota: {
+      type: Number,
+      default: 100,
+    },
+    usedQuota: {
+      type: Number,
+      default: 0,
+    },
+    quotaResetAt: {
+      type: Date,
       default: null,
     },
   },

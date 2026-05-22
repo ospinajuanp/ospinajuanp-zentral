@@ -6,3 +6,6 @@ export type { IWorkspace } from './workspace';
 
 export { ModuleSubscription } from './module-subscription';
 export type { IModuleSubscription } from './module-subscription';
+
+export { Module } from './module';
+export type { IModule } from './module';

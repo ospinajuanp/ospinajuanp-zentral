@@ -14,3 +14,14 @@ export interface AuthUser {
   workspace?: string | null;
   isActive: boolean;
 }
+
+export interface ModuleInfo {
+  _id: string;
+  key: string;
+  name: string;
+  description: string;
+  tier: ModuleTier;
+  status: 'active' | 'inactive' | 'coming_soon';
+  defaultQuota: number;
+  icon?: string;
+}
