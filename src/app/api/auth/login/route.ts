@@ -4,8 +4,25 @@ import dbConnect from '@/lib/db/mongoose';
 import { User } from '@/lib/models/user';
 import { Workspace } from '@/lib/models/workspace';
 import { verifyPassword, signJwt } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/middleware/rate-limit';
 
 export async function POST(request: NextRequest) {
+  const rateLimit = await checkRateLimit(request, 'login');
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Demasiados intentos. Por favor, inténtalo de nuevo más tarde.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.retryAfter),
+          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Remaining': '0',
+          'Cache-Control': 'no-store, max-age=0, must-revalidate',
+        },
+      }
+    );
+  }
+
   const { email, password } = await request.json();
 
   if (!email || !password) {

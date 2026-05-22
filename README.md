@@ -55,7 +55,7 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 - [ ] Módulos: AntecedentesCheck, Facturación, WhatsApp CRM, Cuentas de Cobro, Reportes SG-SST, Reservas PH, Agendamiento, Optimizador de Rutas, Cobro Preventivo
 - [ ] UI de activación/gestión de módulos
 - [ ] Edición de usuarios y workspaces
-- [ ] Rate limiting en login/register
+- [x] Rate limiting en login/register (Upstash Redis, fixed window, 5/15min login — 3/30min register)
 - [ ] Paginación en listas
 - [x] Verificación de email (registro con isActive: false, token 24h vía jose, endpoint verify-email)
 
