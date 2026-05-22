@@ -39,9 +39,10 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 - [x] Middleware de ruta (`authenticate`, `withAuth`, `requireRole`, `requireModule`)
 - [x] Registro + login con email/contraseña
 - [x] Creación automática de workspace + admin + módulo gratuito TransferCheck
-- [x] Landing page: header, hero, features, módulos, pricing, about, CTA, footer
-- [x] Dashboard del workspace (módulos activos, link a admin)
-- [x] Panel SuperAdmin: dashboard, workspaces list/detail, users list/detail
+- [x] Landing page: header, hero, features, módulos, pricing, about, CTA, footer (Free: TransferCheck + 1 usuario)
+- [x] Dashboard del workspace (módulos activos)
+- [x] Panel SuperAdmin: dashboard, workspaces list/detail/create, users list/detail
+- [x] Panel Admin: dashboard, users CRUD (admin/hijo), workspace rename
 - [x] Aislamiento por workspace (cada workspace tiene sus propios datos)
 - [x] Seed script (`pnpm run seed`)
 - [x] Logout (`POST /api/auth/logout`) + botón en sidebar/navbar
@@ -51,12 +52,18 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 - [x] Recuperación de contraseña (Resend + JWT de 15 min)
 - [x] Verificación de email (registro con `isActive: false`, correo con enlace, token JWT 24h, endpoint `/verify-email`)
 - [x] Rate limiting en login/register (Upstash Redis, fixed window, 5/15min login — 3/30min register)
+- [x] Componentes UI compartidos: AuthLayout, InputField, Button, StatusCard, ErrorMessage, ConfirmDialog
+- [x] Tablas responsive (stack a cards en mobile)
+- [x] ConfirmDialog modal para confirmación de eliminación
+- [x] NavLink con estado activo (exact/startsWith)
+- [x] SidebarShell responsive: sidebar desktop + bottom nav mobile + bottom sheet "Más"
+- [x] Layout con sidebar para módulos (`(modules)/layout.tsx`)
+- [x] Seguridad: headers CSP/HSTS en `next.config.ts`, metadata OG/locale es_CO, sitemap/robots
 
 ### Pendiente
 
-- [ ] Módulos: AntecedentesCheck, Facturación, WhatsApp CRM, Cuentas de Cobro, Reportes SG-SST, Reservas PH, Agendamiento, Optimizador de Rutas, Cobro Preventivo
+- [ ] Módulos: AntecedentesCheck, Facturación, Cartera, etc.
 - [ ] UI de activación/gestión de módulos
-- [ ] Edición de usuarios y workspaces
 - [ ] Paginación en listas
 
 ---
@@ -70,10 +77,15 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `/register` | Público | Registro de empresa |
 | `/dashboard` | Autenticado | Dashboard del workspace |
 | `/transfercheck` | Autenticado + módulo activo | Módulo TransferCheck |
+| `/users` | admin | Lista de usuarios del workspace |
+| `/users/create` | admin | Crear usuario |
+| `/users/[id]` | admin | Editar usuario |
+| `/workspace` | admin | Configuración del workspace |
 | `/admin` | superadmin | Dashboard admin |
 | `/admin/workspaces` | superadmin | Lista de workspaces |
+| `/admin/workspaces/create` | superadmin | Crear workspace |
 | `/admin/workspaces/[id]` | superadmin | Detalle de workspace |
-| `/admin/users` | superadmin | Lista de usuarios |
+| `/admin/users` | superadmin | Lista de usuarios global |
 | `/admin/users/[id]` | superadmin | Detalle de usuario |
 | `POST /api/auth/login` | Público | Login endpoint |
 | `POST /api/auth/register` | Público | Registro endpoint |
@@ -85,6 +97,13 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `POST /api/auth/forgot-password` | Público | Enviar email con enlace de recuperación |
 | `POST /api/auth/reset-password` | Público | Ejecutar cambio de contraseña |
 | `POST /api/auth/verify-email` | Público | Verificar correo electrónico |
+| `GET /api/admin/users` | superadmin | Lista usuarios (filtrable por workspace) |
+| `GET/PUT/DELETE /api/admin/users/[id]` | superadmin | CRUD usuario global |
+| `GET/POST /api/admin/workspaces` | superadmin | Lista/Crear workspace |
+| `GET/PUT/DELETE /api/admin/workspaces/[id]` | superadmin | CRUD workspace (cascade delete) |
+| `GET/POST /api/users` | admin | Lista/Crear usuario del workspace |
+| `GET/PUT/DELETE /api/users/[id]` | admin | CRUD usuario del workspace |
+| `GET/PUT /api/workspaces/[id]` | admin | Ver/renombrar workspace |
 
 ---
 
@@ -142,6 +161,16 @@ src/
 ├── components/
 │   ├── session-timeout.tsx     # Client component: auto-logout 15 min inactividad
 │   ├── logout-button.tsx       # Botón "Cerrar Sesión"
+│   ├── nav-link.tsx            # NavLink con estado activo (usePathname)
+│   ├── sidebar-shell.tsx       # Sidebar desktop + bottom nav mobile + bottom sheet
+│   ├── ui/
+│   │   ├── auth-layout.tsx     # Layout para páginas de auth
+│   │   ├── button.tsx          # Botón reutilizable con loading
+│   │   ├── confirm-dialog.tsx  # Modal de confirmación
+│   │   ├── error-message.tsx   # Mensaje de error
+│   │   ├── input-field.tsx     # Input con label + toggle password
+│   │   ├── status-card.tsx     # Card de estado (éxito/error)
+│   │   └── index.ts            # Barrel export
 │   └── landing/
 │       ├── header.tsx
 │       ├── hero.tsx
@@ -153,11 +182,12 @@ src/
 │       └── footer.tsx
 ├── lib/
 │   ├── auth/
-│   │   ├── jwt.ts              # signJwt / verifyJwt + signResetToken / verifyResetToken (jose)
+│   │   ├── jwt.ts              # signJwt / verifyJwt (sesión) + signResetToken/verifyResetToken (reset pwd) + signVerificationToken/verifyVerificationToken (email)
 │   │   ├── password.ts         # hashPassword / verifyPassword (bcryptjs)
-│   │   └── session.ts          # getSession (server components)
+│   │   ├── session.ts          # getSession (server components)
+│   │   └── api.ts              # getApiAuth() (API routes)
 │   ├── email/
-│   │   └── resend.ts           # sendResetPasswordEmail (Resend)
+│   │   └── resend.ts           # sendResetPasswordEmail + sendVerificationEmail (Resend)
 │   ├── db/
 │   │   └── mongoose.ts         # Conexión a MongoDB (singleton)
 │   ├── middleware/
@@ -177,6 +207,8 @@ src/
 │   ├── error.tsx               # Error boundary global
 │   ├── loading.tsx             # Loading spinner global
 │   ├── globals.css             # Tailwind v4
+│   ├── sitemap.ts              # Sitemap dinámico
+│   ├── robots.ts               # Robots.txt
 │   ├── (auth)/
 │   │   ├── login/page.tsx
 │   │   ├── register/page.tsx
@@ -184,28 +216,45 @@ src/
 │   │   ├── reset-password/page.tsx
 │   │   └── verify-email/page.tsx
 │   ├── (core)/
-│   │   ├── layout.tsx          # Navbar + SessionTimeout + logout
+│   │   ├── layout.tsx          # Sidebar + bottom nav (admin/hijo)
 │   │   ├── loading.tsx
 │   │   ├── error.tsx
-│   │   └── dashboard/page.tsx
+│   │   ├── dashboard/page.tsx
+│   │   ├── users/page.tsx
+│   │   ├── users/create/page.tsx
+│   │   ├── users/[id]/page.tsx
+│   │   └── workspace/page.tsx
 │   ├── (modules)/
+│   │   ├── layout.tsx          # Sidebar + bottom nav para módulos
 │   │   └── transfercheck/page.tsx
 │   ├── admin/
-│   │   ├── layout.tsx          # Sidebar + SessionTimeout + logout
+│   │   ├── layout.tsx          # Sidebar + bottom nav (superadmin)
 │   │   ├── page.tsx
 │   │   ├── loading.tsx
 │   │   ├── error.tsx
 │   │   ├── workspaces/page.tsx
+│   │   ├── workspaces/create/page.tsx
 │   │   ├── workspaces/[id]/page.tsx
 │   │   ├── users/page.tsx
-│   │   └── users/[id]/page.tsx
-│   └── api/auth/
-│       ├── login/route.ts
-│       ├── register/route.ts
-│       ├── logout/route.ts
-│       ├── forgot-password/route.ts
-│       ├── reset-password/route.ts
-│       └── session/route.ts
+│   │   ├── users/[id]/page.tsx
+│   │   └── users/delete-button.tsx
+│   └── api/
+│       ├── auth/
+│       │   ├── login/route.ts
+│       │   ├── register/route.ts
+│       │   ├── logout/route.ts
+│       │   ├── forgot-password/route.ts
+│       │   ├── reset-password/route.ts
+│       │   ├── session/route.ts
+│       │   └── verify-email/route.ts
+│       ├── admin/
+│       │   ├── users/route.ts
+│       │   ├── users/[id]/route.ts
+│       │   ├── workspaces/route.ts
+│       │   └── workspaces/[id]/route.ts
+│       ├── users/route.ts
+│       ├── users/[id]/route.ts
+│       └── workspaces/[id]/route.ts
 ```
 
 ---
@@ -220,7 +269,7 @@ src/
 | name | String | — |
 | role | enum | superadmin \| admin \| hijo |
 | workspace | ref → Workspace | nullable (superadmin no tiene) |
-| isActive | Boolean | default: true |
+| isActive | Boolean | default: true (false al registrarse, se activa al verificar email) |
 
 ### Workspace
 | Campo | Tipo | Detalle |

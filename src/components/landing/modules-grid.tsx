@@ -21,9 +21,9 @@ const modules = [
     tier: 'premium' as const,
   },
   {
-    name: 'CRM',
-    slug: 'crm',
-    description: 'Gestión de relaciones con clientes y pipeline de ventas.',
+    name: 'Cartera',
+    slug: 'cartera',
+    description: 'Gestión de cuentas de cobros, seguimiento de pagos y reconciliación.',
     status: 'Próximamente',
     tier: 'premium' as const,
   },

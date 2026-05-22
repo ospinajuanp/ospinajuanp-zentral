@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ErrorMessage, Button } from '@/components/ui';
 
 interface WorkspaceItem {
   _id: string;
@@ -15,13 +14,6 @@ interface WorkspaceItem {
 export default function WorkspacesPage() {
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [showCreate, setShowCreate] = useState(false);
-  const [createName, setCreateName] = useState('');
-  const [createSlug, setCreateSlug] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState('');
-  const [createSuccess, setCreateSuccess] = useState('');
 
   function load() {
     setLoading(true);
@@ -38,37 +30,6 @@ export default function WorkspacesPage() {
     load();
   }, []);
 
-  async function handleCreate(e: FormEvent) {
-    e.preventDefault();
-    setCreateError('');
-    setCreating(true);
-
-    try {
-      const res = await fetch('/api/admin/workspaces', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: createName, slug: createSlug }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setCreateError(data.error ?? 'Error al crear');
-        return;
-      }
-
-      setCreateSuccess(`Workspace "${createName}" creado correctamente.`);
-      setCreateName('');
-      setCreateSlug('');
-      setShowCreate(false);
-      load();
-    } catch {
-      setCreateError('Error de conexión');
-    } finally {
-      setCreating(false);
-    }
-  }
-
   return (
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -79,68 +40,13 @@ export default function WorkspacesPage() {
             {workspaces.length !== 1 ? 's' : ''}.
           </p>
         </div>
-        <button
-          onClick={() => {
-            setShowCreate(!showCreate);
-            setCreateError('');
-            setCreateSuccess('');
-          }}
+        <Link
+          href="/admin/workspaces/create"
           className="w-fit rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           + Nuevo workspace
-        </button>
+        </Link>
       </div>
-
-      {showCreate && (
-        <form onSubmit={handleCreate} className="mt-6 rounded-md border border-slate-800 bg-slate-900 p-6">
-          <h2 className="text-lg font-semibold text-white">Crear workspace</h2>
-
-          {createError && <ErrorMessage message={createError} />}
-          {createSuccess && (
-            <div className="mb-4 rounded-md border border-emerald-800 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-500">
-              {createSuccess}
-            </div>
-          )}
-
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="createName" className="block text-sm font-medium text-slate-400">
-                Nombre
-              </label>
-              <input
-                id="createName"
-                type="text"
-                required
-                value={createName}
-                onChange={(e) => {
-                  setCreateName(e.target.value);
-                  setCreateSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-                }}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
-                placeholder="Mi Workspace"
-              />
-            </div>
-            <div>
-              <label htmlFor="createSlug" className="block text-sm font-medium text-slate-400">
-                Slug
-              </label>
-              <input
-                id="createSlug"
-                type="text"
-                required
-                value={createSlug}
-                onChange={(e) => setCreateSlug(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white font-mono placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
-                placeholder="mi-workspace"
-              />
-            </div>
-          </div>
-
-          <Button type="submit" loading={creating} className="mt-4 w-full sm:w-auto">
-            {creating ? 'Creando…' : 'Crear workspace'}
-          </Button>
-        </form>
-      )}
 
       {loading ? (
         <div className="mt-8 flex justify-center py-12">

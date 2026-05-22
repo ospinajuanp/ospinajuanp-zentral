@@ -34,11 +34,6 @@ export function Features() {
               icon: '🔒',
             },
             {
-              title: 'Multi-empresa',
-              description: 'Un SuperAdmin puede gestionar múltiples workspaces desde un solo lugar.',
-              icon: '🏢',
-            },
-            {
               title: 'Pago flexible',
               description: 'Módulos free y premium. Empieza gratis, actualiza cuando lo necesites.',
               icon: '💳',
