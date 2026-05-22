@@ -11,7 +11,10 @@ export async function GET(req: NextRequest) {
     }
 
     await dbConnect();
-    const plans = await Plan.find().sort({ sortOrder: 1, name: 1 }).lean();
+    const plans = await Plan.find()
+      .populate('includedModules.module', 'key name defaultQuota tier')
+      .sort({ sortOrder: 1, name: 1 })
+      .lean();
 
     return NextResponse.json({ plans });
   } catch {
@@ -27,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, price, monthlyPrice, description, features, cta, highlighted, sortOrder, isActive } = body;
+    const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, cta, highlighted, sortOrder, isActive } = body;
 
     if (!name || !price) {
       return NextResponse.json({ error: 'name y price son requeridos' }, { status: 400 });
@@ -40,14 +43,19 @@ export async function POST(req: NextRequest) {
       price,
       monthlyPrice: monthlyPrice ?? null,
       description: description ?? '',
-      features: features ?? [],
+      includedModules: includedModules ?? [],
+      maxUsers: maxUsers ?? 1,
+      extraFeatures: extraFeatures ?? [],
       cta: cta ?? 'Empezar',
       highlighted: highlighted ?? false,
       sortOrder: sortOrder ?? 0,
       isActive: isActive ?? true,
     });
 
-    return NextResponse.json({ plan }, { status: 201 });
+    const populated = await Plan.findById(plan._id)
+      .populate('includedModules.module', 'key name defaultQuota tier');
+
+    return NextResponse.json({ plan: populated }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
   }

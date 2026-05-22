@@ -6,43 +6,35 @@ import { Module } from './models/module';
 import { Plan } from './models/plan';
 import { hashPassword } from './auth';
 
-const defaultPlans = [
+interface PlanSeed {
+  name: string; price: string; monthlyPrice: number | null; description: string;
+  moduleKeys: string[]; maxUsers: number; extraFeatures: string[];
+  cta: string; highlighted: boolean; sortOrder: number;
+}
+
+const defaultPlanDefs: PlanSeed[] = [
   {
-    name: 'Free',
-    price: '$0',
-    monthlyPrice: 0,
+    name: 'Free', price: '$0', monthlyPrice: 0,
     description: 'Para empezar a usar Zentral.',
-    features: [
-      'Módulo TransferCheck',
-      '1 usuario',
-      '100 consultas / mes por módulo',
-    ],
-    cta: 'Empezar gratis',
-    highlighted: false,
-    sortOrder: 0,
+    moduleKeys: ['transfercheck'],
+    maxUsers: 1,
+    extraFeatures: [],
+    cta: 'Empezar gratis', highlighted: false, sortOrder: 0,
   },
   {
-    name: 'Premium',
-    price: '$12',
-    monthlyPrice: 12,
+    name: 'Premium', price: '$12', monthlyPrice: 12,
     description: 'Para equipos que necesitan más.',
-    features: [
-      'Módulos: AntecedentesCheck, Facturación Electrónica, Cartera',
-      '5 usuarios',
-      '500 consultas / mes por módulo',
-      'Soporte por email',
-      'Módulos en beta gratis',
-    ],
-    cta: 'Ver módulos',
-    highlighted: true,
-    sortOrder: 1,
+    moduleKeys: ['transfercheck', 'antecedentes', 'facturacion', 'cartera'],
+    maxUsers: 5,
+    extraFeatures: ['Soporte por email', 'Módulos en beta gratis'],
+    cta: 'Ver módulos', highlighted: true, sortOrder: 1,
   },
   {
-    name: 'Enterprise',
-    price: 'A medida',
-    monthlyPrice: null,
+    name: 'Enterprise', price: 'A medida', monthlyPrice: null,
     description: 'Solución personalizada para tu negocio.',
-    features: [
+    moduleKeys: [],
+    maxUsers: 0,
+    extraFeatures: [
       'Todos los módulos disponibles',
       'Usuarios ilimitados',
       'Consultas ilimitadas',
@@ -51,9 +43,7 @@ const defaultPlans = [
       'Onboarding dedicado',
       'SLA estándar (48-72 h)',
     ],
-    cta: 'Contactar',
-    highlighted: false,
-    sortOrder: 2,
+    cta: 'Contactar', highlighted: false, sortOrder: 2,
   },
 ];
 
@@ -125,11 +115,6 @@ export async function seed() {
     createdBy: superAdmin._id,
   });
 
-  for (const plan of defaultPlans) {
-    await Plan.create(plan);
-    console.log(`[seed] Plan created: ${plan.name}`);
-  }
-
   for (const mod of defaultModules) {
     await Module.create(mod);
     console.log(`[seed] Module created: ${mod.key}`);
@@ -144,6 +129,31 @@ export async function seed() {
     usedQuota: 0,
     quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
   });
+
+  const allModules = await Module.find().lean();
+
+  for (const def of defaultPlanDefs) {
+    const includedModules = def.moduleKeys
+      .map((key) => {
+        const mod = allModules.find((m) => m.key === key);
+        return mod ? { module: mod._id, quotaOverride: null } : null;
+      })
+      .filter(Boolean);
+
+    await Plan.create({
+      name: def.name,
+      price: def.price,
+      monthlyPrice: def.monthlyPrice,
+      description: def.description,
+      includedModules,
+      maxUsers: def.maxUsers,
+      extraFeatures: def.extraFeatures,
+      cta: def.cta,
+      highlighted: def.highlighted,
+      sortOrder: def.sortOrder,
+    });
+    console.log(`[seed] Plan created: ${def.name}`);
+  }
 
   workspace.owner = admin._id;
   await workspace.save();

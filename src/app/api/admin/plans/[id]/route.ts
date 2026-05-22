@@ -12,7 +12,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     await dbConnect();
-    const plan = await Plan.findById(id);
+    const plan = await Plan.findById(id)
+      .populate('includedModules.module', 'key name defaultQuota tier');
 
     if (!plan) {
       return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 });
@@ -33,7 +34,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     const body = await req.json();
-    const { name, price, monthlyPrice, description, features, cta, highlighted, sortOrder, isActive } = body;
+    const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, cta, highlighted, sortOrder, isActive } = body;
 
     await dbConnect();
 
@@ -42,13 +43,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (price !== undefined) update.price = price;
     if (monthlyPrice !== undefined) update.monthlyPrice = monthlyPrice;
     if (description !== undefined) update.description = description;
-    if (features !== undefined) update.features = features;
+    if (includedModules !== undefined) update.includedModules = includedModules;
+    if (maxUsers !== undefined) update.maxUsers = maxUsers;
+    if (extraFeatures !== undefined) update.extraFeatures = extraFeatures;
     if (cta !== undefined) update.cta = cta;
     if (highlighted !== undefined) update.highlighted = highlighted;
     if (sortOrder !== undefined) update.sortOrder = sortOrder;
     if (isActive !== undefined) update.isActive = isActive;
 
-    const plan = await Plan.findByIdAndUpdate(id, { $set: update }, { new: true, runValidators: true });
+    const plan = await Plan.findByIdAndUpdate(id, { $set: update }, { new: true, runValidators: true })
+      .populate('includedModules.module', 'key name defaultQuota tier');
 
     if (!plan) {
       return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 });
