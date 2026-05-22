@@ -1,48 +1,67 @@
-const plans = [
-  {
-    name: 'Free',
-    price: '0',
-    description: 'Para empezar a usar Zentral.',
-    features: [
-      'Módulo TransferCheck',
-      '1 usuario',
-      '100 consultas / mes',
-    ],
-    cta: 'Empezar gratis',
-    highlighted: false,
-  },
-  {
-    name: 'Premium',
-    price: '$12',
-    description: 'Para equipos que necesitan más.',
-    features: [
-      'Todo lo de Free',
-      '5 usuarios',
-      '500 consultas / mes',
-      'Soporte por email',
-      'Módulos en beta gratis',
-    ],
-    cta: 'Ver módulos',
-    highlighted: true,
-  },
-  {
-    name: 'Enterprise',
-    price: 'A medida',
-    description: 'Solución personalizada para tu negocio.',
-    features: [
-      'Todo lo de Premium',
-      'Consultas ilimitadas',
-      'Soporte prioritario',
-      'Factura personalizada',
-      'Onboarding dedicado',
-      'SLA estándar (48-72 h)',
-    ],
-    cta: 'Contactar',
-    highlighted: false,
-  },
-];
+import dbConnect from '@/lib/db/mongoose';
+import { Module } from '@/lib/models/module';
 
-export function Pricing() {
+export async function Pricing() {
+  await dbConnect();
+  const modules = await Module.find({ status: { $ne: 'inactive' } }).sort({ key: 1 }).lean();
+
+  const freeModules = modules.filter((m) => m.tier === 'free');
+  const premiumModules = modules.filter((m) => m.tier === 'premium');
+
+  const freeQuotaAvg = freeModules.length > 0
+    ? Math.round(freeModules.reduce((s, m) => s + m.defaultQuota, 0) / freeModules.length)
+    : 0;
+  const premiumQuotaAvg = premiumModules.length > 0
+    ? Math.round(premiumModules.reduce((s, m) => s + m.defaultQuota, 0) / premiumModules.length)
+    : 0;
+
+  const freeNames = freeModules.map((m) => m.name).join(', ');
+  const premiumNames = premiumModules.map((m) => m.name).join(', ');
+
+  const plans = [
+    {
+      name: 'Free',
+      price: '0',
+      description: 'Para empezar a usar Zentral.',
+      features: [
+        `Módulos: ${freeNames}`,
+        '1 usuario',
+        `Hasta ${freeQuotaAvg} consultas / mes por módulo`,
+      ],
+      cta: 'Empezar gratis',
+      highlighted: false,
+    },
+    {
+      name: 'Premium',
+      price: '$12',
+      description: 'Para equipos que necesitan más.',
+      features: [
+        `Módulos: ${premiumNames}`,
+        '5 usuarios',
+        `Hasta ${premiumQuotaAvg} consultas / mes por módulo`,
+        'Soporte por email',
+        'Módulos en beta gratis',
+      ],
+      cta: 'Ver módulos',
+      highlighted: true,
+    },
+    {
+      name: 'Enterprise',
+      price: 'A medida',
+      description: 'Solución personalizada para tu negocio.',
+      features: [
+        'Todos los módulos disponibles',
+        'Usuarios ilimitados',
+        'Consultas ilimitadas',
+        'Soporte prioritario',
+        'Factura personalizada',
+        'Onboarding dedicado',
+        'SLA estándar (48-72 h)',
+      ],
+      cta: 'Contactar',
+      highlighted: false,
+    },
+  ];
   return (
     <section id="precios" className="border-t border-slate-800 bg-slate-950 px-6 py-24">
       <div className="mx-auto max-w-6xl">

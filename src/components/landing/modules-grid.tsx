@@ -5,6 +5,18 @@ export async function ModulesGrid() {
   await dbConnect();
   const modules = await Module.find().sort({ key: 1 }).lean();
 
+  const statusOrder: Record<string, number> = { active: 0, coming_soon: 1, inactive: 2 };
+  const tierOrder: Record<string, number> = { free: 0, premium: 1 };
+
+  modules.sort((a, b) => {
+    const sa = statusOrder[a.status] ?? 2;
+    const sb = statusOrder[b.status] ?? 2;
+    if (sa !== sb) return sa - sb;
+    const ta = tierOrder[a.tier] ?? 1;
+    const tb = tierOrder[b.tier] ?? 1;
+    return ta - tb;
+  });
+
   return (
     <section id="modulos" className="border-t border-slate-800 bg-slate-950 px-6 py-24">
       <div className="mx-auto max-w-6xl">
