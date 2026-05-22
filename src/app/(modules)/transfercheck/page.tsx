@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-type Tab = 'upload' | 'sync' | 'logs';
+type Tab = 'upload' | 'sync' | 'logs' | 'config';
 
 interface TransferLog {
   _id: string;
@@ -35,7 +35,7 @@ export default function TransferCheckDashboard() {
 
       {/* Tabs */}
       <div className="mt-8 flex gap-1 rounded-lg bg-slate-900 p-1">
-        {(['upload', 'sync', 'logs'] as Tab[]).map((tab) => (
+        {(['upload', 'sync', 'logs', 'config'] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => { setActiveTab(tab); setError(''); }}
@@ -48,6 +48,7 @@ export default function TransferCheckDashboard() {
             {tab === 'upload' && 'Subir comprobante'}
             {tab === 'sync' && 'Sincronizar Gmail'}
             {tab === 'logs' && 'Historial'}
+            {tab === 'config' && 'Configuración'}
           </button>
         ))}
       </div>
@@ -62,6 +63,7 @@ export default function TransferCheckDashboard() {
         {activeTab === 'upload' && <UploadTab onError={setError} />}
         {activeTab === 'sync' && <SyncTab onError={setError} />}
         {activeTab === 'logs' && <LogsTab onError={setError} />}
+        {activeTab === 'config' && <ConfigTab onError={setError} />}
       </div>
     </div>
   );
@@ -557,6 +559,119 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ConfigTab({ onError }: { onError: (msg: string) => void }) {
+  const [connected, setConnected] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/modules/transfercheck/gmail-status')
+      .then((res) => res.json())
+      .then((data) => setConnected(data.connected))
+      .catch(() => setConnected(false))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gmail = params.get('gmail');
+    const errorMsg = params.get('error');
+
+    if (gmail === 'connected') {
+      setConnected(true);
+      window.history.replaceState({}, '', '/transfercheck');
+    }
+
+    if (errorMsg) {
+      onError(decodeURIComponent(errorMsg));
+      window.history.replaceState({}, '', '/transfercheck');
+    }
+  }, [onError]);
+
+  async function handleDisconnect() {
+    setDisconnecting(true);
+    try {
+      const res = await fetch('/api/modules/transfercheck/gmail-disconnect', { method: 'POST' });
+      if (res.ok) {
+        setConnected(false);
+      } else {
+        const data = await res.json();
+        onError(data.error || 'Error al desconectar');
+      }
+    } catch {
+      onError('Error de conexión');
+    } finally {
+      setDisconnecting(false);
+    }
+  }
+
+  function handleConnect() {
+    window.location.href = '/api/auth/gmail/connect?redirect=/transfercheck';
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border border-slate-800 bg-slate-900 p-8">
+      <div className="mx-auto max-w-md">
+        <h3 className="text-lg font-semibold text-white">Conexión con Gmail</h3>
+        <p className="mt-2 text-sm text-slate-400">
+          Conectá tu cuenta de Gmail para que TransferCheck busque automáticamente los correos de confirmación de transferencias.
+        </p>
+
+        <div className="mt-6 flex items-center gap-3">
+          {connected ? (
+            <>
+              <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-500">
+                Conectado
+              </span>
+              <button
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+                className="rounded-md border border-rose-800 px-4 py-2 text-sm text-rose-400 hover:bg-rose-500/10 disabled:opacity-50"
+              >
+                {disconnecting ? 'Desconectando...' : 'Desconectar Gmail'}
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleConnect}
+              className="rounded-md bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              Conectar Gmail
+            </button>
+          )}
+        </div>
+
+        <div className="mt-8 space-y-4">
+          <div className="rounded-md border border-slate-800 bg-slate-950 px-5 py-4">
+            <p className="text-sm font-medium text-slate-300">¿Cómo funciona?</p>
+            <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-slate-500">
+              <li>Hacé clic en &quot;Conectar Gmail&quot; para autorizar a Zentral a leer tus correos (solo lectura).</li>
+              <li>Cuando subas un comprobante, el sistema buscará automáticamente en tu Gmail correos que coincidan con el monto y la referencia.</li>
+              <li>Si encuentra coincidencia, la transferencia se concilia automáticamente.</li>
+              <li>El token se refresca automáticamente. Podés desconectar en cualquier momento.</li>
+            </ol>
+          </div>
+
+          <div className="rounded-md border border-slate-800 bg-slate-950 px-5 py-4">
+            <p className="text-sm font-medium text-slate-300">Permisos solicitados</p>
+            <p className="mt-2 text-xs text-slate-500">
+              Solo lectura de correos (gmail.readonly). No enviamos correos ni modificamos tu bandeja.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

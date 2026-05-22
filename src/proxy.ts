@@ -16,6 +16,7 @@ const publicPrefixes = [
   '/api/auth/reset-password',
   '/api/auth/verify-email',
   '/api/auth/session',
+  '/api/auth/gmail/callback',
 ];
 
 export async function proxy(request: NextRequest) {

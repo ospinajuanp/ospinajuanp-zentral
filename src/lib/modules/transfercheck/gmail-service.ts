@@ -1,4 +1,6 @@
 import { google } from 'googleapis';
+import dbConnect from '@/lib/db/mongoose';
+import { WorkspaceSettings } from '@/lib/models/workspace-settings';
 import type { IPhotoData, IEmailData } from '@/lib/models/transfercheck-log';
 
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
@@ -30,8 +32,40 @@ export async function getTokensFromCode(code: string) {
   return tokens;
 }
 
-function normalizeAmount(amount: number): string {
-  return amount.toFixed(2).replace('.', '').replace(',', '');
+export async function getGmailStatus(workspaceId: string): Promise<{ connected: boolean }> {
+  await dbConnect();
+  const settings = await WorkspaceSettings.findOne({ workspace: workspaceId });
+  return { connected: settings?.gmailConnected ?? false };
+}
+
+export async function getRefreshToken(workspaceId: string): Promise<string | null> {
+  await dbConnect();
+  const settings = await WorkspaceSettings.findOne({ workspace: workspaceId });
+  return settings?.gmailRefreshToken ?? null;
+}
+
+async function getAuthClientForWorkspace(workspaceId: string) {
+  await dbConnect();
+  const settings = await WorkspaceSettings.findOne({ workspace: workspaceId });
+
+  if (!settings || !settings.gmailRefreshToken) {
+    throw new Error('Gmail no conectado para este workspace');
+  }
+
+  const oauth2Client = getOAuth2Client();
+  oauth2Client.setCredentials({ refresh_token: settings.gmailRefreshToken });
+
+  const { token } = await oauth2Client.getAccessToken();
+
+  if (settings.gmailAccessToken !== token) {
+    const expiry = new Date(Date.now() + 3600 * 1000);
+    await WorkspaceSettings.findOneAndUpdate(
+      { workspace: workspaceId },
+      { gmailAccessToken: token, gmailTokenExpiry: expiry }
+    );
+  }
+
+  return oauth2Client;
 }
 
 function searchAmountVariations(monto: number): string[] {
@@ -39,7 +73,7 @@ function searchAmountVariations(monto: number): string[] {
   const plain = monto.toFixed(2);
   const noDecimals = Math.floor(monto).toString();
   const withComma = plain.replace('.', ',');
-  const numeric = normalizeAmount(monto);
+  const numeric = monto.toFixed(2).replace('.', '');
 
   return [...new Set([formatted, plain, noDecimals, withComma, numeric, `$${formatted}`, `$${plain}`])];
 }
@@ -52,18 +86,14 @@ export interface GmailSearchResult {
 
 export async function searchTransferEmails(
   photoData: IPhotoData,
-  refreshToken: string
+  workspaceId: string
 ): Promise<GmailSearchResult> {
   try {
-    const oauth2Client = getOAuth2Client();
-    oauth2Client.setCredentials({ refresh_token: refreshToken });
-    await oauth2Client.getAccessToken();
-
-    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    const auth = await getAuthClientForWorkspace(workspaceId);
+    const gmail = google.gmail({ version: 'v1', auth });
 
     const amounts = searchAmountVariations(photoData.monto);
-    const queryParts = amounts.map((a) => a).join(' OR ');
-    const query = `(${queryParts}) newer_than:1d`;
+    const query = `(${amounts.join(' OR ')}) newer_than:1d`;
 
     const response = await gmail.users.messages.list({
       userId: 'me',
@@ -78,8 +108,12 @@ export async function searchTransferEmails(
     }
 
     const matches: IEmailData[] = [];
-
-    const refs = [photoData.referencia, photoData.referencia.replace(/\s/g, ''), photoData.referencia.replace(/-/g, ''), photoData.referencia.replace(/[^0-9]/g, '')];
+    const refs = [
+      photoData.referencia,
+      photoData.referencia.replace(/\s/g, ''),
+      photoData.referencia.replace(/-/g, ''),
+      photoData.referencia.replace(/[^0-9]/g, ''),
+    ];
 
     for (const msg of messages.slice(0, 10)) {
       const detail = await gmail.users.messages.get({
@@ -93,7 +127,6 @@ export async function searchTransferEmails(
       const from = headers.find((h) => h.name === 'From')?.value || '';
       const subject = headers.find((h) => h.name === 'Subject')?.value || '';
       const date = headers.find((h) => h.name === 'Date')?.value || '';
-
       const snippet = detail.data.snippet || '';
 
       let matched = false;
@@ -103,6 +136,7 @@ export async function searchTransferEmails(
           break;
         }
       }
+
       if (matched) {
         matches.push({
           from,

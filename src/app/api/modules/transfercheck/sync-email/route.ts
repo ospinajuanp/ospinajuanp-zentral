@@ -9,15 +9,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
-    if (!refreshToken) {
-      return NextResponse.json(
-        { error: 'Gmail no configurado. Contacta al administrador.' },
-        { status: 400 }
-      );
+    const workspaceId = auth.workspaceId;
+    if (!workspaceId) {
+      return NextResponse.json({ error: 'Sin workspace asignado' }, { status: 403 });
     }
 
-    const processed = await processPendingMatches(refreshToken);
+    const processed = await processPendingMatches(workspaceId);
 
     return NextResponse.json({ success: true, processed });
   } catch (error) {

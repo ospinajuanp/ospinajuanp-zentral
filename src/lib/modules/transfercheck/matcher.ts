@@ -42,14 +42,14 @@ export async function consumeQuota(workspaceId: string): Promise<void> {
   );
 }
 
-export async function processPendingMatch(logId: string, refreshToken: string): Promise<ITransferCheckLog | null> {
+export async function processPendingMatch(logId: string, workspaceId: string): Promise<ITransferCheckLog | null> {
   await dbConnect();
 
   const log = await TransferCheckLog.findById(logId);
   if (!log || log.status !== 'pending_email') return log;
 
   try {
-    const result = await searchTransferEmails(log.photoData, refreshToken);
+    const result = await searchTransferEmails(log.photoData, workspaceId);
 
     if (result.success && result.matches.length > 0) {
       log.status = 'matched';
@@ -78,18 +78,19 @@ export async function processPendingMatch(logId: string, refreshToken: string): 
   }
 }
 
-export async function processPendingMatches(refreshToken: string): Promise<number> {
+export async function processPendingMatches(workspaceId: string): Promise<number> {
   await dbConnect();
 
   const now = new Date();
   const logs = await TransferCheckLog.find({
+    workspace: workspaceId,
     status: 'pending_email',
     $or: [{ nextRetryAt: null }, { nextRetryAt: { $lte: now } }],
   }).limit(50);
 
   let processed = 0;
   for (const log of logs) {
-    await processPendingMatch(String(log._id), refreshToken);
+    await processPendingMatch(String(log._id), workspaceId);
     processed += 1;
   }
 

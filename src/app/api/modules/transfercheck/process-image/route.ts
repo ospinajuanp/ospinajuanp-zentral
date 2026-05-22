@@ -49,10 +49,7 @@ export async function POST(req: NextRequest) {
 
     await consumeQuota(workspaceId);
 
-    const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
-    if (refreshToken) {
-      await processPendingMatch(String(log._id), refreshToken);
-    }
+    await processPendingMatch(String(log._id), workspaceId);
 
     const updatedLog = await log.populate('userId', 'name email');
 
