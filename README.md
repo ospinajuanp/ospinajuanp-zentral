@@ -48,6 +48,7 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 - [x] Sesión por inactividad (15 min, auto-logout vía `SessionTimeout`)
 - [x] Redirección automática en `/login` si ya hay sesión activa
 - [x] Páginas de error personalizadas (404, 500) + loading spinners por segmento
+- [x] Recuperación de contraseña (Resend + JWT de 15 min)
 
 ### Pendiente
 
@@ -57,7 +58,6 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 - [ ] Rate limiting en login/register
 - [ ] Paginación en listas
 - [ ] Verificación de email
-- [ ] Recuperación de contraseña
 
 ---
 
@@ -79,6 +79,10 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `POST /api/auth/register` | Público | Registro endpoint |
 | `POST /api/auth/logout` | Autenticado | Cerrar sesión |
 | `GET /api/auth/session` | — | Verificar si hay sesión activa |
+| `/forgot-password` | Público | Solicitar recuperación de contraseña |
+| `/reset-password` | Público | Restablecer contraseña (vía token) |
+| `POST /api/auth/forgot-password` | Público | Enviar email con enlace de recuperación |
+| `POST /api/auth/reset-password` | Público | Ejecutar cambio de contraseña |
 
 ---
 
@@ -101,6 +105,8 @@ pnpm install
 ```env
 MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net/zentral
 JWT_SECRET=tu-secreto-seguro-aqui
+RESEND_API_KEY=re_...
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 ### Seed
@@ -143,9 +149,11 @@ src/
 │       └── footer.tsx
 ├── lib/
 │   ├── auth/
-│   │   ├── jwt.ts              # signJwt / verifyJwt (jose)
+│   │   ├── jwt.ts              # signJwt / verifyJwt + signResetToken / verifyResetToken (jose)
 │   │   ├── password.ts         # hashPassword / verifyPassword (bcryptjs)
 │   │   └── session.ts          # getSession (server components)
+│   ├── email/
+│   │   └── resend.ts           # sendResetPasswordEmail (Resend)
 │   ├── db/
 │   │   └── mongoose.ts         # Conexión a MongoDB (singleton)
 │   ├── middleware/
@@ -166,7 +174,9 @@ src/
 │   ├── globals.css             # Tailwind v4
 │   ├── (auth)/
 │   │   ├── login/page.tsx
-│   │   └── register/page.tsx
+│   │   ├── register/page.tsx
+│   │   ├── forgot-password/page.tsx
+│   │   └── reset-password/page.tsx
 │   ├── (core)/
 │   │   ├── layout.tsx          # Navbar + SessionTimeout + logout
 │   │   ├── loading.tsx
@@ -187,6 +197,8 @@ src/
 │       ├── login/route.ts
 │       ├── register/route.ts
 │       ├── logout/route.ts
+│       ├── forgot-password/route.ts
+│       ├── reset-password/route.ts
 │       └── session/route.ts
 ```
 

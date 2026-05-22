@@ -27,3 +27,21 @@ export async function verifyJwt(token: string): Promise<JwtPayload> {
   const { payload } = await jwtVerify(token, SECRET);
   return payload as unknown as JwtPayload;
 }
+
+export interface ResetTokenPayload {
+  userId: string;
+  purpose: 'password-reset';
+}
+
+export async function signResetToken(payload: ResetTokenPayload): Promise<string> {
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('15m')
+    .sign(SECRET);
+}
+
+export async function verifyResetToken(token: string): Promise<ResetTokenPayload> {
+  const { payload } = await jwtVerify(token, SECRET);
+  return payload as unknown as ResetTokenPayload;
+}
