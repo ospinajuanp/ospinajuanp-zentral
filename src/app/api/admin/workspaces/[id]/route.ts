@@ -18,7 +18,7 @@ export async function GET(
   await dbConnect();
   const { id } = await params;
 
-  const workspace = await Workspace.findById(id).populate('owner', 'name email').lean();
+  const workspace = await Workspace.findById(id).populate('owner', 'name email').populate('plan', 'name price isEnterprise').lean();
   if (!workspace) {
     return NextResponse.json({ error: 'Workspace no encontrado' }, { status: 404 });
   }
@@ -47,14 +47,29 @@ export async function PUT(
   }
 
   const body = await request.json();
-  const { name, slug, owner, isActive } = body;
+  const { name, slug, owner, isActive, isPayReady } = body;
 
   if (name !== undefined) workspace.name = name;
   if (slug !== undefined) workspace.slug = slug;
   if (owner !== undefined) workspace.owner = owner || null;
   if (isActive !== undefined) workspace.isActive = isActive;
 
+  const wasPayReady = workspace.isPayReady;
+  if (isPayReady !== undefined) workspace.isPayReady = isPayReady;
+
   await workspace.save();
+
+  if (!wasPayReady && workspace.isPayReady) {
+    await ModuleSubscription.updateMany(
+      { workspace: id, status: 'inactive' },
+      { status: 'active' }
+    );
+  } else if (wasPayReady && !workspace.isPayReady) {
+    await ModuleSubscription.updateMany(
+      { workspace: id, status: 'active' },
+      { status: 'inactive' }
+    );
+  }
 
   return NextResponse.json({ message: 'Workspace actualizado correctamente', workspace });
 }

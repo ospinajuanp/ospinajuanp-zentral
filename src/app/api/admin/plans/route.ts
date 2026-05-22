@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, support, onboarding, cta, ctaLink, highlighted, isEnterprise, sortOrder, isActive } = body;
+    const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, support, onboarding, cta, ctaLink, highlighted, isEnterprise, whatsappNumber, sortOrder, isActive } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'name es requerido' }, { status: 400 });
@@ -49,12 +49,19 @@ export async function POST(req: NextRequest) {
       support: support ?? 'ninguno',
       onboarding: onboarding ?? 'ninguno',
       cta: cta ?? 'Empezar',
-      ctaLink: ctaLink ?? '/register',
+      ctaLink: ctaLink ?? (isEnterprise && whatsappNumber ? `https://wa.me/${whatsappNumber.replace(/\D/g, '')}` : '/register'),
       highlighted: highlighted ?? false,
       isEnterprise: isEnterprise ?? false,
+      whatsappNumber: whatsappNumber ?? '',
       sortOrder: sortOrder ?? 0,
       isActive: isActive ?? true,
     });
+
+    // Update ctaLink with real plan ID if not enterprise
+    if (!isEnterprise) {
+      plan.ctaLink = `/register?plan=${plan._id}`;
+      await plan.save();
+    }
 
     return NextResponse.json({ plan: await Plan.findById(plan._id).populate('includedModules.module', 'key name defaultQuota tier') }, { status: 201 });
   } catch (err) {

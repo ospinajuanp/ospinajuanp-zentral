@@ -5,6 +5,8 @@ export interface IWorkspace extends Document {
   slug: string;
   owner?: mongoose.Types.ObjectId | null;
   isActive: boolean;
+  isPayReady: boolean;
+  plan?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +33,15 @@ const workspaceSchema = new Schema<IWorkspace>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    isPayReady: {
+      type: Boolean,
+      default: false,
+    },
+    plan: {
+      type: Schema.Types.ObjectId,
+      ref: 'Plan',
+      default: null,
     },
   },
   { timestamps: true }

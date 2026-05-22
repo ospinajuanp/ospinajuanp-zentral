@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { name, email, password, companyName } = await request.json();
+  const { name, email, password, companyName, planId } = await request.json();
 
   if (!name || !email || !password) {
     return NextResponse.json(
@@ -63,6 +63,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Determine which plan to use
+  let selectedPlan = null;
+  if (planId) {
+    selectedPlan = await Plan.findById(planId).lean();
+  }
+  // Fallback to first active plan sorted by sortOrder
+  if (!selectedPlan) {
+    selectedPlan = await Plan.findOne({ isActive: true }).sort({ sortOrder: 1 }).lean();
+  }
+
   const workspaceName = companyName || `Workspace de ${name}`;
   const slug = workspaceName
     .toLowerCase()
@@ -71,10 +81,17 @@ export async function POST(request: NextRequest) {
 
   const passwordHash = await hashPassword(password);
 
+  // Determine if workspace should be pay-ready (true for free plans, false for paid plans)
+  const isFreePlan = selectedPlan && (!selectedPlan.monthlyPrice || selectedPlan.monthlyPrice === 0);
+  const isEnterprisePlan = selectedPlan?.isEnterprise ?? false;
+  const shouldAutoActivate = isFreePlan && !isEnterprisePlan;
+
   const workspace = await Workspace.create({
     name: workspaceName,
     slug,
     owner: null,
+    isPayReady: shouldAutoActivate,
+    plan: selectedPlan?._id ?? null,
   });
 
   const user = await User.create({
@@ -89,29 +106,29 @@ export async function POST(request: NextRequest) {
   workspace.owner = user._id;
   await workspace.save();
 
-  const freePlan = await Plan.findOne({ isActive: true }).sort({ sortOrder: 1 }).populate('includedModules.module', 'key').lean();
-
-  if (freePlan && freePlan.includedModules && freePlan.includedModules.length > 0) {
+  // Create subscriptions from the selected plan
+  if (selectedPlan && selectedPlan.includedModules && selectedPlan.includedModules.length > 0) {
     const allModules = await Module.find().lean();
-    const subs = freePlan.includedModules.map((im: { module: { key: string; _id: string }; quotaOverride: number | null }) => {
+    const subs = selectedPlan.includedModules.map((im: { module: { key: string; _id: string }; quotaOverride: number | null }) => {
       const mod = allModules.find((m) => m._id.toString() === im.module._id.toString());
       return {
         workspace: workspace._id,
         moduleKey: mod?.key ?? im.module.key,
-        tier: 'free',
-        status: 'active',
+        tier: mod?.tier ?? 'free',
+        status: shouldAutoActivate ? 'active' : 'inactive',
         monthlyQuota: im.quotaOverride ?? mod?.defaultQuota ?? 100,
         usedQuota: 0,
         quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
       };
     });
     await ModuleSubscription.insertMany(subs);
-  } else {
+  } else if (!isEnterprisePlan) {
+    // Fallback for plans with no modules: create transfercheck subscription
     await ModuleSubscription.create({
       workspace: workspace._id,
       moduleKey: 'transfercheck',
       tier: 'free',
-      status: 'active',
+      status: shouldAutoActivate ? 'active' : 'inactive',
       monthlyQuota: 100,
       usedQuota: 0,
       quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
@@ -132,5 +149,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     message:
       'Cuenta creada. Revisa tu bandeja de entrada para verificar tu correo electrónico.',
+    planName: selectedPlan?.name ?? null,
+    isPayReady: shouldAutoActivate,
   });
 }

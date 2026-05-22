@@ -19,6 +19,7 @@ export interface IPlan extends Document {
   ctaLink: string;
   highlighted: boolean;
   isEnterprise: boolean;
+  whatsappNumber: string;
   sortOrder: number;
   isActive: boolean;
   createdAt: Date;
@@ -94,6 +95,10 @@ const planSchema = new Schema<IPlan>(
     isEnterprise: {
       type: Boolean,
       default: false,
+    },
+    whatsappNumber: {
+      type: String,
+      default: '',
     },
     sortOrder: {
       type: Number,

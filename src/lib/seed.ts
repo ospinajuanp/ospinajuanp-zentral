@@ -9,8 +9,8 @@ import { hashPassword } from './auth';
 interface PlanSeed {
   name: string; price: string; monthlyPrice: number | null; description: string;
   moduleKeys: string[]; maxUsers: number; extraFeatures: string[];
-  cta: string; highlighted: boolean; isEnterprise: boolean; sortOrder: number;
-  support: string; onboarding: string;
+  cta: string; ctaLink: string; highlighted: boolean; isEnterprise: boolean; sortOrder: number;
+  support: string; onboarding: string; whatsappNumber: string;
 }
 
 const defaultPlanDefs: PlanSeed[] = [
@@ -20,8 +20,8 @@ const defaultPlanDefs: PlanSeed[] = [
     moduleKeys: ['transfercheck'],
     maxUsers: 1,
     extraFeatures: [],
-    cta: 'Empezar gratis', highlighted: false, isEnterprise: false, sortOrder: 0,
-    support: 'ninguno', onboarding: 'ninguno',
+    cta: 'Empezar gratis', ctaLink: '/register?plan=FREE_PLAN_ID', highlighted: false, isEnterprise: false, sortOrder: 0,
+    support: 'ninguno', onboarding: 'ninguno', whatsappNumber: '',
   },
   {
     name: 'Premium', price: '$12', monthlyPrice: 12,
@@ -29,8 +29,8 @@ const defaultPlanDefs: PlanSeed[] = [
     moduleKeys: ['transfercheck', 'antecedentes', 'facturacion', 'cartera'],
     maxUsers: 5,
     extraFeatures: ['Módulos en beta gratis'],
-    cta: 'Ver módulos', highlighted: true, isEnterprise: false, sortOrder: 1,
-    support: 'email', onboarding: 'autoguiado',
+    cta: 'Ver módulos', ctaLink: '/register?plan=PREMIUM_PLAN_ID', highlighted: true, isEnterprise: false, sortOrder: 1,
+    support: 'email', onboarding: 'autoguiado', whatsappNumber: '',
   },
   {
     name: 'Enterprise', price: 'A medida', monthlyPrice: null,
@@ -46,8 +46,8 @@ const defaultPlanDefs: PlanSeed[] = [
       'Onboarding dedicado',
       'SLA estándar (48-72 h)',
     ],
-    cta: 'Contactar', highlighted: false, isEnterprise: true, sortOrder: 2,
-    support: 'prioritario', onboarding: 'dedicado',
+    cta: 'Cotizar', ctaLink: 'https://wa.me/573001234567?text=Hola%2C%20me%20interesa%20el%20plan%20Enterprise', highlighted: false, isEnterprise: true, sortOrder: 2,
+    support: 'prioritario', onboarding: 'dedicado', whatsappNumber: '573001234567',
   },
 ];
 
@@ -124,17 +124,9 @@ export async function seed() {
     console.log(`[seed] Module created: ${mod.key}`);
   }
 
-  await ModuleSubscription.create({
-    workspace: workspace._id,
-    moduleKey: 'transfercheck',
-    tier: 'free',
-    status: 'active',
-    monthlyQuota: 100,
-    usedQuota: 0,
-    quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
-  });
-
   const allModules = await Module.find().lean();
+
+  const planMap: Record<string, string> = {};
 
   for (const def of defaultPlanDefs) {
     const includedModules = def.moduleKeys
@@ -144,7 +136,7 @@ export async function seed() {
       })
       .filter(Boolean);
 
-    await Plan.create({
+    const plan = await Plan.create({
       name: def.name,
       price: def.price,
       monthlyPrice: def.monthlyPrice,
@@ -153,18 +145,100 @@ export async function seed() {
       maxUsers: def.maxUsers,
       extraFeatures: def.extraFeatures,
       cta: def.cta,
+      ctaLink: def.ctaLink,
       highlighted: def.highlighted,
       isEnterprise: def.isEnterprise,
       sortOrder: def.sortOrder,
       support: def.support,
       onboarding: def.onboarding,
+      whatsappNumber: def.whatsappNumber,
     });
+    planMap[def.name] = String(plan._id);
     console.log(`[seed] Plan created: ${def.name}`);
   }
 
-  workspace.owner = admin._id;
-  await workspace.save();
+  // Update plan CTA links with real IDs
+  await Plan.updateMany({ name: 'Free' }, { ctaLink: `/register?plan=${planMap['Free']}` });
+  await Plan.updateMany({ name: 'Premium' }, { ctaLink: `/register?plan=${planMap['Premium']}` });
+  console.log('[seed] Plan CTA links updated with real IDs');
 
-  console.log('[seed] Demo workspace created: admin@demo-corp.com / demo123');
+  // Create Premium plan reference
+  const premiumPlan = await Plan.findOne({ name: 'Premium' }).lean();
+  const freePlan = await Plan.findOne({ name: 'Free' }).lean();
+
+  // Demo workspace: isPayReady=true, associated with Premium plan
+  await Workspace.findByIdAndUpdate(workspace._id, {
+    owner: admin._id,
+    isPayReady: true,
+    plan: premiumPlan?._id ?? null,
+  });
+
+  // Create subscriptions for demo workspace (Premium plan modules)
+  const premiumModules = ['transfercheck', 'antecedentes', 'facturacion', 'cartera'];
+  const subscriptionQuota = { transfercheck: 100, antecedentes: 500, facturacion: 500, cartera: 500 };
+
+  for (const key of premiumModules) {
+    const mod = allModules.find((m) => m.key === key);
+    if (!mod) continue;
+    await ModuleSubscription.create({
+      workspace: workspace._id,
+      moduleKey: key,
+      tier: mod.tier as 'free' | 'premium',
+      status: 'active',
+      monthlyQuota: subscriptionQuota[key as keyof typeof subscriptionQuota] ?? mod.defaultQuota,
+      usedQuota: 0,
+      quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+    });
+    console.log(`[seed] Subscription created: ${key} for demo workspace`);
+  }
+
+  // Create a free workspace with Free plan (for testing registration flow)
+  const freeWorkspace = await Workspace.create({
+    name: 'Free Test',
+    slug: 'free-test',
+    owner: null,
+    isPayReady: true,
+    plan: freePlan?._id ?? null,
+  });
+
+  const freeModule = allModules.find((m) => m.key === 'transfercheck');
+  if (freeModule) {
+    await ModuleSubscription.create({
+      workspace: freeWorkspace._id,
+      moduleKey: 'transfercheck',
+      tier: 'free',
+      status: 'active',
+      monthlyQuota: freeModule.defaultQuota,
+      usedQuota: 0,
+      quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+    });
+    console.log('[seed] Free test workspace created');
+  }
+
+  // Create a pending payment workspace (for testing isPayReady=false)
+  const pendingWorkspace = await Workspace.create({
+    name: 'Pending Corp',
+    slug: 'pending-corp',
+    owner: null,
+    isPayReady: false,
+    plan: premiumPlan?._id ?? null,
+  });
+
+  for (const key of premiumModules) {
+    const mod = allModules.find((m) => m.key === key);
+    if (!mod) continue;
+    await ModuleSubscription.create({
+      workspace: pendingWorkspace._id,
+      moduleKey: key,
+      tier: mod.tier as 'free' | 'premium',
+      status: 'inactive',
+      monthlyQuota: subscriptionQuota[key as keyof typeof subscriptionQuota] ?? mod.defaultQuota,
+      usedQuota: 0,
+      quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+    });
+  }
+  console.log('[seed] Pending payment workspace created (for testing)');
+
+  console.log('[seed] Demo workspace updated: isPayReady=true, plan=Premium');
   console.log('[seed] Complete');
 }

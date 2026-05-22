@@ -1,10 +1,14 @@
 'use client';
 
-import { useState, FormEvent, useMemo } from 'react';
+import { useState, FormEvent, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { AuthLayout, InputField, ErrorMessage, Button, StatusCard } from '@/components/ui';
 
 export default function RegisterPage() {
+  const searchParams = useSearchParams();
+  const planId = searchParams.get('plan');
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -32,6 +36,7 @@ export default function RegisterPage() {
           email,
           password,
           companyName: companyName || null,
+          planId: planId || null,
         }),
       });
 
@@ -68,6 +73,12 @@ export default function RegisterPage() {
           className="rounded-md border border-slate-800 bg-slate-900 p-8"
         >
           {error && <ErrorMessage message={error} />}
+
+          {planId && (
+            <div className="mb-4 rounded-md border border-indigo-800 bg-indigo-500/10 px-4 py-2 text-xs text-indigo-400">
+              Estás registrando con un plan seleccionado. Una vez verifiques tu email, un administrador activará tu cuenta según el plan.
+            </div>
+          )}
 
           <div className="space-y-4">
             <InputField

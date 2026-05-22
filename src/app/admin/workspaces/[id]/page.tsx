@@ -10,7 +10,9 @@ interface WorkspaceData {
   name: string;
   slug: string;
   isActive: boolean;
+  isPayReady: boolean;
   owner?: { _id: string; name: string; email: string } | null;
+  plan?: { _id: string; name: string; price: string; isEnterprise: boolean } | null;
 }
 
 interface UserSummary {
@@ -52,6 +54,7 @@ export default function WorkspaceDetailPage() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [isPayReady, setIsPayReady] = useState(false);
 
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -85,6 +88,7 @@ export default function WorkspaceDetailPage() {
           setName(data.workspace.name);
           setSlug(data.workspace.slug);
           setIsActive(data.workspace.isActive);
+          setIsPayReady(data.workspace.isPayReady ?? false);
           setUsers(data.users ?? []);
           setSubscriptions(data.subscriptions ?? []);
         } else {
@@ -123,7 +127,7 @@ export default function WorkspaceDetailPage() {
       const res = await fetch(`/api/admin/workspaces/${wsId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, slug, isActive }),
+        body: JSON.stringify({ name, slug, isActive, isPayReady }),
       });
 
       const data = await res.json();
@@ -338,6 +342,35 @@ export default function WorkspaceDetailPage() {
                 Workspace activo
               </label>
             </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                id="isPayReady"
+                type="checkbox"
+                checked={isPayReady}
+                onChange={(e) => setIsPayReady(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500"
+              />
+              <label htmlFor="isPayReady" className="text-sm font-medium text-slate-400">
+                Pago confirmado
+              </label>
+            </div>
+
+            {workspace.plan && (
+              <div className="rounded-md border border-slate-700/50 bg-slate-950 p-3">
+                <p className="text-xs text-slate-500">Plan asociado:</p>
+                <p className="text-sm font-medium text-white">{workspace.plan.name}</p>
+                {workspace.plan.price && <p className="text-xs text-slate-400">{workspace.plan.price}/mes</p>}
+                {workspace.plan.isEnterprise && <span className="mt-1 inline-block rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-500">Enterprise</span>}
+              </div>
+            )}
+
+            {!isPayReady && (
+              <div className="rounded-md border border-amber-800/50 bg-amber-500/5 px-4 py-3 text-xs text-amber-400">
+                Este workspace tiene módulos en estado &ldquo;inactivo&rdquo; esperando confirmación de pago.
+                Al marcar &ldquo;Pago confirmado&rdquo; se activarán todos los módulos automáticamente.
+              </div>
+            )}
           </div>
 
           <Button type="submit" loading={saving} className="mt-6">
