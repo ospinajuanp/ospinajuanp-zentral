@@ -9,7 +9,7 @@ const defaultModules = [
   {
     key: 'transfercheck',
     name: 'TransferCheck',
-    description: 'Validación de transferencias bancarias y verificación de cuentas.',
+    description: 'Verificación y validación de transferencias bancarias en tiempo real.',
     tier: 'free' as const,
     status: 'active' as const,
     defaultQuota: 100,
@@ -17,15 +17,15 @@ const defaultModules = [
   {
     key: 'antecedentes',
     name: 'AntecedentesCheck',
-    description: 'Consulta de antecedentes judiciales, policivos y disciplinarios.',
+    description: 'Consulta de antecedentes judiciales, policiales y comerciales.',
     tier: 'premium' as const,
     status: 'coming_soon' as const,
     defaultQuota: 500,
   },
   {
     key: 'facturacion',
-    name: 'Facturación',
-    description: 'Gestión de facturación electrónica y documentos equivalentes.',
+    name: 'Facturación Electrónica',
+    description: 'Gestión de facturación electrónica y seguimiento de pagos.',
     tier: 'premium' as const,
     status: 'coming_soon' as const,
     defaultQuota: 500,
