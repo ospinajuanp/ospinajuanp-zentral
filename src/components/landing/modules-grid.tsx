@@ -31,13 +31,13 @@ const modules = [
 
 export function ModulesGrid() {
   return (
-    <section id="modulos" className="border-t border-zinc-100 bg-zinc-50 px-6 py-24">
+    <section id="modulos" className="border-t border-slate-800 bg-slate-950 px-6 py-24">
       <div className="mx-auto max-w-6xl">
         <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Módulos disponibles
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-zinc-600">
+          <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-slate-400">
             Cada módulo es independiente. Actívalos según las necesidades de tu negocio.
           </p>
         </div>
@@ -46,29 +46,29 @@ export function ModulesGrid() {
           {modules.map((mod) => (
             <div
               key={mod.slug}
-              className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 transition-shadow hover:shadow-md"
+              className="flex flex-col rounded-md border border-slate-800 bg-slate-900 p-6 transition-shadow hover:shadow-indigo-500/10"
             >
               <div className="flex items-center justify-between">
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                     mod.tier === 'free'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-zinc-100 text-zinc-600'
+                      ? 'bg-emerald-500/10 text-emerald-500'
+                      : 'bg-slate-800 text-slate-400'
                   }`}
                 >
                   {mod.tier === 'free' ? 'Gratis' : 'Premium'}
                 </span>
                 <span
                   className={`text-xs font-medium ${
-                    mod.status === 'Activo' ? 'text-green-600' : 'text-zinc-400'
+                    mod.status === 'Activo' ? 'text-emerald-500' : 'text-slate-500'
                   }`}
                 >
                   {mod.status}
                 </span>
               </div>
 
-              <h3 className="mt-4 text-lg font-semibold text-zinc-900">{mod.name}</h3>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-600">
+              <h3 className="mt-4 text-lg font-semibold text-white">{mod.name}</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-400">
                 {mod.description}
               </p>
             </div>

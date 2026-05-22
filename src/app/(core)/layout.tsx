@@ -9,10 +9,10 @@ export default function CoreLayout({
 }) {
   return (
     <SessionTimeout>
-      <div className="min-h-screen bg-zinc-50">
-        <nav className="border-b border-zinc-200 bg-white">
+      <div className="min-h-screen bg-slate-950">
+        <nav className="border-b border-slate-800 bg-slate-900">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-            <Link href="/" className="text-lg font-bold tracking-tight text-zinc-900">
+            <Link href="/" className="text-lg font-bold tracking-tight text-white">
               Zentral
             </Link>
             <LogoutButton />

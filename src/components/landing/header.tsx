@@ -15,9 +15,9 @@ export function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-md">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-xl font-bold tracking-tight text-zinc-900">
+        <Link href="/" className="text-xl font-bold tracking-tight text-white">
           Zentral
         </Link>
 
@@ -26,7 +26,7 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
+              className="text-sm font-medium text-slate-400 transition-colors hover:text-white"
             >
               {link.label}
             </Link>
@@ -36,7 +36,7 @@ export function Header() {
         <div className="hidden items-center gap-3 md:flex">
           <Link
             href="/login"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100"
+            className="rounded-md px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800"
           >
             Iniciar Sesión
           </Link>
@@ -44,7 +44,7 @@ export function Header() {
 
         <button
           onClick={() => setOpen(!open)}
-          className="flex items-center md:hidden"
+          className="flex items-center md:hidden text-slate-400"
           aria-label="Menú"
         >
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,13 +58,13 @@ export function Header() {
       </div>
 
       {open && (
-        <div className="border-t border-zinc-200 bg-white px-6 pb-4 pt-2 md:hidden">
+        <div className="border-t border-slate-800 bg-slate-900 px-6 pb-4 pt-2 md:hidden">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setOpen(false)}
-              className="block py-2 text-sm font-medium text-zinc-600"
+              className="block py-2 text-sm font-medium text-slate-400"
             >
               {link.label}
             </Link>
@@ -72,7 +72,7 @@ export function Header() {
           <Link
             href="/login"
             onClick={() => setOpen(false)}
-            className="mt-2 block rounded-lg bg-zinc-900 px-4 py-2 text-center text-sm font-medium text-white"
+            className="mt-2 block rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white"
           >
             Iniciar Sesión
           </Link>

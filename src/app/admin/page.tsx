@@ -16,10 +16,10 @@ export default async function AdminDashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+      <h1 className="text-2xl font-bold tracking-tight text-white">
         Panel de Administración
       </h1>
-      <p className="mt-1 text-sm text-zinc-600">
+      <p className="mt-1 text-sm text-slate-400">
         Bienvenido, {session?.sub ? 'SuperAdmin' : ''}
       </p>
 
@@ -35,9 +35,9 @@ export default async function AdminDashboard() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-6">
-      <p className="text-sm font-medium text-zinc-600">{label}</p>
-      <p className="mt-2 text-3xl font-bold text-zinc-900">{value}</p>
+    <div className="rounded-md border border-slate-800 bg-slate-900 p-6">
+      <p className="text-sm font-medium text-slate-400">{label}</p>
+      <p className="mt-2 text-3xl font-bold text-white">{value}</p>
     </div>
   );
 }

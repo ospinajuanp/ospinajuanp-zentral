@@ -1,7 +1,7 @@
 export default function CoreLoading() {
   return (
     <div className="flex items-center justify-center py-24">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-900" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
     </div>
   );
 }

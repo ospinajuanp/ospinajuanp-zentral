@@ -52,28 +52,28 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-6 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-6 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <Link href="/" className="text-2xl font-bold tracking-tight text-zinc-900">
+          <Link href="/" className="text-2xl font-bold tracking-tight text-white">
             Zentral
           </Link>
-          <p className="mt-2 text-sm text-zinc-600">Crea tu workspace gratis</p>
+          <p className="mt-2 text-sm text-slate-400">Crea tu workspace gratis</p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm"
+          className="rounded-md border border-slate-800 bg-slate-900 p-8"
         >
           {error && (
-            <div className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+            <div className="mb-6 rounded-md bg-rose-500/10 px-4 py-3 text-sm text-rose-500">
               {error}
             </div>
           )}
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-zinc-700">
+              <label htmlFor="name" className="block text-sm font-medium text-slate-400">
                 Nombre completo
               </label>
               <input
@@ -82,13 +82,13 @@ export default function RegisterPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-zinc-300 px-4 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                className="mt-1 block w-full rounded-md border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-hidden"
                 placeholder="Tu nombre"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-zinc-700">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-400">
                 Email
               </label>
               <input
@@ -97,13 +97,13 @@ export default function RegisterPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-zinc-300 px-4 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                className="mt-1 block w-full rounded-md border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-hidden"
                 placeholder="admin@correo.com"
               />
             </div>
 
             <div>
-              <label htmlFor="company" className="block text-sm font-medium text-zinc-700">
+              <label htmlFor="company" className="block text-sm font-medium text-slate-400">
                 Nombre de la empresa
               </label>
               <input
@@ -111,18 +111,18 @@ export default function RegisterPage() {
                 type="text"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-zinc-300 px-4 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                className="mt-1 block w-full rounded-md border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-hidden"
                 placeholder={suggestedWorkspace || 'Mi Empresa S.A.S.'}
               />
               {!companyName && suggestedWorkspace && (
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-1 text-xs text-slate-500">
                   Si lo dejas vacío se usará &ldquo;{suggestedWorkspace}&rdquo;
                 </p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-zinc-700">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-400">
                 Contraseña
               </label>
               <div className="relative mt-1">
@@ -133,13 +133,13 @@ export default function RegisterPage() {
                   minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full rounded-lg border border-zinc-300 px-4 py-2.5 pr-11 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                  className="block w-full rounded-md border border-slate-800 bg-slate-950 px-4 py-2.5 pr-11 text-sm text-slate-200 placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-hidden"
                   placeholder="Mínimo 6 caracteres"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                   aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
                   {showPassword ? (
@@ -160,20 +160,20 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-6 w-full rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-800 disabled:opacity-50"
+            className="mt-6 w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50"
           >
             {loading ? 'Creando workspace…' : 'Crear workspace gratis'}
           </button>
 
-          <p className="mt-6 text-center text-sm text-zinc-600">
+          <p className="mt-6 text-center text-sm text-slate-400">
             ¿Ya tienes cuenta?{' '}
-            <Link href="/login" className="font-medium text-zinc-900 underline underline-offset-2">
+            <Link href="/login" className="font-medium text-slate-200 underline underline-offset-2">
               Inicia sesión
             </Link>
           </p>
         </form>
 
-        <p className="mt-6 text-center text-xs text-zinc-500">
+        <p className="mt-6 text-center text-xs text-slate-500">
           &copy; {new Date().getFullYear()} Zentral. Todos los derechos reservados.
         </p>
       </div>
