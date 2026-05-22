@@ -13,11 +13,8 @@ interface ModuleCard {
 
 export function ModulesGridCards({ modules }: { modules: ModuleCard[] }) {
   const [showAllMobile, setShowAllMobile] = useState(false);
-  const isCarousel = modules.length > 4;
 
-  const [emblaRef, emblaApi] = useEmblaCarousel(
-    isCarousel ? { align: 'start', dragFree: false, loop: false } : undefined
-  );
+  const [emblaRef, emblaApi] = useEmblaCarousel({ align: 'start', dragFree: false, loop: false });
 
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
@@ -40,8 +37,7 @@ export function ModulesGridCards({ modules }: { modules: ModuleCard[] }) {
 
   return (
     <div className="mt-16">
-      {/* Desktop: grid or Embla carousel */}
-      {isCarousel ? (
+      {/* Desktop: Embla carousel */}
         <div className="hidden sm:block overflow-hidden -mx-4 px-4" ref={emblaRef}>
           <div className="flex items-stretch gap-6">
             {modules.map((mod) => (
@@ -51,18 +47,8 @@ export function ModulesGridCards({ modules }: { modules: ModuleCard[] }) {
             ))}
           </div>
         </div>
-      ) : (
-        <div className="hidden sm:flex flex-wrap gap-6 justify-center items-stretch">
-          {modules.map((mod) => (
-            <div key={mod.key} className="w-[18rem] max-w-full flex flex-col">
-              <ModuleBox module={mod} />
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Desktop carousel controls below */}
-      {isCarousel && (
         <div className="mt-8 hidden justify-center gap-3 sm:flex">
           <button onClick={scrollPrev}
             className="rounded-full border border-slate-700 p-2.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
@@ -77,7 +63,6 @@ export function ModulesGridCards({ modules }: { modules: ModuleCard[] }) {
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           </button>
         </div>
-      )}
 
       {/* Mobile: first 4 + expand button */}
       <div className="grid gap-6 sm:hidden">
