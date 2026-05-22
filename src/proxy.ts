@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { verifyJwt } from '@/lib/auth/jwt';
 
 const publicExact = ['/'];
-const publicPrefixes = ['/login', '/api/auth/login'];
+const publicPrefixes = ['/login', '/register', '/api/auth/login', '/api/auth/register'];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

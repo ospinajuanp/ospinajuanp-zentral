@@ -24,10 +24,10 @@ export function Hero() {
             Explorar Módulos
           </Link>
           <Link
-            href="/login"
+            href="/register"
             className="rounded-xl border border-zinc-300 bg-white px-8 py-3.5 text-sm font-semibold text-zinc-700 transition-all hover:bg-zinc-50"
           >
-            Iniciar Sesión
+            Empezar gratis
           </Link>
         </div>
 

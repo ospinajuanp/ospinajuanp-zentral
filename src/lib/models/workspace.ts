@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IWorkspace extends Document {
   name: string;
   slug: string;
-  owner: mongoose.Types.ObjectId;
+  owner?: mongoose.Types.ObjectId | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -26,7 +26,7 @@ const workspaceSchema = new Schema<IWorkspace>(
     owner: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
     },
     isActive: {
       type: Boolean,
