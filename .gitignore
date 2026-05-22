@@ -37,6 +37,7 @@ yarn-error.log*
 # project notes with credentials
 docs/adicional.md
 docs/.seed-credentials.md
+gemi.md
 
 # vercel
 .vercel
