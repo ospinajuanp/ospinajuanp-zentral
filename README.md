@@ -250,6 +250,12 @@ src/
 
 ---
 
+## Design System
+
+Ver [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) para la paleta completa: fondos, tipografía, inputs, botones, spinners e iconografía del estilo "Zentral Tech Core" (modo oscuro profesional).
+
+---
+
 ## Despliegue
 
 Construcción estándar de Next.js:
