@@ -56,24 +56,6 @@ export function PricingCards({ plans }: { plans: PlanCardData[] }) {
 
   return (
     <div className="mt-16">
-      {/* Desktop carousel controls */}
-      {isCarousel && (
-        <div className="mb-8 hidden justify-center gap-3 sm:flex">
-          <button onClick={scrollPrev}
-            className="rounded-full border border-slate-700 p-2.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
-            aria-label="Anterior"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-          </button>
-          <button onClick={scrollNext}
-            className="rounded-full border border-slate-700 p-2.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
-            aria-label="Siguiente"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-          </button>
-        </div>
-      )}
-
       {/* Desktop: grid or Embla carousel */}
       {isCarousel ? (
         <div className="hidden sm:block overflow-hidden -mx-4 px-4" ref={emblaRef}>
@@ -92,6 +74,24 @@ export function PricingCards({ plans }: { plans: PlanCardData[] }) {
               <PlanCard plan={p} />
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Desktop carousel controls below cards */}
+      {isCarousel && (
+        <div className="mt-10 hidden justify-center gap-3 sm:flex">
+          <button onClick={scrollPrev}
+            className="rounded-full border border-slate-700 p-2.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            aria-label="Anterior"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <button onClick={scrollNext}
+            className="rounded-full border border-slate-700 p-2.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            aria-label="Siguiente"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          </button>
         </div>
       )}
 
