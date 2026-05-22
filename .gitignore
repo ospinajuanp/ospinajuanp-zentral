@@ -35,8 +35,8 @@ yarn-error.log*
 !.env.example
 
 # project notes with credentials
-adicional.md
-.seed-credentials.md
+docs/adicional.md
+docs/.seed-credentials.md
 
 # vercel
 .vercel

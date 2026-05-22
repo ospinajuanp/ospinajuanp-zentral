@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth';
 import dbConnect from '@/lib/db/mongoose';
 import { ModuleSubscription } from '@/lib/models/module-subscription';
 
-export default async function TransferCheckPage() {
+export default async function AntecedentesPage() {
   const session = await getSession();
 
   if (!session) {
@@ -17,7 +17,7 @@ export default async function TransferCheckPage() {
 
     subscription = await ModuleSubscription.findOne({
       workspace: session.workspaceId,
-      moduleKey: 'transfercheck',
+      moduleKey: 'antecedentes',
       status: 'active',
     });
 
@@ -36,10 +36,10 @@ export default async function TransferCheckPage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
       <h1 className="text-3xl font-bold tracking-tight text-white">
-        TransferCheck
+        AntecedentesCheck
       </h1>
       <p className="mt-2 text-slate-400">
-        Módulo de verificación y validación de transferencias bancarias.
+        Consulta de antecedentes judiciales, policiales y comerciales.
       </p>
 
       {quota && (
