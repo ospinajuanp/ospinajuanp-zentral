@@ -13,6 +13,15 @@ interface ModuleOption {
   tier: string;
 }
 
+interface PlanOption {
+  _id: string;
+  name: string;
+  includedModules: { module: ModuleOption; quotaOverride: number | null }[];
+  maxUsers: number;
+  extraFeatures: string[];
+  description: string;
+}
+
 interface SelectedModule {
   moduleId: string;
   name: string;
@@ -38,6 +47,7 @@ export default function EditPlanPage() {
   const [sortOrder, setSortOrder] = useState(0);
 
   const [availableModules, setAvailableModules] = useState<ModuleOption[]>([]);
+  const [availablePlans, setAvailablePlans] = useState<PlanOption[]>([]);
   const [selectedModules, setSelectedModules] = useState<SelectedModule[]>([]);
   const [extraFeaturesText, setExtraFeaturesText] = useState('');
 
@@ -56,7 +66,13 @@ export default function EditPlanPage() {
         if (data.modules) setAvailableModules(data.modules);
       })
       .catch(() => {});
-  }, []);
+    fetch('/api/admin/plans')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.plans) setAvailablePlans(data.plans.filter((p: { _id: string }) => p._id !== planId));
+      })
+      .catch(() => {});
+  }, [planId]);
 
   useEffect(() => {
     fetch(`/api/admin/plans/${planId}`)
@@ -275,6 +291,41 @@ export default function EditPlanPage() {
               {selectedModules.length === availableModules.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
             </button>
           </div>
+
+          {availablePlans.length > 0 && (
+            <div className="mt-3 rounded-md border border-slate-700 bg-slate-950 p-3">
+              <label className="block text-xs font-medium text-slate-400">Basado en (hereda módulos, usuarios y características)</label>
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  const pid = e.target.value;
+                  if (!pid) return;
+                  const plan = availablePlans.find((p) => p._id === pid);
+                  if (!plan || !plan.includedModules) return;
+                  setSelectedModules(
+                    plan.includedModules
+                      .filter((im) => im.module)
+                      .map((im) => ({
+                        moduleId: im.module._id,
+                        name: im.module.name,
+                        key: im.module.key,
+                        defaultQuota: im.module.defaultQuota,
+                        quotaOverride: String(im.quotaOverride ?? im.module.defaultQuota),
+                      }))
+                  );
+                  if (plan.maxUsers) setMaxUsers(String(plan.maxUsers));
+                  if (plan.extraFeatures?.length) setExtraFeaturesText(plan.extraFeatures.join('\n'));
+                  if (plan.description) setDescription(plan.description);
+                }}
+                className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
+              >
+                <option value="">— Personalizado (vacío) —</option>
+                {availablePlans.map((p) => (
+                  <option key={p._id} value={p._id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="mt-4 space-y-2">
             {availableModules.map((mod) => {

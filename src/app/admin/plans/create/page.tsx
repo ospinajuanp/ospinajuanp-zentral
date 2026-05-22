@@ -24,10 +24,10 @@ interface SelectedModule {
 interface PlanOption {
   _id: string;
   name: string;
-  includedModules: Array<{
-    module: ModuleOption;
-    quotaOverride: number | null;
-  }>;
+  includedModules: { module: ModuleOption; quotaOverride: number | null }[];
+  maxUsers: number;
+  extraFeatures: string[];
+  description: string;
 }
 
 export default function CreatePlanPage() {
@@ -228,8 +228,8 @@ export default function CreatePlanPage() {
           </div>
 
           {availablePlans.length > 0 && (
-            <div className="mt-3 rounded-md bg-slate-950 p-3">
-              <label className="text-xs text-slate-500">Copiar módulos de un plan existente:</label>
+            <div className="mt-3 rounded-md border border-slate-700 bg-slate-950 p-3">
+              <label className="block text-xs font-medium text-slate-400">Basado en (hereda módulos, usuarios y características)</label>
               <select
                 defaultValue=""
                 onChange={(e) => {
@@ -248,10 +248,13 @@ export default function CreatePlanPage() {
                         quotaOverride: String(im.quotaOverride ?? im.module.defaultQuota),
                       }))
                   );
+                  if (plan.maxUsers) setMaxUsers(String(plan.maxUsers));
+                  if (plan.extraFeatures?.length) setExtraFeaturesText(plan.extraFeatures.join('\n'));
+                  if (plan.description) setDescription(plan.description);
                 }}
-                className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-white"
+                className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
               >
-                <option value="">— No copiar —</option>
+                <option value="">— Personalizado (vacío) —</option>
                 {availablePlans.map((p) => (
                   <option key={p._id} value={p._id}>{p.name}</option>
                 ))}
