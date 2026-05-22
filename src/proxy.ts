@@ -35,21 +35,21 @@ export async function proxy(request: NextRequest) {
     const payload = await verifyJwt(token);
 
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-user-id', payload.sub);
-    requestHeaders.set('x-user-role', payload.role);
+    requestHeaders.set('x-user-id', payload.sub ?? '');
+    requestHeaders.set('x-user-role', payload.role ?? '');
     requestHeaders.set('x-workspace-id', payload.workspaceId ?? '');
-
-    const response = NextResponse.next({
-      request: { headers: requestHeaders },
-    });
 
     if (pathname.startsWith('/admin') && payload.role !== 'superadmin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    return response;
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   } catch {
-    return redirectToLogin(request);
+    const response = redirectToLogin(request);
+    response.cookies.delete('zentral_session');
+    return response;
   }
 }
 
