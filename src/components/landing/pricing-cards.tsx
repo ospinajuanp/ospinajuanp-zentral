@@ -45,12 +45,14 @@ export function PricingCards({ plans }: { plans: PlanCardData[] }) {
     };
   }, [emblaApi]);
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    if (draggedRef.current) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  };
+  /* reInit carousel when slide heights change (e.g., feature expand/collapse) */
+  useEffect(() => {
+    if (!emblaApi) return;
+    const container = emblaApi.containerNode();
+    const observer = new ResizeObserver(() => emblaApi.reInit());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [emblaApi]);
 
   const visiblePlans = showAllMobile ? plans : plans.slice(0, 3);
 
@@ -60,8 +62,8 @@ export function PricingCards({ plans }: { plans: PlanCardData[] }) {
         <div className="hidden sm:block overflow-hidden -mx-4 px-4" ref={emblaRef}>
           <div className="flex items-stretch gap-8">
             {plans.map((p) => (
-              <div key={p._id} className="min-w-0 shrink-0 grow-0 basis-[22rem] flex flex-col" onClick={handleCardClick}>
-                <PlanCard plan={p} />
+              <div key={p._id} className="min-w-0 shrink-0 grow-0 basis-[22rem] flex flex-col">
+                <PlanCard plan={p} draggedRef={draggedRef} />
               </div>
             ))}
           </div>
@@ -107,7 +109,7 @@ export function PricingCards({ plans }: { plans: PlanCardData[] }) {
   );
 }
 
-function PlanCard({ plan }: { plan: PlanCardData }) {
+function PlanCard({ plan, draggedRef }: { plan: PlanCardData; draggedRef?: React.RefObject<boolean | null> }) {
   const p = plan;
   const [expanded, setExpanded] = useState(false);
 
@@ -203,6 +205,9 @@ function PlanCard({ plan }: { plan: PlanCardData }) {
 
       <a
         href={p.ctaLink || '#'}
+        onClick={(e) => {
+          if (draggedRef?.current) e.preventDefault();
+        }}
         className={`mt-6 block w-full rounded-md py-3 text-center text-sm font-medium transition-all ${
           p.highlighted
             ? 'bg-white text-zinc-900 hover:bg-zinc-100'

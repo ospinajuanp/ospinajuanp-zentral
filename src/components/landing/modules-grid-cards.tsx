@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 
 interface ModuleCard {
@@ -19,18 +19,13 @@ export function ModulesGridCards({ modules }: { modules: ModuleCard[] }) {
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
 
-  /* prevent clicks during drag */
-  const draggedRef = useRef(false);
+  /* reInit carousel when slide sizes change */
   useEffect(() => {
     if (!emblaApi) return;
-    const onPointerDown = () => { draggedRef.current = false; };
-    const onScroll = () => { draggedRef.current = true; };
-    emblaApi.on('pointerDown', onPointerDown);
-    emblaApi.on('scroll', onScroll);
-    return () => {
-      emblaApi.off('pointerDown', onPointerDown);
-      emblaApi.off('scroll', onScroll);
-    };
+    const container = emblaApi.containerNode();
+    const observer = new ResizeObserver(() => emblaApi.reInit());
+    observer.observe(container);
+    return () => observer.disconnect();
   }, [emblaApi]);
 
   const visibleModules = showAllMobile ? modules : modules.slice(0, 4);
