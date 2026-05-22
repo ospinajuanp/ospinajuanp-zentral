@@ -4,7 +4,8 @@ import dbConnect from '@/lib/db/mongoose';
 import { User } from '@/lib/models/user';
 import { Workspace } from '@/lib/models/workspace';
 import { ModuleSubscription } from '@/lib/models/module-subscription';
-import { hashPassword, signJwt } from '@/lib/auth';
+import { hashPassword, signVerificationToken } from '@/lib/auth';
+import { sendVerificationEmail } from '@/lib/email/resend';
 
 export async function POST(request: NextRequest) {
   const { name, email, password, companyName } = await request.json();
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
     passwordHash,
     role: 'admin',
     workspace: workspace._id,
+    isActive: false,
   });
 
   workspace.owner = user._id;
@@ -66,24 +68,19 @@ export async function POST(request: NextRequest) {
     status: 'active',
   });
 
-  const token = await signJwt({
-    sub: user._id.toString(),
-    role: user.role,
-    workspaceId: workspace._id.toString(),
+  const verificationToken = await signVerificationToken({
+    email: user.email,
+    purpose: 'email-verification',
   });
 
-  const response = NextResponse.json({
-    user: { name: user.name, email: user.email, role: user.role },
-    redirect: '/dashboard',
-  });
+  try {
+    await sendVerificationEmail(user.email, verificationToken);
+  } catch {
+    // Email send failure is non-blocking — user can request a new link later
+  }
 
-  response.cookies.set('zentral_session', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7,
+  return NextResponse.json({
+    message:
+      'Cuenta creada. Revisa tu bandeja de entrada para verificar tu correo electrónico.',
   });
-
-  return response;
 }

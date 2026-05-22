@@ -45,3 +45,21 @@ export async function verifyResetToken(token: string): Promise<ResetTokenPayload
   const { payload } = await jwtVerify(token, SECRET);
   return payload as unknown as ResetTokenPayload;
 }
+
+export interface VerificationTokenPayload {
+  email: string;
+  purpose: 'email-verification';
+}
+
+export async function signVerificationToken(payload: VerificationTokenPayload): Promise<string> {
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('24h')
+    .sign(SECRET);
+}
+
+export async function verifyVerificationToken(token: string): Promise<VerificationTokenPayload> {
+  const { payload } = await jwtVerify(token, SECRET);
+  return payload as unknown as VerificationTokenPayload;
+}

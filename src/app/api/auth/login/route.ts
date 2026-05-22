@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   if (!user.isActive) {
     return NextResponse.json(
-      { error: 'Account is deactivated' },
+      { error: 'Por favor, verifica tu correo electrónico antes de iniciar sesión.' },
       { status: 403 }
     );
   }

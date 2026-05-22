@@ -8,10 +8,12 @@ const publicPrefixes = [
   '/register',
   '/forgot-password',
   '/reset-password',
+  '/verify-email',
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
+  '/api/auth/verify-email',
   '/api/auth/session',
 ];
 

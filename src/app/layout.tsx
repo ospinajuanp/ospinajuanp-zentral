@@ -4,9 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Zentral — Micro-SaaS Studio",
   description: "Ecosistema modular de herramientas de gestión empresarial.",
-  icons: {
-    icon: "/ico.ico",
-  },
+
 };
 
 export default function RootLayout({

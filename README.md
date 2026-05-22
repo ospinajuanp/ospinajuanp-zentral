@@ -57,7 +57,7 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 - [ ] Edición de usuarios y workspaces
 - [ ] Rate limiting en login/register
 - [ ] Paginación en listas
-- [ ] Verificación de email
+- [x] Verificación de email (registro con isActive: false, token 24h vía jose, endpoint verify-email)
 
 ---
 
@@ -81,8 +81,10 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `GET /api/auth/session` | — | Verificar si hay sesión activa |
 | `/forgot-password` | Público | Solicitar recuperación de contraseña |
 | `/reset-password` | Público | Restablecer contraseña (vía token) |
+| `/verify-email` | Público | Verificar correo (vía token) |
 | `POST /api/auth/forgot-password` | Público | Enviar email con enlace de recuperación |
 | `POST /api/auth/reset-password` | Público | Ejecutar cambio de contraseña |
+| `POST /api/auth/verify-email` | Público | Verificar correo electrónico |
 
 ---
 
