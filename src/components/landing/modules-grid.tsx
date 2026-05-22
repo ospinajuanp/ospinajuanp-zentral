@@ -9,18 +9,19 @@ const tierOrder: Record<string, number> = { free: 0, premium: 1 };
 export async function ModulesGrid() {
   try {
     await dbConnect();
-    const modules = await Module.find().sort({ key: 1 }).lean();
+    const rawModules = await Module.find().sort({ key: 1 }).lean()
+      .then((docs) => JSON.parse(JSON.stringify(docs)));
 
-    modules.sort((a, b) => {
-      const sa = statusOrder[a.status] ?? 2;
-      const sb = statusOrder[b.status] ?? 2;
+    rawModules.sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+      const sa = statusOrder[String(a.status)] ?? 2;
+      const sb = statusOrder[String(b.status)] ?? 2;
       if (sa !== sb) return sa - sb;
-      const ta = tierOrder[a.tier] ?? 1;
-      const tb = tierOrder[b.tier] ?? 1;
+      const ta = tierOrder[String(a.tier)] ?? 1;
+      const tb = tierOrder[String(b.tier)] ?? 1;
       return ta - tb;
     });
 
-    const mapped = modules.map((mod) => ({
+    const mapped = rawModules.map((mod: Record<string, unknown>) => ({
       key: mod.key,
       name: mod.name,
       description: mod.description,

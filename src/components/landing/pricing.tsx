@@ -8,7 +8,8 @@ export async function Pricing() {
     const plans = await Plan.find({ isActive: true })
       .populate('includedModules.module', 'name key defaultQuota')
       .sort({ sortOrder: 1, name: 1 })
-      .lean();
+      .lean()
+    .then((docs) => JSON.parse(JSON.stringify(docs)));
 
     return (
       <section id="precios" className="border-t border-slate-800 bg-slate-950 px-6 py-24">
