@@ -44,16 +44,18 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 - [x] Panel SuperAdmin: dashboard, workspaces list/detail, users list/detail
 - [x] Aislamiento por workspace (cada workspace tiene sus propios datos)
 - [x] Seed script (`pnpm run seed`)
+- [x] Logout (`POST /api/auth/logout`) + botón en sidebar/navbar
+- [x] Sesión por inactividad (15 min, auto-logout vía `SessionTimeout`)
+- [x] Redirección automática en `/login` si ya hay sesión activa
+- [x] Páginas de error personalizadas (404, 500) + loading spinners por segmento
 
 ### Pendiente
 
 - [ ] Módulos: AntecedentesCheck, Facturación, WhatsApp CRM, Cuentas de Cobro, Reportes SG-SST, Reservas PH, Agendamiento, Optimizador de Rutas, Cobro Preventivo
 - [ ] UI de activación/gestión de módulos
 - [ ] Edición de usuarios y workspaces
-- [ ] Logout endpoint
 - [ ] Rate limiting en login/register
 - [ ] Paginación en listas
-- [ ] Páginas de error personalizadas (404, 500, loading)
 - [ ] Verificación de email
 - [ ] Recuperación de contraseña
 
@@ -75,6 +77,8 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `/admin/users/[id]` | superadmin | Detalle de usuario |
 | `POST /api/auth/login` | Público | Login endpoint |
 | `POST /api/auth/register` | Público | Registro endpoint |
+| `POST /api/auth/logout` | Autenticado | Cerrar sesión |
+| `GET /api/auth/session` | — | Verificar si hay sesión activa |
 
 ---
 
@@ -125,6 +129,18 @@ src/
 ├── proxy.ts                    # Edge proxy — JWT + route protection
 ├── types/
 │   └── index.ts                # Tipos compartidos (Role, ModuleTier, etc.)
+├── components/
+│   ├── session-timeout.tsx     # Client component: auto-logout 15 min inactividad
+│   ├── logout-button.tsx       # Botón "Cerrar Sesión"
+│   └── landing/
+│       ├── header.tsx
+│       ├── hero.tsx
+│       ├── features.tsx
+│       ├── modules-grid.tsx
+│       ├── pricing.tsx
+│       ├── about.tsx
+│       ├── cta.tsx
+│       └── footer.tsx
 ├── lib/
 │   ├── auth/
 │   │   ├── jwt.ts              # signJwt / verifyJwt (jose)
@@ -144,33 +160,34 @@ src/
 ├── app/
 │   ├── layout.tsx              # Root layout
 │   ├── page.tsx                # Landing page
+│   ├── not-found.tsx           # 404 personalizada
+│   ├── error.tsx               # Error boundary global
+│   ├── loading.tsx             # Loading spinner global
 │   ├── globals.css             # Tailwind v4
 │   ├── (auth)/
 │   │   ├── login/page.tsx
 │   │   └── register/page.tsx
 │   ├── (core)/
+│   │   ├── layout.tsx          # Navbar + SessionTimeout + logout
+│   │   ├── loading.tsx
+│   │   ├── error.tsx
 │   │   └── dashboard/page.tsx
 │   ├── (modules)/
 │   │   └── transfercheck/page.tsx
 │   ├── admin/
-│   │   ├── layout.tsx
+│   │   ├── layout.tsx          # Sidebar + SessionTimeout + logout
 │   │   ├── page.tsx
+│   │   ├── loading.tsx
+│   │   ├── error.tsx
 │   │   ├── workspaces/page.tsx
 │   │   ├── workspaces/[id]/page.tsx
 │   │   ├── users/page.tsx
 │   │   └── users/[id]/page.tsx
 │   └── api/auth/
 │       ├── login/route.ts
-│       └── register/route.ts
-└── components/landing/
-    ├── header.tsx
-    ├── hero.tsx
-    ├── features.tsx
-    ├── modules-grid.tsx
-    ├── pricing.tsx
-    ├── about.tsx
-    ├── cta.tsx
-    └── footer.tsx
+│       ├── register/route.ts
+│       ├── logout/route.ts
+│       └── session/route.ts
 ```
 
 ---
@@ -217,6 +234,7 @@ src/
 - **Route Guards**: middleware de ruta verifica headers + DB en cada request
 - **RBAC**: superadmin bypass, admin/hijo validados contra su workspace y rol
 - **Workspace Isolation**: cada query filtra por workspace del usuario
+- **Inactivity Timeout**: 15 min sin interacción → logout automático (SessionTimeout)
 
 ---
 
