@@ -20,6 +20,8 @@ interface PlanOption {
   maxUsers: number;
   extraFeatures: string[];
   description: string;
+  support: string;
+  onboarding: string;
 }
 
 interface SelectedModule {
@@ -50,6 +52,8 @@ export default function EditPlanPage() {
   const [availablePlans, setAvailablePlans] = useState<PlanOption[]>([]);
   const [selectedModules, setSelectedModules] = useState<SelectedModule[]>([]);
   const [extraFeaturesText, setExtraFeaturesText] = useState('');
+  const [support, setSupport] = useState('ninguno');
+  const [onboarding, setOnboarding] = useState('ninguno');
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -91,6 +95,8 @@ export default function EditPlanPage() {
           setIsActive(p.isActive ?? true);
           setSortOrder(p.sortOrder ?? 0);
           setExtraFeaturesText((p.extraFeatures ?? []).join('\n'));
+          setSupport(p.support ?? 'ninguno');
+          setOnboarding(p.onboarding ?? 'ninguno');
 
           if (p.includedModules) {
             setSelectedModules(
@@ -162,6 +168,8 @@ export default function EditPlanPage() {
           includedModules,
           maxUsers: Number(maxUsers),
           extraFeatures,
+          support,
+          onboarding,
       cta,
       ctaLink,
       highlighted,
@@ -273,23 +281,47 @@ export default function EditPlanPage() {
           <h2 className="text-lg font-semibold text-white">Módulos incluidos</h2>
           <div className="flex items-center justify-between mt-1">
             <p className="text-xs text-slate-500">Selecciona los módulos que incluye este plan y ajusta su cuota si es necesario.</p>
-            <button type="button" onClick={() => {
-              if (selectedModules.length === availableModules.length) {
-                setSelectedModules([]);
-              } else {
-                setSelectedModules(
-                  availableModules.map((mod) => ({
-                    moduleId: mod._id,
-                    name: mod.name,
-                    key: mod.key,
-                    defaultQuota: mod.defaultQuota,
-                    quotaOverride: String(mod.defaultQuota),
-                  }))
-                );
-              }
-            }} className="text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
-              {selectedModules.length === availableModules.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
-            </button>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setSelectedModules(
+                availableModules.filter((mod) => mod.tier === 'free').map((mod) => ({
+                  moduleId: mod._id,
+                  name: mod.name,
+                  key: mod.key,
+                  defaultQuota: mod.defaultQuota,
+                  quotaOverride: String(mod.defaultQuota),
+                }))
+              )} className="text-xs text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
+                Gratis
+              </button>
+              <button type="button" onClick={() => setSelectedModules(
+                availableModules.filter((mod) => mod.tier === 'premium').map((mod) => ({
+                  moduleId: mod._id,
+                  name: mod.name,
+                  key: mod.key,
+                  defaultQuota: mod.defaultQuota,
+                  quotaOverride: String(mod.defaultQuota),
+                }))
+              )} className="text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+                Premium
+              </button>
+              <button type="button" onClick={() => {
+                if (selectedModules.length === availableModules.length) {
+                  setSelectedModules([]);
+                } else {
+                  setSelectedModules(
+                    availableModules.map((mod) => ({
+                      moduleId: mod._id,
+                      name: mod.name,
+                      key: mod.key,
+                      defaultQuota: mod.defaultQuota,
+                      quotaOverride: String(mod.defaultQuota),
+                    }))
+                  );
+                }
+              }} className="text-xs text-slate-400 hover:text-slate-300 underline underline-offset-2">
+                {selectedModules.length === availableModules.length ? 'Ninguno' : 'Todos'}
+              </button>
+            </div>
           </div>
 
           {availablePlans.length > 0 && (
@@ -316,6 +348,8 @@ export default function EditPlanPage() {
                   if (plan.maxUsers) setMaxUsers(String(plan.maxUsers));
                   if (plan.extraFeatures?.length) setExtraFeaturesText(plan.extraFeatures.join('\n'));
                   if (plan.description) setDescription(plan.description);
+                  setSupport(plan.support ?? 'ninguno');
+                  setOnboarding(plan.onboarding ?? 'ninguno');
                 }}
                 className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
               >
@@ -391,6 +425,37 @@ export default function EditPlanPage() {
             className="mt-3 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
             placeholder="Soporte por email&#10;Módulos en beta gratis"
           />
+        </div>
+
+        {/* support & onboarding */}
+        <div className="rounded-md border border-slate-800 bg-slate-900 p-6">
+          <h2 className="text-lg font-semibold text-white">Soporte y Onboarding</h2>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="support" className="block text-sm font-medium text-slate-400">Soporte</label>
+              <select id="support" value={support} onChange={(e) => setSupport(e.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
+              >
+                <option value="ninguno">Ninguno</option>
+                <option value="email">Email</option>
+                <option value="prioritario">Prioritario</option>
+                <option value="canales">Canales (Email + Chat)</option>
+                <option value="dedicado">Dedicado</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="onboarding" className="block text-sm font-medium text-slate-400">Onboarding</label>
+              <select id="onboarding" value={onboarding} onChange={(e) => setOnboarding(e.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
+              >
+                <option value="ninguno">Ninguno</option>
+                <option value="autoguiado">Autoguiado</option>
+                <option value="videos">Videos</option>
+                <option value="documentacion">Documentación</option>
+                <option value="dedicado">Dedicado</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* config */}

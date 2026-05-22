@@ -13,6 +13,8 @@ export interface IPlan extends Document {
   includedModules: IPlanModule[];
   maxUsers: number;
   extraFeatures: string[];
+  support: string;
+  onboarding: string;
   cta: string;
   ctaLink: string;
   highlighted: boolean;
@@ -67,6 +69,14 @@ const planSchema = new Schema<IPlan>(
     extraFeatures: {
       type: [String],
       default: [],
+    },
+    support: {
+      type: String,
+      default: 'ninguno',
+    },
+    onboarding: {
+      type: String,
+      default: 'ninguno',
     },
     cta: {
       type: String,

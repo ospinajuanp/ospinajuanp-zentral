@@ -13,6 +13,8 @@ interface PlanCardData {
   maxUsers: number;
   ctaLink: string;
   extraFeatures: string[];
+  support: string;
+  onboarding: string;
   includedModules?: Array<{
     module: { name: string; key: string; defaultQuota: number };
     quotaOverride: number | null;
@@ -142,9 +144,14 @@ function PlanCard({ plan }: { plan: PlanCardData }) {
     ...p.extraFeatures,
   ].filter(Boolean);
 
+  const supportLabel = p.support && p.support !== 'ninguno' ? `Soporte: ${p.support}` : '';
+  const onboardingLabel = p.onboarding && p.onboarding !== 'ninguno' ? `Onboarding: ${p.onboarding}` : '';
+
+  const allFeatures = [...features, supportLabel, onboardingLabel].filter(Boolean);
+
   const MAX_VISIBLE = 5;
-  const showToggle = features.length > MAX_VISIBLE;
-  const visibleFeatures = expanded ? features : features.slice(0, MAX_VISIBLE);
+  const showToggle = allFeatures.length > MAX_VISIBLE;
+  const visibleFeatures = expanded ? allFeatures : allFeatures.slice(0, MAX_VISIBLE);
 
   const isEnterprise = !p.price || p.price === 'A medida' || p.price === 'Personalizado';
 
@@ -202,7 +209,7 @@ function PlanCard({ plan }: { plan: PlanCardData }) {
             p.highlighted ? 'text-zinc-400 hover:text-zinc-300' : 'text-slate-500 hover:text-slate-400'
           }`}
         >
-          {expanded ? 'Ver menos' : `Ver ${features.length - MAX_VISIBLE} característica${features.length - MAX_VISIBLE !== 1 ? 's' : ''} más`}
+          {expanded ? 'Ver menos' : `Ver ${allFeatures.length - MAX_VISIBLE} característica${allFeatures.length - MAX_VISIBLE !== 1 ? 's' : ''} más`}
         </button>
       )}
 

@@ -10,6 +10,7 @@ interface PlanSeed {
   name: string; price: string; monthlyPrice: number | null; description: string;
   moduleKeys: string[]; maxUsers: number; extraFeatures: string[];
   cta: string; highlighted: boolean; sortOrder: number;
+  support: string; onboarding: string;
 }
 
 const defaultPlanDefs: PlanSeed[] = [
@@ -20,14 +21,16 @@ const defaultPlanDefs: PlanSeed[] = [
     maxUsers: 1,
     extraFeatures: [],
     cta: 'Empezar gratis', highlighted: false, sortOrder: 0,
+    support: 'ninguno', onboarding: 'ninguno',
   },
   {
     name: 'Premium', price: '$12', monthlyPrice: 12,
     description: 'Para equipos que necesitan más.',
     moduleKeys: ['transfercheck', 'antecedentes', 'facturacion', 'cartera'],
     maxUsers: 5,
-    extraFeatures: ['Soporte por email', 'Módulos en beta gratis'],
+    extraFeatures: ['Módulos en beta gratis'],
     cta: 'Ver módulos', highlighted: true, sortOrder: 1,
+    support: 'email', onboarding: 'autoguiado',
   },
   {
     name: 'Enterprise', price: 'A medida', monthlyPrice: null,
@@ -44,6 +47,7 @@ const defaultPlanDefs: PlanSeed[] = [
       'SLA estándar (48-72 h)',
     ],
     cta: 'Contactar', highlighted: false, sortOrder: 2,
+    support: 'prioritario', onboarding: 'dedicado',
   },
 ];
 
@@ -151,6 +155,8 @@ export async function seed() {
       cta: def.cta,
       highlighted: def.highlighted,
       sortOrder: def.sortOrder,
+      support: def.support,
+      onboarding: def.onboarding,
     });
     console.log(`[seed] Plan created: ${def.name}`);
   }
