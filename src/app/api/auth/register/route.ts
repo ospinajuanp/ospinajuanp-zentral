@@ -8,6 +8,8 @@ import { hashPassword, signVerificationToken } from '@/lib/auth';
 import { sendVerificationEmail } from '@/lib/email/resend';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function POST(request: NextRequest) {
   const rateLimit = await checkRateLimit(request, 'register');
   if (!rateLimit.allowed) {
@@ -30,6 +32,13 @@ export async function POST(request: NextRequest) {
   if (!name || !email || !password) {
     return NextResponse.json(
       { error: 'Todos los campos son requeridos' },
+      { status: 400 }
+    );
+  }
+
+  if (!EMAIL_REGEX.test(email)) {
+    return NextResponse.json(
+      { error: 'Formato de email inválido.' },
       { status: 400 }
     );
   }

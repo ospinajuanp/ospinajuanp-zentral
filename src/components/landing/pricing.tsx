@@ -85,16 +85,17 @@ export function Pricing() {
               <ul className="mt-8 flex-1 space-y-3">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-3 text-sm">
-                    <svg
-                      className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
-                        plan.highlighted ? 'text-emerald-400' : 'text-emerald-500'
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                      <svg
+                        className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
+                          plan.highlighted ? 'text-emerald-400' : 'text-emerald-500'
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
                     {feature}
                   </li>
                 ))}

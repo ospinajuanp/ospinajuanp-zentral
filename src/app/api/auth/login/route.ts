@@ -6,6 +6,8 @@ import { Workspace } from '@/lib/models/workspace';
 import { verifyPassword, signJwt } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function POST(request: NextRequest) {
   const rateLimit = await checkRateLimit(request, 'login');
   if (!rateLimit.allowed) {
@@ -27,7 +29,14 @@ export async function POST(request: NextRequest) {
 
   if (!email || !password) {
     return NextResponse.json(
-      { error: 'Email and password are required' },
+      { error: 'Email y contraseña son requeridos.' },
+      { status: 400 }
+    );
+  }
+
+  if (!EMAIL_REGEX.test(email)) {
+    return NextResponse.json(
+      { error: 'Formato de email inválido.' },
       { status: 400 }
     );
   }
