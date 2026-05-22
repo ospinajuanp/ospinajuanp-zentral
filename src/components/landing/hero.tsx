@@ -2,8 +2,8 @@ import Link from 'next/link';
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-[90vh] items-center justify-center px-6 pt-24">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-slate-950" />
+    <section className="relative flex min-h-[90vh] items-center justify-center bg-slate-950 px-6 pt-24">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950" />
 
       <div className="mx-auto max-w-4xl text-center">
         <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl">
