@@ -9,16 +9,15 @@ export type AuthResult =
   | { user?: undefined; error: NextResponse };
 
 export async function authenticate(request: NextRequest): Promise<AuthResult> {
-  const authHeader = request.headers.get('authorization');
+  const userId = request.headers.get('x-user-id');
+  const userRole = request.headers.get('x-user-role');
 
-  if (!authHeader?.startsWith('Bearer ')) {
+  if (!userId || !userRole) {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
   }
 
-  const token = authHeader.slice(7);
-
   await dbConnect();
-  const user = await User.findById(token);
+  const user = await User.findById(userId);
 
   if (!user || !user.isActive) {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
