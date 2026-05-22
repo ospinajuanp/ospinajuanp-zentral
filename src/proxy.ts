@@ -3,7 +3,17 @@ import type { NextRequest } from 'next/server';
 import { verifyJwt } from '@/lib/auth/jwt';
 
 const publicExact = ['/'];
-const publicPrefixes = ['/login', '/register', '/api/auth/login', '/api/auth/register'];
+const publicPrefixes = [
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/session',
+];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
