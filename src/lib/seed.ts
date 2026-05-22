@@ -3,7 +3,59 @@ import { User } from './models/user';
 import { Workspace } from './models/workspace';
 import { ModuleSubscription } from './models/module-subscription';
 import { Module } from './models/module';
+import { Plan } from './models/plan';
 import { hashPassword } from './auth';
+
+const defaultPlans = [
+  {
+    name: 'Free',
+    price: '$0',
+    monthlyPrice: 0,
+    description: 'Para empezar a usar Zentral.',
+    features: [
+      'Módulo TransferCheck',
+      '1 usuario',
+      '100 consultas / mes por módulo',
+    ],
+    cta: 'Empezar gratis',
+    highlighted: false,
+    sortOrder: 0,
+  },
+  {
+    name: 'Premium',
+    price: '$12',
+    monthlyPrice: 12,
+    description: 'Para equipos que necesitan más.',
+    features: [
+      'Módulos: AntecedentesCheck, Facturación Electrónica, Cartera',
+      '5 usuarios',
+      '500 consultas / mes por módulo',
+      'Soporte por email',
+      'Módulos en beta gratis',
+    ],
+    cta: 'Ver módulos',
+    highlighted: true,
+    sortOrder: 1,
+  },
+  {
+    name: 'Enterprise',
+    price: 'A medida',
+    monthlyPrice: null,
+    description: 'Solución personalizada para tu negocio.',
+    features: [
+      'Todos los módulos disponibles',
+      'Usuarios ilimitados',
+      'Consultas ilimitadas',
+      'Soporte prioritario',
+      'Factura personalizada',
+      'Onboarding dedicado',
+      'SLA estándar (48-72 h)',
+    ],
+    cta: 'Contactar',
+    highlighted: false,
+    sortOrder: 2,
+  },
+];
 
 const defaultModules = [
   {
@@ -72,6 +124,11 @@ export async function seed() {
     workspace: workspace._id,
     createdBy: superAdmin._id,
   });
+
+  for (const plan of defaultPlans) {
+    await Plan.create(plan);
+    console.log(`[seed] Plan created: ${plan.name}`);
+  }
 
   for (const mod of defaultModules) {
     await Module.create(mod);
