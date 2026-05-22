@@ -185,11 +185,11 @@ pnpm run seed
 
 Crea:
 - SuperAdmin: `admin@zentral.dev` / `admin123`
-- Workspace Demo (Premium, isPayReady=true): `admin@demo-corp.com` / `demo123` con todos los módulos
-- Workspace Free Test (Free, isPayReady=true): solo TransferCheck
-- Workspace Pending Corp (Premium, isPayReady=false): todos los módulos inactivos (para testear flujo de pago pendiente)
-- 4 módulos: TransferCheck, AntecedentesCheck, Facturación Electrónica, Cartera
-- 3 planes: Free, Premium, Enterprise
+- Demo Corp (Premium, isPayReady=true): `admin@demo-corp.com` / `demo123` — todos los módulos activos
+- Plus Corp (Premium Plus, isPayReady=true): `admin@plus-corp.com` / `plus123` — todos los módulos activos
+  - Hijo: `hijo@plus-corp.com` / `hijo123`
+- 4 módulos: TransferCheck (activo), AntecedentesCheck, Facturación Electrónica, Cartera (próximamente)
+- 4 planes: Free ($0), Premium ($12), Premium Plus ($24), Enterprise (WhatsApp)
 
 ### Desarrollo
 

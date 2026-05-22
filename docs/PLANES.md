@@ -31,6 +31,19 @@ Para equipos que necesitan más.
 | Onboarding | Autoguiado |
 | Extra | Módulos en beta gratis |
 
+## Premium Plus — $24/mes
+
+Máxima potencia sin límites de usuarios.
+
+| Característica | Incluye |
+|---|---|
+| Módulos | TransferCheck + AntecedentesCheck + Facturación + Cartera |
+| Usuarios | Ilimitados |
+| Consultas | 500 / mes por módulo |
+| Soporte | Canales (Email + Chat) |
+| Onboarding | Videos |
+| Extra | Módulos en beta, reportes avanzados |
+
 ## Enterprise — A medida
 
 Solución personalizada para tu negocio.  
@@ -50,15 +63,15 @@ Contacto vía WhatsApp.
 
 ## Comparativa rápida
 
-| | Free | Premium | Enterprise |
-|---|---|---|---|
-| Precio | $0/mes | $12/mes | A medida |
-| Usuarios | 1 | 5 | Ilimitados |
-| Módulos | 1 free | Todos (free + premium) | Todos |
-| Consultas | 100/mes | 500/mes por módulo | Ilimitadas |
-| Soporte | Ninguno | Email | Prioritario |
-| Onboarding | Ninguno | Autoguiado | Dedicado |
-| isPayReady | true (auto-activado) | false (pendiente pago) | false (pendiente contacto) |
+| | Free | Premium | Premium Plus | Enterprise |
+|---|---|---|---|---|
+| Precio | $0/mes | $12/mes | $24/mes | A medida |
+| Usuarios | 1 | 5 | Ilimitados | Ilimitados |
+| Módulos | 1 free | Todos (free + premium) | Todos (free + premium) | Todos |
+| Consultas | 100/mes | 500/mes por módulo | 500/mes por módulo | Ilimitadas |
+| Soporte | Ninguno | Email | Canales | Dedicado |
+| Onboarding | Ninguno | Autoguiado | Videos | Dedicado |
+| isPayReady | true (auto) | false (pago pendiente) | false (pago pendiente) | false (contacto) |
 
 ---
 

@@ -9,7 +9,7 @@ import { hashPassword } from './auth';
 interface PlanSeed {
   name: string; price: string; monthlyPrice: number | null; description: string;
   moduleKeys: string[]; maxUsers: number; extraFeatures: string[];
-  cta: string; ctaLink: string; highlighted: boolean; isEnterprise: boolean; sortOrder: number;
+  cta: string; highlighted: boolean; isEnterprise: boolean; sortOrder: number;
   support: string; onboarding: string; whatsappNumber: string;
 }
 
@@ -20,7 +20,7 @@ const defaultPlanDefs: PlanSeed[] = [
     moduleKeys: ['transfercheck'],
     maxUsers: 1,
     extraFeatures: [],
-    cta: 'Empezar gratis', ctaLink: '/register?plan=FREE_PLAN_ID', highlighted: false, isEnterprise: false, sortOrder: 0,
+    cta: 'Empezar gratis', highlighted: false, isEnterprise: false, sortOrder: 0,
     support: 'ninguno', onboarding: 'ninguno', whatsappNumber: '',
   },
   {
@@ -29,105 +29,91 @@ const defaultPlanDefs: PlanSeed[] = [
     moduleKeys: ['transfercheck', 'antecedentes', 'facturacion', 'cartera'],
     maxUsers: 5,
     extraFeatures: ['Módulos en beta gratis'],
-    cta: 'Ver módulos', ctaLink: '/register?plan=PREMIUM_PLAN_ID', highlighted: true, isEnterprise: false, sortOrder: 1,
+    cta: 'Ver módulos', highlighted: true, isEnterprise: false, sortOrder: 1,
     support: 'email', onboarding: 'autoguiado', whatsappNumber: '',
   },
   {
-    name: 'Enterprise', price: 'A medida', monthlyPrice: null,
-    description: 'Solución personalizada para tu negocio.',
+    name: 'Premium Plus', price: '$24', monthlyPrice: 24,
+    description: 'Máxima potencia sin límites de usuarios.',
+    moduleKeys: ['transfercheck', 'antecedentes', 'facturacion', 'cartera'],
+    maxUsers: 0,
+    extraFeatures: ['Módulos en beta gratis', 'Onboarding con videos', 'Reportes avanzados'],
+    cta: 'Empezar ahora', highlighted: false, isEnterprise: false, sortOrder: 2,
+    support: 'canales', onboarding: 'videos', whatsappNumber: '',
+  },
+  {
+    name: 'Enterprise', price: '', monthlyPrice: null,
+    description: 'Solución a medida para tu empresa.',
     moduleKeys: [],
     maxUsers: 0,
     extraFeatures: [
       'Todos los módulos disponibles',
       'Usuarios ilimitados',
       'Consultas ilimitadas',
-      'Soporte prioritario',
-      'Factura personalizada',
+      'Soporte dedicado',
       'Onboarding dedicado',
+      'Factura personalizada',
       'SLA estándar (48-72 h)',
     ],
-    cta: 'Cotizar', ctaLink: 'https://wa.me/573001234567?text=Hola%2C%20me%20interesa%20el%20plan%20Enterprise', highlighted: false, isEnterprise: true, sortOrder: 2,
-    support: 'prioritario', onboarding: 'dedicado', whatsappNumber: '573001234567',
+    cta: 'Cotizar', highlighted: false, isEnterprise: true, sortOrder: 3,
+    support: 'dedicado', onboarding: 'dedicado', whatsappNumber: '573001234567',
   },
 ];
 
 const defaultModules = [
-  {
-    key: 'transfercheck',
-    name: 'TransferCheck',
-    description: 'Verificación y validación de transferencias bancarias en tiempo real.',
-    tier: 'free' as const,
-    status: 'active' as const,
-    defaultQuota: 100,
-  },
-  {
-    key: 'antecedentes',
-    name: 'AntecedentesCheck',
-    description: 'Consulta de antecedentes judiciales, policiales y comerciales.',
-    tier: 'premium' as const,
-    status: 'coming_soon' as const,
-    defaultQuota: 500,
-  },
-  {
-    key: 'facturacion',
-    name: 'Facturación Electrónica',
-    description: 'Gestión de facturación electrónica y seguimiento de pagos.',
-    tier: 'premium' as const,
-    status: 'coming_soon' as const,
-    defaultQuota: 500,
-  },
-  {
-    key: 'cartera',
-    name: 'Cartera',
-    description: 'Gestión de cuentas de cobros, seguimiento de pagos y reconciliación.',
-    tier: 'premium' as const,
-    status: 'coming_soon' as const,
-    defaultQuota: 500,
-  },
+  { key: 'transfercheck', name: 'TransferCheck', description: 'Verificación y validación de transferencias bancarias en tiempo real.', tier: 'free' as const, status: 'active' as const, defaultQuota: 100 },
+  { key: 'antecedentes', name: 'AntecedentesCheck', description: 'Consulta de antecedentes judiciales, policiales y comerciales.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500 },
+  { key: 'facturacion', name: 'Facturación Electrónica', description: 'Gestión de facturación electrónica y seguimiento de pagos.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500 },
+  { key: 'cartera', name: 'Cartera', description: 'Gestión de cuentas de cobros, seguimiento de pagos y reconciliación.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500 },
 ];
+
+const subscriptionQuotas: Record<string, number> = { transfercheck: 100, antecedentes: 500, facturacion: 500, cartera: 500 };
+
+async function createSubscriptions(workspaceId: unknown, moduleKeys: string[], allModules: Record<string, unknown>[], status: string) {
+  for (const key of moduleKeys) {
+    const mod = allModules.find((m) => m.key === key);
+    if (!mod) continue;
+    await ModuleSubscription.create({
+      workspace: workspaceId,
+      moduleKey: key,
+      tier: mod.tier,
+      status,
+      monthlyQuota: subscriptionQuotas[key] ?? mod.defaultQuota,
+      usedQuota: 0,
+      quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+    });
+  }
+}
 
 export async function seed() {
   await dbConnect();
 
-  const existing = await User.findOne({ role: 'superadmin' });
+  const existing = await User.findOne({ email: 'admin@zentral.dev' });
   if (existing) {
     console.log('[seed] Already applied');
     return;
   }
 
+  // ──── Users ────
   const superAdmin = await User.create({
     email: 'admin@zentral.dev',
     passwordHash: await hashPassword('admin123'),
     name: 'Super Admin',
     role: 'superadmin',
+    isActive: true,
   });
+  console.log('[seed] SuperAdmin: admin@zentral.dev / admin123');
 
-  console.log('[seed] SuperAdmin created: admin@zentral.dev / admin123');
-
-  const workspace = await Workspace.create({
-    name: 'Demo Corp',
-    slug: 'demo-corp',
-    owner: superAdmin._id,
-  });
-
-  const admin = await User.create({
-    email: 'admin@demo-corp.com',
-    passwordHash: await hashPassword('demo123'),
-    name: 'Admin Demo',
-    role: 'admin',
-    workspace: workspace._id,
-    createdBy: superAdmin._id,
-  });
-
+  // ──── Modules ────
   for (const mod of defaultModules) {
     await Module.create(mod);
-    console.log(`[seed] Module created: ${mod.key}`);
+    console.log(`[seed] Module: ${mod.key} (${mod.status})`);
   }
 
   const allModules = await Module.find().lean();
 
-  const planMap: Record<string, string> = {};
-
+  // ──── Plans ────
+  const planIds: Record<string, string> = {};
   for (const def of defaultPlanDefs) {
     const includedModules = def.moduleKeys
       .map((key) => {
@@ -145,7 +131,6 @@ export async function seed() {
       maxUsers: def.maxUsers,
       extraFeatures: def.extraFeatures,
       cta: def.cta,
-      ctaLink: def.ctaLink,
       highlighted: def.highlighted,
       isEnterprise: def.isEnterprise,
       sortOrder: def.sortOrder,
@@ -153,92 +138,83 @@ export async function seed() {
       onboarding: def.onboarding,
       whatsappNumber: def.whatsappNumber,
     });
-    planMap[def.name] = String(plan._id);
-    console.log(`[seed] Plan created: ${def.name}`);
+
+    planIds[def.name] = String(plan._id);
+    console.log(`[seed] Plan: ${def.name}`);
+
+    // Update ctaLink after creation (needs plan._id)
+    const isEnterprise = def.isEnterprise;
+    if (!isEnterprise) {
+      plan.ctaLink = `/register?plan=${plan._id}`;
+    } else {
+      plan.ctaLink = `https://wa.me/${def.whatsappNumber}?text=Hola%2C%20me%20interesa%20el%20plan%20Enterprise`;
+    }
+    await plan.save();
   }
 
-  // Update plan CTA links with real IDs
-  await Plan.updateMany({ name: 'Free' }, { ctaLink: `/register?plan=${planMap['Free']}` });
-  await Plan.updateMany({ name: 'Premium' }, { ctaLink: `/register?plan=${planMap['Premium']}` });
-  console.log('[seed] Plan CTA links updated with real IDs');
-
-  // Create Premium plan reference
-  const premiumPlan = await Plan.findOne({ name: 'Premium' }).lean();
-  const freePlan = await Plan.findOne({ name: 'Free' }).lean();
-
-  // Demo workspace: isPayReady=true, associated with Premium plan
-  await Workspace.findByIdAndUpdate(workspace._id, {
-    owner: admin._id,
+  // ──── Workspace 1: Demo Corp (Premium) ────
+  const premiumPlanId = planIds['Premium'];
+  const ws1 = await Workspace.create({
+    name: 'Demo Corp',
+    slug: 'demo-corp',
+    isActive: true,
     isPayReady: true,
-    plan: premiumPlan?._id ?? null,
+    plan: premiumPlanId,
   });
 
-  // Create subscriptions for demo workspace (Premium plan modules)
-  const premiumModules = ['transfercheck', 'antecedentes', 'facturacion', 'cartera'];
-  const subscriptionQuota = { transfercheck: 100, antecedentes: 500, facturacion: 500, cartera: 500 };
+  const admin1 = await User.create({
+    email: 'admin@demo-corp.com',
+    passwordHash: await hashPassword('demo123'),
+    name: 'Admin Demo',
+    role: 'admin',
+    workspace: ws1._id,
+    isActive: true,
+    createdBy: superAdmin._id,
+  });
 
-  for (const key of premiumModules) {
-    const mod = allModules.find((m) => m.key === key);
-    if (!mod) continue;
-    await ModuleSubscription.create({
-      workspace: workspace._id,
-      moduleKey: key,
-      tier: mod.tier as 'free' | 'premium',
-      status: 'active',
-      monthlyQuota: subscriptionQuota[key as keyof typeof subscriptionQuota] ?? mod.defaultQuota,
-      usedQuota: 0,
-      quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
-    });
-    console.log(`[seed] Subscription created: ${key} for demo workspace`);
-  }
+  ws1.owner = admin1._id;
+  await ws1.save();
 
-  // Create a free workspace with Free plan (for testing registration flow)
-  const freeWorkspace = await Workspace.create({
-    name: 'Free Test',
-    slug: 'free-test',
-    owner: null,
+  await createSubscriptions(ws1._id, ['transfercheck', 'antecedentes', 'facturacion', 'cartera'], allModules, 'active');
+  console.log('[seed] Workspace: Demo Corp → admin@demo-corp.com / demo123 (Premium)');
+
+  // ──── Workspace 2: Plus Corp (Premium Plus) ────
+  const plusPlanId = planIds['Premium Plus'];
+  const ws2 = await Workspace.create({
+    name: 'Plus Corp',
+    slug: 'plus-corp',
+    isActive: true,
     isPayReady: true,
-    plan: freePlan?._id ?? null,
+    plan: plusPlanId,
   });
 
-  const freeModule = allModules.find((m) => m.key === 'transfercheck');
-  if (freeModule) {
-    await ModuleSubscription.create({
-      workspace: freeWorkspace._id,
-      moduleKey: 'transfercheck',
-      tier: 'free',
-      status: 'active',
-      monthlyQuota: freeModule.defaultQuota,
-      usedQuota: 0,
-      quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
-    });
-    console.log('[seed] Free test workspace created');
-  }
-
-  // Create a pending payment workspace (for testing isPayReady=false)
-  const pendingWorkspace = await Workspace.create({
-    name: 'Pending Corp',
-    slug: 'pending-corp',
-    owner: null,
-    isPayReady: false,
-    plan: premiumPlan?._id ?? null,
+  const admin2 = await User.create({
+    email: 'admin@plus-corp.com',
+    passwordHash: await hashPassword('plus123'),
+    name: 'Admin Plus',
+    role: 'admin',
+    workspace: ws2._id,
+    isActive: true,
+    createdBy: superAdmin._id,
   });
 
-  for (const key of premiumModules) {
-    const mod = allModules.find((m) => m.key === key);
-    if (!mod) continue;
-    await ModuleSubscription.create({
-      workspace: pendingWorkspace._id,
-      moduleKey: key,
-      tier: mod.tier as 'free' | 'premium',
-      status: 'inactive',
-      monthlyQuota: subscriptionQuota[key as keyof typeof subscriptionQuota] ?? mod.defaultQuota,
-      usedQuota: 0,
-      quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
-    });
-  }
-  console.log('[seed] Pending payment workspace created (for testing)');
+  ws2.owner = admin2._id;
+  await ws2.save();
 
-  console.log('[seed] Demo workspace updated: isPayReady=true, plan=Premium');
-  console.log('[seed] Complete');
+  await createSubscriptions(ws2._id, ['transfercheck', 'antecedentes', 'facturacion', 'cartera'], allModules, 'active');
+  console.log('[seed] Workspace: Plus Corp → admin@plus-corp.com / plus123 (Premium Plus)');
+
+  // ──── Hijo user in Plus Corp ────
+  await User.create({
+    email: 'hijo@plus-corp.com',
+    passwordHash: await hashPassword('hijo123'),
+    name: 'Usuario Hijo',
+    role: 'hijo',
+    workspace: ws2._id,
+    isActive: true,
+    createdBy: admin2._id,
+  });
+  console.log('[seed] Hijo: hijo@plus-corp.com / hijo123 (Plus Corp)');
+
+  console.log('[seed] Complete ✓');
 }
