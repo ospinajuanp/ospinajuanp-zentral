@@ -1,6 +1,4 @@
-# Planes de Precios y Módulos
-
-## Catálogo de Módulos
+# Catálogo de Módulos
 
 | Módulo | Key | Tier | Estado | Cuota x defecto |
 |---|---|---|---|---|
@@ -28,46 +26,6 @@
 - **Descripción:** Gestión de cuentas de cobros, seguimiento de pagos y reconciliación.
 - **Disponible en:** Premium, Enterprise.
 - **Cuota mensual:** 500 consultas/mes en Premium, ilimitado en Enterprise.
-
----
-
-## Planes de Precios
-
-### Free — $0/mes
-Para empezar a usar Zentral.
-
-| Característica | Incluye |
-|---|---|
-| Módulos | TransferCheck |
-| Usuarios | 1 |
-| Consultas | 100 / mes (compartidas entre módulos del plan) |
-| Soporte | — |
-
-### Premium — $12/mes
-Para equipos que necesitan más.
-
-| Característica | Incluye |
-|---|---|
-| Módulos | TransferCheck + AntecedentesCheck + Facturación + Cartera + beta |
-| Usuarios | 5 |
-| Consultas | 500 / mes por módulo |
-| Soporte | Email |
-| Beta | Acceso anticipado a nuevos módulos |
-
-### Enterprise — A medida
-Solución personalizada para tu negocio.
-
-| Característica | Incluye |
-|---|---|
-| Módulos | Todos disponibles |
-| Usuarios | Ilimitados |
-| Consultas | Ilimitadas por módulo |
-| Soporte | Prioritario |
-| Factura | Personalizada |
-| Onboarding | Dedicado |
-| SLA | 48–72 h |
-
----
 
 ## Consultas Mensuales
 
