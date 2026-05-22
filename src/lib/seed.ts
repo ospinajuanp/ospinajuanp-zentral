@@ -9,7 +9,7 @@ import { hashPassword } from './auth';
 interface PlanSeed {
   name: string; price: string; monthlyPrice: number | null; description: string;
   moduleKeys: string[]; maxUsers: number; extraFeatures: string[];
-  cta: string; highlighted: boolean; sortOrder: number;
+  cta: string; highlighted: boolean; isEnterprise: boolean; sortOrder: number;
   support: string; onboarding: string;
 }
 
@@ -20,7 +20,7 @@ const defaultPlanDefs: PlanSeed[] = [
     moduleKeys: ['transfercheck'],
     maxUsers: 1,
     extraFeatures: [],
-    cta: 'Empezar gratis', highlighted: false, sortOrder: 0,
+    cta: 'Empezar gratis', highlighted: false, isEnterprise: false, sortOrder: 0,
     support: 'ninguno', onboarding: 'ninguno',
   },
   {
@@ -29,7 +29,7 @@ const defaultPlanDefs: PlanSeed[] = [
     moduleKeys: ['transfercheck', 'antecedentes', 'facturacion', 'cartera'],
     maxUsers: 5,
     extraFeatures: ['Módulos en beta gratis'],
-    cta: 'Ver módulos', highlighted: true, sortOrder: 1,
+    cta: 'Ver módulos', highlighted: true, isEnterprise: false, sortOrder: 1,
     support: 'email', onboarding: 'autoguiado',
   },
   {
@@ -46,7 +46,7 @@ const defaultPlanDefs: PlanSeed[] = [
       'Onboarding dedicado',
       'SLA estándar (48-72 h)',
     ],
-    cta: 'Contactar', highlighted: false, sortOrder: 2,
+    cta: 'Contactar', highlighted: false, isEnterprise: true, sortOrder: 2,
     support: 'prioritario', onboarding: 'dedicado',
   },
 ];
@@ -154,6 +154,7 @@ export async function seed() {
       extraFeatures: def.extraFeatures,
       cta: def.cta,
       highlighted: def.highlighted,
+      isEnterprise: def.isEnterprise,
       sortOrder: def.sortOrder,
       support: def.support,
       onboarding: def.onboarding,

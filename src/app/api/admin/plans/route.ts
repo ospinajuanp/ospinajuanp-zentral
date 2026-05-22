@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, support, onboarding, cta, ctaLink, highlighted, sortOrder, isActive } = body;
+    const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, support, onboarding, cta, ctaLink, highlighted, isEnterprise, sortOrder, isActive } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'name es requerido' }, { status: 400 });
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
       cta: cta ?? 'Empezar',
       ctaLink: ctaLink ?? '/register',
       highlighted: highlighted ?? false,
+      isEnterprise: isEnterprise ?? false,
       sortOrder: sortOrder ?? 0,
       isActive: isActive ?? true,
     });

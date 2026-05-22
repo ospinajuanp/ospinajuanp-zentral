@@ -18,6 +18,7 @@ export interface IPlan extends Document {
   cta: string;
   ctaLink: string;
   highlighted: boolean;
+  isEnterprise: boolean;
   sortOrder: number;
   isActive: boolean;
   createdAt: Date;
@@ -48,7 +49,7 @@ const planSchema = new Schema<IPlan>(
     },
     price: {
       type: String,
-      required: true,
+      default: '',
     },
     monthlyPrice: {
       type: Number,
@@ -87,6 +88,10 @@ const planSchema = new Schema<IPlan>(
       default: '/register',
     },
     highlighted: {
+      type: Boolean,
+      default: false,
+    },
+    isEnterprise: {
       type: Boolean,
       default: false,
     },

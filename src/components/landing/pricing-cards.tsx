@@ -10,6 +10,7 @@ interface PlanCardData {
   description: string;
   cta: string;
   highlighted: boolean;
+  isEnterprise: boolean;
   maxUsers: number;
   ctaLink: string;
   extraFeatures: string[];
@@ -153,14 +154,16 @@ function PlanCard({ plan }: { plan: PlanCardData }) {
   const showToggle = allFeatures.length > MAX_VISIBLE;
   const visibleFeatures = expanded ? allFeatures : allFeatures.slice(0, MAX_VISIBLE);
 
-  const isEnterprise = !p.price || p.price === 'A medida' || p.price === 'Personalizado';
+  const isEnterprise = p.isEnterprise || !p.price || p.price === 'A medida' || p.price === 'Personalizado';
 
   return (
     <div
       className={`relative flex h-full flex-col rounded-md border p-8 ${
-        p.highlighted
-          ? 'border-zinc-900 bg-zinc-900 text-white shadow-xl'
-          : 'border-slate-800 bg-slate-900'
+        isEnterprise
+          ? 'border-dashed border-amber-700/50 bg-slate-900'
+          : p.highlighted
+            ? 'border-zinc-900 bg-zinc-900 text-white shadow-xl'
+            : 'border-slate-800 bg-slate-900'
       }`}
     >
       {p.highlighted && (

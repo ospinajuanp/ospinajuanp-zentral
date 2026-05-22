@@ -45,11 +45,14 @@ export default function EditPlanPage() {
   const [cta, setCta] = useState('');
   const [ctaLink, setCtaLink] = useState('');
   const [highlighted, setHighlighted] = useState(false);
+  const [isEnterprise, setIsEnterprise] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [sortOrder, setSortOrder] = useState(0);
 
   const [availableModules, setAvailableModules] = useState<ModuleOption[]>([]);
   const [availablePlans, setAvailablePlans] = useState<PlanOption[]>([]);
+  const [inheritedModules, setInheritedModules] = useState<SelectedModule[]>([]);
+  const [basePlanName, setBasePlanName] = useState('');
   const [selectedModules, setSelectedModules] = useState<SelectedModule[]>([]);
   const [extraFeaturesText, setExtraFeaturesText] = useState('');
   const [support, setSupport] = useState('ninguno');
@@ -92,6 +95,7 @@ export default function EditPlanPage() {
           setCta(p.cta ?? '');
           setCtaLink(p.ctaLink ?? '/register');
           setHighlighted(p.highlighted ?? false);
+          setIsEnterprise(p.isEnterprise ?? false);
           setIsActive(p.isActive ?? true);
           setSortOrder(p.sortOrder ?? 0);
           setExtraFeaturesText((p.extraFeatures ?? []).join('\n'));
@@ -151,7 +155,7 @@ export default function EditPlanPage() {
       .map((f) => f.trim())
       .filter(Boolean);
 
-    const includedModules = selectedModules.map((m) => ({
+    const includedModules = [...inheritedModules, ...selectedModules].map((m) => ({
       module: m.moduleId,
       quotaOverride: m.quotaOverride ? Number(m.quotaOverride) : null,
     }));
@@ -173,7 +177,8 @@ export default function EditPlanPage() {
       cta,
       ctaLink,
       highlighted,
-          isActive,
+      isEnterprise,
+      isActive,
           sortOrder: Number(sortOrder),
         }),
       });
@@ -279,62 +284,23 @@ export default function EditPlanPage() {
         {/* modules */}
         <div className="rounded-md border border-slate-800 bg-slate-900 p-6">
           <h2 className="text-lg font-semibold text-white">Módulos incluidos</h2>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-xs text-slate-500">Selecciona los módulos que incluye este plan y ajusta su cuota si es necesario.</p>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setSelectedModules(
-                availableModules.filter((mod) => mod.tier === 'free').map((mod) => ({
-                  moduleId: mod._id,
-                  name: mod.name,
-                  key: mod.key,
-                  defaultQuota: mod.defaultQuota,
-                  quotaOverride: String(mod.defaultQuota),
-                }))
-              )} className="text-xs text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
-                Gratis
-              </button>
-              <button type="button" onClick={() => setSelectedModules(
-                availableModules.filter((mod) => mod.tier === 'premium').map((mod) => ({
-                  moduleId: mod._id,
-                  name: mod.name,
-                  key: mod.key,
-                  defaultQuota: mod.defaultQuota,
-                  quotaOverride: String(mod.defaultQuota),
-                }))
-              )} className="text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
-                Premium
-              </button>
-              <button type="button" onClick={() => {
-                if (selectedModules.length === availableModules.length) {
-                  setSelectedModules([]);
-                } else {
-                  setSelectedModules(
-                    availableModules.map((mod) => ({
-                      moduleId: mod._id,
-                      name: mod.name,
-                      key: mod.key,
-                      defaultQuota: mod.defaultQuota,
-                      quotaOverride: String(mod.defaultQuota),
-                    }))
-                  );
-                }
-              }} className="text-xs text-slate-400 hover:text-slate-300 underline underline-offset-2">
-                {selectedModules.length === availableModules.length ? 'Ninguno' : 'Todos'}
-              </button>
-            </div>
-          </div>
 
+          {/* "Basado en" selector */}
           {availablePlans.length > 0 && (
             <div className="mt-3 rounded-md border border-slate-700 bg-slate-950 p-3">
               <label className="block text-xs font-medium text-slate-400">Basado en (hereda módulos, usuarios y características)</label>
               <select
-                defaultValue=""
+                value={basePlanName ? availablePlans.find((p) => p.name === basePlanName)?._id ?? '' : ''}
                 onChange={(e) => {
                   const pid = e.target.value;
-                  if (!pid) return;
+                  if (!pid) {
+                    setInheritedModules([]);
+                    setBasePlanName('');
+                    return;
+                  }
                   const plan = availablePlans.find((p) => p._id === pid);
                   if (!plan || !plan.includedModules) return;
-                  setSelectedModules(
+                  setInheritedModules(
                     plan.includedModules
                       .filter((im) => im.module)
                       .map((im) => ({
@@ -345,6 +311,8 @@ export default function EditPlanPage() {
                         quotaOverride: String(im.quotaOverride ?? im.module.defaultQuota),
                       }))
                   );
+                  setSelectedModules([]);
+                  setBasePlanName(plan.name);
                   if (plan.maxUsers) setMaxUsers(String(plan.maxUsers));
                   if (plan.extraFeatures?.length) setExtraFeaturesText(plan.extraFeatures.join('\n'));
                   if (plan.description) setDescription(plan.description);
@@ -358,58 +326,144 @@ export default function EditPlanPage() {
                   <option key={p._id} value={p._id}>{p.name}</option>
                 ))}
               </select>
+              {basePlanName && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Heredado de <span className="font-medium text-slate-300">{basePlanName}</span> ({inheritedModules.length} módulo{inheritedModules.length !== 1 ? 's' : ''})
+                </p>
+              )}
             </div>
           )}
 
-          <div className="mt-4 space-y-2">
-            {availableModules.map((mod) => {
-              const selected = selectedModules.find((m) => m.moduleId === mod._id);
-              return (
-                <div
-                  key={mod._id}
-                  className={`flex items-center gap-3 rounded-md border p-3 transition-colors ${
-                    selected ? 'border-indigo-700 bg-indigo-500/5' : 'border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    id={`mod-${mod._id}`}
-                    checked={!!selected}
-                    onChange={() => toggleModule(mod)}
-                    className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500"
-                  />
-                  <label htmlFor={`mod-${mod._id}`} className="flex-1 cursor-pointer">
-                    <span className="text-sm font-medium text-white">{mod.name}</span>
-                    <span className="ml-2 text-xs text-slate-500">({mod.key})</span>
-                    <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-                      mod.tier === 'free' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-indigo-500/10 text-indigo-400'
-                    }`}>
-                      {mod.tier === 'free' ? 'Gratis' : 'Premium'}
-                    </span>
-                  </label>
-                  {selected && (
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs text-slate-500">Cuota:</label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={selected.quotaOverride}
-                        onChange={(e) => updateQuotaOverride(mod._id, e.target.value)}
-                        className="w-20 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-white"
-                      />
+          {/* inherited modules banner */}
+          {inheritedModules.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-xs font-medium text-slate-400">Heredado de {basePlanName}:</p>
+              {inheritedModules.map((im) => (
+                <div key={im.moduleId} className="flex items-center gap-3 rounded-md border border-slate-700/50 bg-slate-800/30 p-3">
+                  <span className="text-xs text-slate-500">✓</span>
+                  <span className="text-sm text-slate-300">{im.name}</span>
+                  <span className="text-xs text-slate-500">({im.key})</span>
+                  <span className="ml-auto text-xs text-slate-500">
+                    Cuota: {im.quotaOverride ? Number(im.quotaOverride).toLocaleString() : 'N/A'}
+                  </span>
+                </div>
+              ))}
+              <hr className="border-slate-700/50" />
+            </div>
+          )}
+
+          {/* selectable modules (only those not inherited) */}
+          {(() => {
+            const inheritedIds = new Set(inheritedModules.map((m) => m.moduleId));
+            const selectableModules = availableModules.filter((mod) => !inheritedIds.has(mod._id));
+            const selectableCount = selectableModules.length;
+            const selectedCount = selectedModules.length;
+
+            return (
+              <>
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-xs text-slate-500">
+                    {selectableCount === 0
+                      ? (inheritedModules.length > 0 ? 'Ya están todos los módulos heredados.' : 'No hay módulos disponibles.')
+                      : `Módulos adicionales${basePlanName ? ' (no heredados)' : ''}:`}
+                  </p>
+                  {selectableCount > 0 && (
+                    <div className="flex items-center gap-3">
+                      {selectableModules.some((m) => m.tier === 'free') && (
+                        <button type="button" onClick={() => setSelectedModules(
+                          selectableModules.filter((mod) => mod.tier === 'free').map((mod) => ({
+                            moduleId: mod._id, name: mod.name, key: mod.key,
+                            defaultQuota: mod.defaultQuota, quotaOverride: String(mod.defaultQuota),
+                          }))
+                        )} className="text-xs text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
+                          Gratis
+                        </button>
+                      )}
+                      {selectableModules.some((m) => m.tier === 'premium') && (
+                        <button type="button" onClick={() => setSelectedModules(
+                          selectableModules.filter((mod) => mod.tier === 'premium').map((mod) => ({
+                            moduleId: mod._id, name: mod.name, key: mod.key,
+                            defaultQuota: mod.defaultQuota, quotaOverride: String(mod.defaultQuota),
+                          }))
+                        )} className="text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+                          Premium
+                        </button>
+                      )}
+                      <button type="button" onClick={() => {
+                        if (selectedCount === selectableCount) {
+                          setSelectedModules([]);
+                        } else {
+                          setSelectedModules(
+                            selectableModules.map((mod) => ({
+                              moduleId: mod._id, name: mod.name, key: mod.key,
+                              defaultQuota: mod.defaultQuota, quotaOverride: String(mod.defaultQuota),
+                            }))
+                          );
+                        }
+                      }} className="text-xs text-slate-400 hover:text-slate-300 underline underline-offset-2">
+                        {selectedCount === selectableCount ? 'Ninguno' : 'Todos'}
+                      </button>
                     </div>
                   )}
                 </div>
-              );
-            })}
-          </div>
 
-          {selectedModules.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {selectableModules.map((mod) => {
+                    const selected = selectedModules.find((m) => m.moduleId === mod._id);
+                    return (
+                      <div
+                        key={mod._id}
+                        className={`flex items-center gap-3 rounded-md border p-3 transition-colors ${
+                          selected ? 'border-indigo-700 bg-indigo-500/5' : 'border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          id={`mod-${mod._id}`}
+                          checked={!!selected}
+                          onChange={() => toggleModule(mod)}
+                          className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500"
+                        />
+                        <label htmlFor={`mod-${mod._id}`} className="flex-1 cursor-pointer">
+                          <span className="text-sm font-medium text-white">{mod.name}</span>
+                          <span className="ml-2 text-xs text-slate-500">({mod.key})</span>
+                          <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+                            mod.tier === 'free' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-indigo-500/10 text-indigo-400'
+                          }`}>
+                            {mod.tier === 'free' ? 'Gratis' : 'Premium'}
+                          </span>
+                        </label>
+                        {selected && (
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-500">Cuota:</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={selected.quotaOverride}
+                              onChange={(e) => updateQuotaOverride(mod._id, e.target.value)}
+                              className="w-20 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-white"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {selectableCount === 0 && inheritedModules.length === 0 && availableModules.length > 0 && (
+                    <p className="text-sm text-slate-500">No hay módulos disponibles.</p>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+
+          {(inheritedModules.length > 0 || selectedModules.length > 0) && (
             <div className="mt-3 rounded-md bg-slate-950 p-3">
               <p className="text-xs text-slate-500">
-                {selectedModules.length} módulo{selectedModules.length !== 1 ? 's' : ''} seleccionado
-                {selectedModules.length !== 1 ? 's' : ''}.
-                Cuota total: {selectedModules.reduce((s, m) => s + Number(m.quotaOverride), 0)}/mes.
+                {inheritedModules.length + selectedModules.length} módulo{inheritedModules.length + selectedModules.length !== 1 ? 's' : ''} en total.
+                {basePlanName && ` (${inheritedModules.length} heredados de ${basePlanName})`}
+                {(inheritedModules.length > 0 || selectedModules.every((m) => Number(m.quotaOverride) > 0)) && (
+                  <span> Cuota total: {[...inheritedModules, ...selectedModules].reduce((s, m) => s + Number(m.quotaOverride), 0)}/mes.</span>
+                )}
               </p>
             </div>
           )}
@@ -487,6 +541,11 @@ export default function EditPlanPage() {
               <input id="highlighted" type="checkbox" checked={highlighted} onChange={(e) => setHighlighted(e.target.checked)}
                 className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500" />
               <label htmlFor="highlighted" className="text-sm font-medium text-slate-400">Destacado</label>
+            </div>
+            <div className="flex items-center gap-3">
+              <input id="isEnterprise" type="checkbox" checked={isEnterprise} onChange={(e) => setIsEnterprise(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500" />
+              <label htmlFor="isEnterprise" className="text-sm font-medium text-slate-400">Enterprise (a medida)</label>
             </div>
             <div className="flex items-center gap-3">
               <input id="isActive" type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)}
