@@ -145,7 +145,14 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-zinc-500">
+        <p className="mt-6 text-center text-sm text-zinc-600">
+          ¿No tienes cuenta?{' '}
+          <Link href="/register" className="font-medium text-zinc-900 underline underline-offset-2">
+            Regístrate gratis
+          </Link>
+        </p>
+
+        <p className="mt-4 text-center text-xs text-zinc-500">
           &copy; {new Date().getFullYear()} Zentral. Todos los derechos reservados.
         </p>
       </div>
