@@ -21,6 +21,15 @@ interface SelectedModule {
   quotaOverride: string;
 }
 
+interface PlanOption {
+  _id: string;
+  name: string;
+  includedModules: Array<{
+    module: ModuleOption;
+    quotaOverride: number | null;
+  }>;
+}
+
 export default function CreatePlanPage() {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -34,6 +43,7 @@ export default function CreatePlanPage() {
   const [sortOrder, setSortOrder] = useState(0);
 
   const [availableModules, setAvailableModules] = useState<ModuleOption[]>([]);
+  const [availablePlans, setAvailablePlans] = useState<PlanOption[]>([]);
   const [selectedModules, setSelectedModules] = useState<SelectedModule[]>([]);
   const [extraFeaturesText, setExtraFeaturesText] = useState('');
 
@@ -46,6 +56,12 @@ export default function CreatePlanPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.modules) setAvailableModules(data.modules);
+      })
+      .catch(() => {});
+    fetch('/api/admin/plans')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.plans) setAvailablePlans(data.plans);
       })
       .catch(() => {});
   }, []);
@@ -160,10 +176,10 @@ export default function CreatePlanPage() {
                   placeholder="Premium" />
               </div>
               <div>
-                <label htmlFor="price" className="block text-sm font-medium text-slate-400">Precio</label>
-                <input id="price" type="text" required value={price} onChange={(e) => setPrice(e.target.value)}
+                <label htmlFor="price" className="block text-sm font-medium text-slate-400">Precio (opcional)</label>
+                <input id="price" type="text" value={price} onChange={(e) => setPrice(e.target.value)}
                   className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
-                  placeholder="$12 o A medida" />
+                  placeholder="$12, A medida o vacío" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -210,6 +226,38 @@ export default function CreatePlanPage() {
               {selectedModules.length === availableModules.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
             </button>
           </div>
+
+          {availablePlans.length > 0 && (
+            <div className="mt-3 rounded-md bg-slate-950 p-3">
+              <label className="text-xs text-slate-500">Copiar módulos de un plan existente:</label>
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  const planId = e.target.value;
+                  if (!planId) return;
+                  const plan = availablePlans.find((p) => p._id === planId);
+                  if (!plan || !plan.includedModules) return;
+                  setSelectedModules(
+                    plan.includedModules
+                      .filter((im) => im.module)
+                      .map((im) => ({
+                        moduleId: im.module._id,
+                        name: im.module.name,
+                        key: im.module.key,
+                        defaultQuota: im.module.defaultQuota,
+                        quotaOverride: String(im.quotaOverride ?? im.module.defaultQuota),
+                      }))
+                  );
+                }}
+                className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-white"
+              >
+                <option value="">— No copiar —</option>
+                {availablePlans.map((p) => (
+                  <option key={p._id} value={p._id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="mt-4 space-y-2">
             {availableModules.length === 0 ? (

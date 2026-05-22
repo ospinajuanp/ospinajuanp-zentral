@@ -52,7 +52,7 @@ export async function Pricing() {
               ...p.extraFeatures,
             ].filter(Boolean);
 
-            const isEnterprise = p.price === 'A medida' || p.price === 'Personalizado';
+            const isEnterprise = !p.price || p.price === 'A medida' || p.price === 'Personalizado';
 
             return (
               <div
@@ -74,14 +74,16 @@ export async function Pricing() {
                   {p.description}
                 </p>
 
-                <div className="mt-6 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">{p.price}</span>
-                  {!isEnterprise && (
-                    <span className={`text-sm ${p.highlighted ? 'text-zinc-400' : 'text-slate-500'}`}>
-                      /mes
-                    </span>
-                  )}
-                </div>
+                {p.price && (
+                  <div className="mt-6 flex items-baseline gap-1">
+                    <span className="text-4xl font-bold">{p.price}</span>
+                    {!isEnterprise && (
+                      <span className={`text-sm ${p.highlighted ? 'text-zinc-400' : 'text-slate-500'}`}>
+                        /mes
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 <ul className="mt-8 flex-1 space-y-3">
                   {features.map((feature) => (

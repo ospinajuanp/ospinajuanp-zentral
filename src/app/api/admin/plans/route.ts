@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, cta, ctaLink, highlighted, sortOrder, isActive } = body;
 
-    if (!name || !price) {
-      return NextResponse.json({ error: 'name y price son requeridos' }, { status: 400 });
+    if (!name) {
+      return NextResponse.json({ error: 'name es requerido' }, { status: 400 });
     }
 
     await dbConnect();
