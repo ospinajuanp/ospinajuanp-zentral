@@ -21,6 +21,47 @@ interface PlanCard {
 export function PricingCards({ plans }: { plans: PlanCard[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showAllMobile, setShowAllMobile] = useState(false);
+  const dragState = useRef<{ startX: number; scrollLeft: number; isDragging: boolean; moved: boolean }>({
+    startX: 0, scrollLeft: 0, isDragging: false, moved: false,
+  });
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current || e.button !== 0) return;
+    const el = scrollRef.current;
+    dragState.current = {
+      startX: e.pageX,
+      scrollLeft: el.scrollLeft,
+      isDragging: true,
+      moved: false,
+    };
+    el.style.cursor = 'grabbing';
+    el.style.userSelect = 'none';
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!dragState.current.isDragging || !scrollRef.current) return;
+    const dx = e.pageX - dragState.current.startX;
+    if (Math.abs(dx) > 5) dragState.current.moved = true;
+    scrollRef.current.scrollLeft = dragState.current.scrollLeft - dx;
+  };
+
+  const handleMouseUp = () => {
+    if (!scrollRef.current) return;
+    scrollRef.current.style.cursor = '';
+    scrollRef.current.style.userSelect = '';
+    dragState.current.isDragging = false;
+  };
+
+  const handleMouseLeave = () => {
+    if (dragState.current.isDragging) handleMouseUp();
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (dragState.current.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
 
   const scroll = (dir: 'left' | 'right') => {
     if (!scrollRef.current) return;
@@ -55,14 +96,18 @@ export function PricingCards({ plans }: { plans: PlanCard[] }) {
       {/* Desktop: grid or carousel */}
       <div
         ref={scrollRef}
+        onMouseDown={isCarousel ? handleMouseDown : undefined}
+        onMouseMove={isCarousel ? handleMouseMove : undefined}
+        onMouseUp={isCarousel ? handleMouseUp : undefined}
+        onMouseLeave={isCarousel ? handleMouseLeave : undefined}
         className={`hidden sm:flex gap-8 ${
           isCarousel
-            ? 'overflow-x-auto snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden'
+            ? 'overflow-x-auto snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden cursor-grab'
             : 'justify-center'
         }`}
       >
         {plans.map((p) => (
-          <div key={p._id} className={`${isCarousel ? 'w-[22rem] shrink-0 snap-start' : 'flex-1 max-w-sm'}`}>
+          <div key={p._id} className={`${isCarousel ? 'w-[22rem] shrink-0 snap-start' : 'flex-1 max-w-sm'}`} onClick={handleCardClick}>
             <PlanCard plan={p} />
           </div>
         ))}
