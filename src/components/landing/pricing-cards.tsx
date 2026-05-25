@@ -175,6 +175,14 @@ function PlanCard({ plan, draggedRef }: { plan: PlanCardData; draggedRef?: React
 
   const isEnterprise = p.isEnterprise || !p.price || p.price === 'A medida' || p.price === 'Personalizado';
 
+  const isExternal = p.ctaLink?.startsWith('http');
+
+  const ctaClassName = `mt-6 block w-full rounded-md py-3 text-center text-sm font-medium transition-all ${
+    p.highlighted
+      ? 'bg-white text-zinc-900 hover:bg-zinc-100'
+      : 'border border-slate-700 text-slate-200 hover:bg-slate-800'
+  }`;
+
   return (
     <div
       className={`relative flex h-full flex-col rounded-md border p-8 ${
@@ -235,19 +243,29 @@ function PlanCard({ plan, draggedRef }: { plan: PlanCardData; draggedRef?: React
         </button>
       )}
 
-      <Link
-        href={p.ctaLink || '#'}
-        onClick={(e) => {
-          if (draggedRef?.current) e.preventDefault();
-        }}
-        className={`mt-6 block w-full rounded-md py-3 text-center text-sm font-medium transition-all ${
-          p.highlighted
-            ? 'bg-white text-zinc-900 hover:bg-zinc-100'
-            : 'border border-slate-700 text-slate-200 hover:bg-slate-800'
-        }`}
-      >
-        {p.cta}
-      </Link>
+      {isExternal ? (
+        <a
+          href={p.ctaLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            if (draggedRef?.current) e.preventDefault();
+          }}
+          className={ctaClassName}
+        >
+          {p.cta}
+        </a>
+      ) : (
+        <Link
+          href={p.ctaLink || '#'}
+          onClick={(e) => {
+            if (draggedRef?.current) e.preventDefault();
+          }}
+          className={ctaClassName}
+        >
+          {p.cta}
+        </Link>
+      )}
     </div>
   );
 }
