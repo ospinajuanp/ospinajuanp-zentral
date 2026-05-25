@@ -23,6 +23,7 @@ interface PlanData {
   onboarding: string;
   highlighted: boolean;
   isEnterprise: boolean;
+  ctaLink: string;
 }
 
 interface PurchaseData {
@@ -140,6 +141,7 @@ export default function WorkspacePlanPage() {
         {plans.map((plan) => {
           const isCurrent = plan._id === currentPlanId;
           const isEnterprise = plan.isEnterprise;
+          const isExternal = plan.ctaLink?.startsWith('http');
           const priceText = isEnterprise
             ? 'A medida'
             : plan.monthlyPrice === 0 || !plan.monthlyPrice
@@ -195,7 +197,13 @@ export default function WorkspacePlanPage() {
               </p>
 
               <button
-                onClick={() => handlePurchase(plan._id)}
+                onClick={() => {
+                  if (isExternal) {
+                    window.open(plan.ctaLink, '_blank', 'noopener,noreferrer');
+                    return;
+                  }
+                  handlePurchase(plan._id);
+                }}
                 disabled={buying === plan._id || isCurrent}
                 className={`mt-4 w-full rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
                   isCurrent

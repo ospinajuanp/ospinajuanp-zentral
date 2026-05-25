@@ -28,7 +28,7 @@ export function SidebarShell({ sidebar, children, bottomNav }: SidebarShellProps
   return (
     <div className="flex min-h-screen">
       {/* desktop sidebar */}
-      <aside className="hidden w-64 flex-col border-r border-slate-800 bg-slate-900 lg:flex">
+        <aside className="hidden w-64 flex-col border-r border-slate-800 bg-slate-900 lg:flex lg:sticky lg:top-0 lg:h-screen">
         {sidebar}
       </aside>
 
