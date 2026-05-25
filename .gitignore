@@ -38,6 +38,8 @@ yarn-error.log*
 docs/adicional.md
 docs/.seed-credentials.md
 gemi.md
+project-context.english.md
+project-context.espanol.md
 
 # vercel
 .vercel

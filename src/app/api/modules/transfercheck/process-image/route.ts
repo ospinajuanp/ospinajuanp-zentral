@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuth } from '@/lib/auth/api';
-import { extractTransferData } from '@/lib/modules/transfercheck/ai-service';
+import { extractTransferData } from '@/lib/modules/transfercheck/extractor';
 import { createTransferCheckLog, processPendingMatch, checkQuota, consumeQuota } from '@/lib/modules/transfercheck/matcher';
 
 export async function POST(req: NextRequest) {

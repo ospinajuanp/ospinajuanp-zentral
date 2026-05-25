@@ -19,13 +19,28 @@ export interface ExtractionResult {
   error?: string;
 }
 
+function isFatalError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const msg = error.message || '';
+    if (
+      msg.includes('API_KEY_INVALID') ||
+      msg.includes('API key not valid') ||
+      msg.includes('403 Forbidden') ||
+      msg.includes('not supported')
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export async function extractTransferData(imageBuffer: Buffer, mimeType = 'image/jpeg'): Promise<ExtractionResult> {
   if (!process.env.GEMINI_API_KEY) {
     return { success: false, error: 'GEMINI_API_KEY not configured' };
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const result = await model.generateContent([
       { text: EXTRACTION_PROMPT },
@@ -41,13 +56,13 @@ export async function extractTransferData(imageBuffer: Buffer, mimeType = 'image
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return { success: false, error: 'No se pudo extraer JSON de la respuesta' };
+      return { success: false, error: 'No se pudo extraer JSON de la respuesta de Gemini' };
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
 
     if (parsed.monto === null || parsed.referencia === null) {
-      return { success: false, error: 'No se pudieron identificar el monto y/o la referencia en la imagen' };
+      return { success: false, error: 'Gemini no pudo identificar el monto y/o la referencia en la imagen' };
     }
 
     return {
@@ -59,6 +74,10 @@ export async function extractTransferData(imageBuffer: Buffer, mimeType = 'image
       },
     };
   } catch (error) {
-    return { success: false, error: `Error al procesar la imagen: ${error}` };
+    if (isFatalError(error)) {
+      return { success: false, error: 'Gemini no está disponible (API key inválida o sin permisos)' };
+    }
+
+    return { success: false, error: 'Gemini no está disponible (cuota agotada o error temporal)' };
   }
 }
