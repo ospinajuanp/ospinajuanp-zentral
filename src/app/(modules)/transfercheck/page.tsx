@@ -145,10 +145,22 @@ function UploadTab({ onProcessed }: { onProcessed: () => void }) {
   const toast = useToastContext();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<TransferLog | null>(null);
+  const [results, setResults] = useState<TransferLog[]>([]);
   const [debugResult, setDebugResult] = useState<DebugResult | null>(null);
   const [debugLoading, setDebugLoading] = useState(false);
   const [gmailMissing, setGmailMissing] = useState(false);
+  const [inputKey, setInputKey] = useState(0);
+
+  // Auto-clear each result after 20 seconds
+  useEffect(() => {
+    if (results.length === 0) return;
+    const timers = results.map((r) =>
+      setTimeout(() => {
+        setResults((prev) => prev.filter((p) => p._id !== r._id));
+      }, 20000)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [results]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -177,7 +189,11 @@ function UploadTab({ onProcessed }: { onProcessed: () => void }) {
         return;
       }
 
-      setResult(data.log);
+      setResults((prev) => [data.log, ...prev]);
+      setFile(null);
+      setInputKey((k) => k + 1);
+      setDebugResult(null);
+
       const logStatus = data.log?.status as string;
       if (logStatus === 'matched') {
         toast.success('Comprobante conciliado exitosamente.');
@@ -215,17 +231,18 @@ function UploadTab({ onProcessed }: { onProcessed: () => void }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="rounded-md border border-slate-800 bg-slate-900 p-8">
+      <form onSubmit={handleSubmit} className="rounded-md border border-slate-800 bg-slate-900 p-6 sm:p-8">
         <div className="mx-auto max-w-md">
           <label className="block text-sm font-medium text-slate-300">
             Comprobante de transferencia
           </label>
           <p className="mt-1 text-xs text-slate-500">
-            Subí una foto del comprobante. El sistema leerá automáticamente el monto y la referencia.
+            Subi una foto del comprobante. El sistema leera automaticamente el monto y la referencia.
           </p>
 
           <div className="mt-4">
             <input
+              key={inputKey}
               type="file"
               accept="image/*"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
@@ -256,81 +273,116 @@ function UploadTab({ onProcessed }: { onProcessed: () => void }) {
         </div>
       </form>
 
-      {result && (
-        <div className="mt-6 rounded-md border border-slate-800 bg-slate-900 p-6">
-          <h3 className="text-lg font-semibold text-white">Resultado</h3>
+      {results.length > 0 && (
+        <div className="mt-6 space-y-4">
+          {results.map((r) => (
+            <ResultCard
+              key={r._id}
+              result={r}
+              debugResult={debugResult}
+              debugLoading={debugLoading}
+              onDebug={async (logId: string) => {
+                setDebugLoading(true);
+                try {
+                  const res = await fetch('/api/modules/transfercheck/debug-search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ logId }),
+                  });
+                  const data = await res.json();
+                  setDebugResult(data);
+                } catch {
+                  setDebugResult({ success: false, searchQuery: '', amountVariations: [], referenceVariations: [], emails: [], error: 'Error de conexion' });
+                } finally {
+                  setDebugLoading(false);
+                }
+              }}
+              onDismiss={() => setResults((prev) => prev.filter((p) => p._id !== r._id))}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            <div>
-              <span className="text-xs text-slate-500">Monto</span>
-              <p className="text-2xl font-bold text-white">
-                ${result.photoData.monto.toLocaleString('es-CO')}
-              </p>
-            </div>
-            <div>
-              <span className="text-xs text-slate-500">Referencia</span>
-              <p className="text-2xl font-bold text-white">{result.photoData.referencia}</p>
-            </div>
-            <div>
-              <span className="text-xs text-slate-500">Estado</span>
-              <p className={`text-2xl font-bold ${
-                result.status === 'matched' ? 'text-emerald-500' :
-                result.status === 'manual_error' ? 'text-rose-500' :
-                'text-amber-400'
-              }`}>
-                {result.status === 'matched' ? 'Conciliado' :
-                 result.status === 'manual_error' ? 'Error manual' :
-                 'Pendiente'}
-              </p>
-            </div>
-          </div>
+function ResultCard({
+  result,
+  debugResult,
+  debugLoading,
+  onDebug,
+  onDismiss,
+}: {
+  result: TransferLog;
+  debugResult: DebugResult | null;
+  debugLoading: boolean;
+  onDebug: (logId: string) => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="rounded-md border border-slate-800 bg-slate-900 p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-sm font-semibold text-white sm:text-base">Resultado</h3>
+        <button
+          onClick={onDismiss}
+          className="shrink-0 rounded p-1 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+          aria-label="Cerrar resultado"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-          {result.emailData && (
-            <div className="mt-4 rounded-md border border-emerald-800 bg-emerald-500/10 px-4 py-3">
-              <p className="text-sm text-emerald-400">
-                Pago confirmado en tu correo: {result.emailData.subject}
-              </p>
-            </div>
-          )}
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div>
+          <span className="text-xs text-slate-500">Monto</span>
+          <p className="text-lg font-bold text-white sm:text-2xl">
+            ${result.photoData.monto.toLocaleString('es-CO')}
+          </p>
+        </div>
+        <div>
+          <span className="text-xs text-slate-500">Referencia</span>
+          <p className="truncate text-lg font-bold text-white sm:text-2xl">{result.photoData.referencia}</p>
+        </div>
+        <div>
+          <span className="text-xs text-slate-500">Estado</span>
+          <p className={`text-lg font-bold sm:text-2xl ${
+            result.status === 'matched' ? 'text-emerald-500' :
+            result.status === 'manual_error' ? 'text-rose-500' :
+            'text-amber-400'
+          }`}>
+            {result.status === 'matched' ? 'Conciliado' :
+             result.status === 'manual_error' ? 'Sin coincidencia' :
+             'Pendiente'}
+          </p>
+        </div>
+      </div>
 
-          {result.status === 'manual_error' && (
-            <div className="mt-4 rounded-md border border-amber-700 bg-amber-500/10 px-4 py-3">
-              <p className="text-sm text-amber-400">
-                No encontramos este pago en tu correo después de varios intentos. Revisalo en el Historial.
-              </p>
-            </div>
-          )}
+      {result.emailData && (
+        <div className="mt-3 rounded-md border border-emerald-800 bg-emerald-500/10 px-3 py-2 sm:px-4 sm:py-3">
+          <p className="text-xs text-emerald-400 sm:text-sm">
+            Pago confirmado en tu correo: {result.emailData.subject}
+          </p>
+        </div>
+      )}
 
-          <button
-            onClick={() => { setResult(null); setFile(null); setDebugResult(null); }}
-            className="mt-4 rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
-          >
-            Subir otro comprobante
-          </button>
+      {result.status === 'manual_error' && (
+        <div className="mt-3 rounded-md border border-amber-700 bg-amber-500/10 px-3 py-2 sm:px-4 sm:py-3">
+          <p className="text-xs text-amber-400 sm:text-sm">
+            No encontramos este pago en tu correo despues de varios intentos. Revisalo en el Historial.
+          </p>
+        </div>
+      )}
 
-          {DEBUG && (
+      {DEBUG && (
+        <div className="mt-3">
           <DebugPanel
             logId={result._id}
             debugResult={debugResult}
             debugLoading={debugLoading}
-            onDebug={async () => {
-              setDebugLoading(true);
-              try {
-                const res = await fetch('/api/modules/transfercheck/debug-search', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ logId: result._id }),
-                });
-                const data = await res.json();
-                setDebugResult(data);
-              } catch {
-                setDebugResult({ success: false, searchQuery: '', amountVariations: [], referenceVariations: [], emails: [], error: 'Error de conexión' });
-              } finally {
-                setDebugLoading(false);
-              }
-            }}
+            onDebug={() => onDebug(result._id)}
           />
-          )}
         </div>
       )}
     </div>
