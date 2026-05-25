@@ -28,10 +28,11 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 ## RBAC
 
 | Rol | Acceso |
-|---|---|
+|---|---|---|
 | **superadmin** | Global — dashboard con stats, CRUD de workspaces, usuarios, módulos, planes, suscripciones |
-| **admin** | Dueño del workspace — dashboard, usuarios hijos, configuración del workspace |
-| **hijo** | Usuario operativo restringido — acceso limitado a módulos asignados por el admin |
+| **admin** | Dueño del workspace — dashboard, usuarios, planes, configuración del workspace, compra de planes |
+| **operador** | Usuario operativo — acceso limitado a módulos asignados por el admin (antes llamado "hijo") |
+| **hijo** | (Legado — retrocompatible, mismo comportamiento que operador) |
 
 ---
 
@@ -127,6 +128,7 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `/users/create` | admin | Crear usuario |
 | `/users/[id]` | admin | Editar usuario |
 | `/workspace` | admin | Configuración del workspace |
+| `/workspace/plan` | admin | Compra y gestión de planes |
 
 ### API Routes
 
@@ -153,6 +155,9 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `/api/users` | GET/POST | admin | Listar/Crear usuario del workspace |
 | `/api/users/[id]` | GET/PUT/DELETE | admin | CRUD usuario del workspace |
 | `/api/workspaces/[id]` | GET/PUT | admin | Ver/renombrar workspace |
+| `/api/workspaces/[id]/purchase` | POST | admin | Comprar plan (simulado) |
+| `/api/workspaces/[id]/purchases` | GET | admin | Historial de compras |
+| `/api/plans` | GET | Autenticado | Listar planes disponibles |
 | `/api/modules/transfercheck/process-image` | POST | Autenticado | Subir comprobante → OCR/Gemini → log + match Gmail |
 | `/api/modules/transfercheck/logs` | GET/PUT | Autenticado | Listar logs con filtros / Conciliación manual |
 | `/api/modules/transfercheck/sync-email` | POST | Autenticado | Verificar pagos pendientes contra Gmail |

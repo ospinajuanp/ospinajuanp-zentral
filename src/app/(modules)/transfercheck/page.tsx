@@ -46,6 +46,7 @@ export default function TransferCheckDashboard() {
   const [error, setError] = useState('');
   const [role, setRole] = useState<string | null>(null);
   const [quota, setQuota] = useState<{ used: number; total: number; remaining: number; unlimited: boolean } | null>(null);
+  const [quotaVersion, setQuotaVersion] = useState(0);
 
   useEffect(() => {
     fetch('/api/auth/session')
@@ -61,7 +62,7 @@ export default function TransferCheckDashboard() {
         if (!data.error) setQuota(data);
       })
       .catch(() => {});
-  }, []);
+  }, [quotaVersion]);
 
   const isAdmin = role === 'admin' || role === 'superadmin';
   const tabs: Tab[] = isAdmin
@@ -135,16 +136,16 @@ export default function TransferCheckDashboard() {
       )}
 
       <div className="mt-8">
-        {activeTab === 'upload' && <UploadTab onError={setError} />}
+        {activeTab === 'upload' && <UploadTab onError={setError} onProcessed={() => setQuotaVersion((v) => v + 1)} />}
         {activeTab === 'sync' && <SyncTab onError={setError} />}
-        {activeTab === 'logs' && <LogsTab onError={setError} />}
+        {activeTab === 'logs' && <LogsTab onError={setError} isAdmin={isAdmin} />}
         {activeTab === 'config' && <ConfigTab onError={setError} />}
       </div>
     </div>
   );
 }
 
-function UploadTab({ onError }: { onError: (msg: string) => void }) {
+function UploadTab({ onError, onProcessed }: { onError: (msg: string) => void; onProcessed: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<TransferLog | null>(null);
@@ -174,8 +175,9 @@ function UploadTab({ onError }: { onError: (msg: string) => void }) {
       }
 
       setResult(data.log);
+      onProcessed();
     } catch {
-      onError('Error de conexión');
+      onError('No se pudo procesar. Revisa tu conexión a internet.');
     } finally {
       setUploading(false);
     }
@@ -189,7 +191,7 @@ function UploadTab({ onError }: { onError: (msg: string) => void }) {
             Comprobante de transferencia
           </label>
           <p className="mt-1 text-xs text-slate-500">
-            Subí una imagen de la transferencia. Gemini Flash extraerá automáticamente el monto y la referencia.
+            Subí una foto del comprobante. El sistema leerá automáticamente el monto y la referencia.
           </p>
 
           <div className="mt-4">
@@ -215,7 +217,7 @@ function UploadTab({ onError }: { onError: (msg: string) => void }) {
             {uploading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Procesando con Gemini...
+                Procesando...
               </span>
             ) : (
               'Procesar comprobante'
@@ -256,7 +258,7 @@ function UploadTab({ onError }: { onError: (msg: string) => void }) {
           {result.emailData && (
             <div className="mt-4 rounded-md border border-emerald-800 bg-emerald-500/10 px-4 py-3">
               <p className="text-sm text-emerald-400">
-                Match automático encontrado en Gmail: {result.emailData.subject}
+                Pago confirmado en tu correo: {result.emailData.subject}
               </p>
             </div>
           )}
@@ -264,7 +266,7 @@ function UploadTab({ onError }: { onError: (msg: string) => void }) {
           {result.status === 'manual_error' && (
             <div className="mt-4 rounded-md border border-amber-700 bg-amber-500/10 px-4 py-3">
               <p className="text-sm text-amber-400">
-                No se encontró match después de 3 reintentos. Usá la pestaña Historial para conciliar manualmente.
+                No encontramos este pago en tu correo después de varios intentos. Revisalo en el Historial.
               </p>
             </div>
           )}
@@ -305,12 +307,21 @@ function UploadTab({ onError }: { onError: (msg: string) => void }) {
   );
 }
 
+interface SyncItemResult {
+  logId: string;
+  referencia: string;
+  monto: number;
+  newStatus: 'matched' | 'pending_email' | 'manual_error';
+  error?: string;
+}
+
 function SyncTab({ onError }: { onError: (msg: string) => void }) {
   const [syncing, setSyncing] = useState(false);
-  const [processed, setProcessed] = useState<number | null>(null);
+  const [syncResult, setSyncResult] = useState<{ processed: number; results: SyncItemResult[] } | null>(null);
 
   async function handleSync() {
     setSyncing(true);
+    setSyncResult(null);
     onError('');
 
     try {
@@ -320,53 +331,103 @@ function SyncTab({ onError }: { onError: (msg: string) => void }) {
       const data = await res.json();
 
       if (!res.ok) {
-        onError(data.error || 'Error al sincronizar');
+        onError(data.error || 'Error al verificar pagos');
         return;
       }
 
-      setProcessed(data.processed);
+      setSyncResult({ processed: data.processed, results: data.results });
     } catch {
-      onError('Error de conexión');
+      onError('No se pudo conectar. Revisa tu conexión a internet.');
     } finally {
       setSyncing(false);
     }
   }
 
+  const matchedCount = syncResult?.results.filter((r) => r.newStatus === 'matched').length ?? 0;
+  const pendingCount = syncResult?.results.filter((r) => r.newStatus === 'pending_email').length ?? 0;
+  const errorCount = syncResult?.results.filter((r) => r.newStatus === 'manual_error').length ?? 0;
+
   return (
     <div className="rounded-md border border-slate-800 bg-slate-900 p-8">
-      <div className="mx-auto max-w-md text-center">
+      <div className="mx-auto max-w-xl">
         <h3 className="text-lg font-semibold text-white">Verificar pagos</h3>
         <p className="mt-2 text-sm text-slate-400">
-          Cruza los comprobantes pendientes con los correos de Gmail y concilia los pagos automáticamente.
+          Busca en tu correo de Gmail las confirmaciones de los comprobantes pendientes y los concilia cuando encuentra coincidencia.
         </p>
 
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="mt-6 rounded-md bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          className="mt-6 w-full rounded-md bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
         >
           {syncing ? (
             <span className="flex items-center justify-center gap-2">
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              Buscando coincidencias...
+              Verificando...
             </span>
           ) : (
-            'Buscar coincidencias ahora'
+            'Verificar pagos ahora'
           )}
         </button>
 
-        {processed !== null && (
-          <div className="mt-6 rounded-md border border-emerald-800 bg-emerald-500/10 px-4 py-3">
-            <p className="text-sm text-emerald-400">
-              {processed} comprobante{processed !== 1 ? 's' : ''} procesado{processed !== 1 ? 's' : ''}.
-            </p>
+        {syncResult !== null && syncResult.results.length === 0 && (
+          <div className="mt-6 rounded-md border border-slate-700 bg-slate-950 px-4 py-3 text-center">
+            <p className="text-sm text-slate-400">No hay comprobantes pendientes para verificar.</p>
+          </div>
+        )}
+
+        {syncResult !== null && syncResult.results.length > 0 && (
+          <div className="mt-6 space-y-3">
+            <div className="flex flex-wrap gap-3 text-sm">
+              {matchedCount > 0 && (
+                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+                  {matchedCount} conciliado{matchedCount !== 1 ? 's' : ''}
+                </span>
+              )}
+              {pendingCount > 0 && (
+                <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400">
+                  {pendingCount} pendiente{pendingCount !== 1 ? 's' : ''}
+                </span>
+              )}
+              {errorCount > 0 && (
+                <span className="rounded-full bg-rose-500/10 px-3 py-1 text-xs font-medium text-rose-400">
+                  {errorCount} sin coincidencia
+                </span>
+              )}
+            </div>
+
+            <div className="divide-y divide-slate-800 rounded-md border border-slate-800 bg-slate-950">
+              {syncResult.results.map((item) => (
+                <div key={item.logId} className="flex items-center justify-between px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-slate-200 truncate">
+                      Ref: {item.referencia}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      ${item.monto.toLocaleString('es-CO')}
+                    </p>
+                  </div>
+                  <span className={`ml-3 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    item.newStatus === 'matched'
+                      ? 'bg-emerald-500/10 text-emerald-400'
+                      : item.newStatus === 'manual_error'
+                        ? 'bg-rose-500/10 text-rose-400'
+                        : 'bg-amber-500/10 text-amber-400'
+                  }`}>
+                    {item.newStatus === 'matched' ? 'Conciliado' :
+                     item.newStatus === 'manual_error' ? 'Sin coincidencia' :
+                     'Pendiente'}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         <div className="mt-8 rounded-md border border-slate-800 bg-slate-950 px-5 py-4 text-left">
           <p className="text-sm font-medium text-slate-300">¿Cómo funciona?</p>
           <p className="mt-2 text-xs text-slate-500">
-            El sistema cruza los comprobantes pendientes con los correos de tu Gmail. Si encuentra una coincidencia exacta de monto y referencia, el pago se concilia automáticamente. Después de 3 intentos sin coincidencia, el comprobante pasa a revisión manual.
+            Cada vez que presionas "Verificar pagos", buscamos en tu correo los comprobantes pendientes. Si encontramos un correo con el mismo monto y referencia, el pago queda conciliado. Si después de 3 intentos no hay coincidencia, queda marcado para que lo revises manualmente.
           </p>
         </div>
       </div>
@@ -374,7 +435,7 @@ function SyncTab({ onError }: { onError: (msg: string) => void }) {
   );
 }
 
-function LogsTab({ onError }: { onError: (msg: string) => void }) {
+function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin: boolean }) {
   const [logs, setLogs] = useState<TransferLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
@@ -403,7 +464,7 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
         setTotalPages(data.totalPages);
       }
     } catch {
-      onError('Error al cargar logs');
+      onError('No se pudo cargar el historial. Reintenta en unos minutos.');
     } finally {
       setLoading(false);
     }
@@ -505,7 +566,7 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
         </div>
       ) : logs.length === 0 ? (
         <div className="rounded-md border border-slate-800 bg-slate-900 py-12 text-center">
-          <p className="text-sm text-slate-400">No hay comprobantes registrados.</p>
+          <p className="text-sm text-slate-400">Todavía no subiste ningún comprobante.</p>
         </div>
       ) : (
         <>
@@ -518,7 +579,7 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
                   <th className="pb-3 pr-4">Monto</th>
                   <th className="pb-3 pr-4">Referencia</th>
                   <th className="pb-3 pr-4">Estado</th>
-                  <th className="pb-3 pr-4">Reintentos</th>
+                  <th className="pb-3 pr-4">Intentos</th>
                   <th className="pb-3"></th>
                 </tr>
               </thead>
@@ -537,19 +598,22 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
                     <td className="py-4 pr-4 whitespace-nowrap">
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         log.status === 'matched'
-                          ? 'bg-emerald-500/10 text-emerald-500'
+                          ? log.resolvedBy ? 'bg-violet-500/10 text-violet-400' : 'bg-emerald-500/10 text-emerald-500'
                           : log.status === 'manual_error'
                             ? 'bg-rose-500/10 text-rose-500'
                             : 'bg-amber-500/10 text-amber-500'
                       }`}>
                         {statusLabels[log.status]}
                       </span>
+                      {log.resolvedBy && (
+                        <p className="mt-0.5 text-xs text-slate-500">por {log.resolvedBy.name}</p>
+                      )}
                     </td>
                     <td className="py-4 pr-4 text-slate-500">
                       {log.retryCount}
                     </td>
                     <td className="py-4 text-right">
-                      {log.status === 'manual_error' && (
+                      {isAdmin && log.status === 'manual_error' && (
                         <button
                           onClick={() => setManualForm({ logId: log._id, monto: String(log.photoData.monto), referencia: log.photoData.referencia })}
                           className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
@@ -592,15 +656,20 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
             {logs.map((log) => (
               <div key={log._id} className="rounded-md border border-slate-800 bg-slate-900 p-4">
                 <div className="flex items-center justify-between">
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    log.status === 'matched'
-                      ? 'bg-emerald-500/10 text-emerald-500'
-                      : log.status === 'manual_error'
-                        ? 'bg-rose-500/10 text-rose-500'
-                        : 'bg-amber-500/10 text-amber-500'
-                  }`}>
-                    {statusLabels[log.status]}
-                  </span>
+                  <div>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      log.status === 'matched'
+                        ? log.resolvedBy ? 'bg-violet-500/10 text-violet-400' : 'bg-emerald-500/10 text-emerald-500'
+                        : log.status === 'manual_error'
+                          ? 'bg-rose-500/10 text-rose-500'
+                          : 'bg-amber-500/10 text-amber-500'
+                    }`}>
+                      {statusLabels[log.status]}
+                    </span>
+                    {log.resolvedBy && (
+                      <span className="ml-2 text-xs text-slate-500">por {log.resolvedBy.name}</span>
+                    )}
+                  </div>
                   <span className="text-xs text-slate-500">
                     {new Date(log.createdAt).toLocaleDateString('es-CO')}
                   </span>
@@ -615,7 +684,7 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
                     <p className="font-mono text-xs text-slate-300">{log.photoData.referencia}</p>
                   </div>
                 </div>
-                {log.status === 'manual_error' && (
+                {isAdmin && log.status === 'manual_error' && (
                   <button
                     onClick={() => setManualForm({ logId: log._id, monto: String(log.photoData.monto), referencia: log.photoData.referencia })}
                     className="mt-3 w-full rounded-md border border-slate-700 py-2 text-xs text-slate-300 hover:bg-slate-800"
@@ -676,7 +745,7 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
       )}
 
       {/* Manual reconciliation modal */}
-      {manualForm && (
+      {isAdmin && manualForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setManualForm(null)}>
           <div
             className="w-full max-w-md rounded-md border border-slate-800 bg-slate-950 p-6 mx-4"
@@ -689,7 +758,7 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
               Conciliación manual
             </h3>
             <p className="mt-1 text-sm text-slate-400">
-              Ingresá los datos correctos de la transferencia.
+              Confirmá los datos del comprobante.
             </p>
 
             <div className="mt-6 space-y-4">
@@ -806,9 +875,9 @@ function ConfigTab({ onError }: { onError: (msg: string) => void }) {
   return (
     <div className="rounded-md border border-slate-800 bg-slate-900 p-8">
       <div className="mx-auto max-w-md">
-        <h3 className="text-lg font-semibold text-white">Conexión con Gmail</h3>
+        <h3 className="text-lg font-semibold text-white">Conectar tu correo</h3>
         <p className="mt-2 text-sm text-slate-400">
-          Conectá tu cuenta de Gmail para que TransferCheck busque automáticamente los correos de confirmación de transferencias.
+          Conectá tu cuenta de Gmail para que podamos buscar automáticamente los correos de confirmación de tus transferencias.
         </p>
 
         <div className="mt-6 flex items-center gap-3">
@@ -839,10 +908,10 @@ function ConfigTab({ onError }: { onError: (msg: string) => void }) {
           <div className="rounded-md border border-slate-800 bg-slate-950 px-5 py-4">
             <p className="text-sm font-medium text-slate-300">¿Cómo funciona?</p>
             <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-slate-500">
-              <li>Hacé clic en &quot;Conectar Gmail&quot; para autorizar a Zentral a leer tus correos (solo lectura).</li>
-              <li>Cuando subas un comprobante, el sistema buscará automáticamente en tu Gmail correos que coincidan con el monto y la referencia.</li>
-              <li>Si encuentra coincidencia, la transferencia se concilia automáticamente.</li>
-              <li>El token se refresca automáticamente. Podés desconectar en cualquier momento.</li>
+              <li>Hacé clic en &quot;Conectar Gmail&quot; para autorizar a Zentral a buscar en tus correos.</li>
+              <li>Cuando subas un comprobante, el sistema buscará correos que coincidan con el monto y la referencia.</li>
+              <li>Si encuentra coincidencia, el pago se confirma automáticamente.</li>
+              <li>Podés desconectar tu cuenta en cualquier momento.</li>
             </ol>
           </div>
 

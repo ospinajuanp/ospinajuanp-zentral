@@ -206,15 +206,15 @@ export async function seed() {
 
   // ──── Hijo user in Plus Corp ────
   await User.create({
-    email: 'hijo@plus-corp.com',
-    passwordHash: await hashPassword('hijo123'),
-    name: 'Usuario Hijo',
-    role: 'hijo',
+    email: 'operador@plus-corp.com',
+    passwordHash: await hashPassword('operador123'),
+    name: 'Usuario Operador',
+    role: 'operador',
     workspace: ws2._id,
     isActive: true,
     createdBy: admin2._id,
   });
-  console.log('[seed] Hijo: hijo@plus-corp.com / hijo123 (Plus Corp)');
+  console.log('[seed] Operador: operador@plus-corp.com / operador123 (Plus Corp)');
 
   console.log('[seed] Complete ✓');
 }

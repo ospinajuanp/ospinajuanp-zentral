@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!['admin', 'hijo'].includes(role)) {
+  if (!['admin', 'operador', 'hijo'].includes(role)) {
     return NextResponse.json(
       { error: 'Rol inválido. Solo puedes crear usuarios con rol admin o usuario.' },
       { status: 400 }

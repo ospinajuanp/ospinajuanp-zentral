@@ -6,7 +6,7 @@ import SessionTimeout from '@/components/session-timeout';
 import LogoutButton from '@/components/logout-button';
 import { NavLink } from '@/components/nav-link';
 import { SidebarShell } from '@/components/sidebar-shell';
-import { HomeIcon, UsersIcon, GearIcon } from '@/components/icons';
+import { HomeIcon, UsersIcon, GearIcon, PriceIcon } from '@/components/icons';
 import type { ReactNode } from 'react';
 
 interface ProtectedLayoutProps {
@@ -54,6 +54,7 @@ export default async function ProtectedLayout({
   if (isAdmin) {
     bottomNav.push(
       { label: 'Usuarios', href: '/users', icon: <UsersIcon /> },
+      { label: 'Planes', href: '/workspace/plan', icon: <PriceIcon /> },
       { label: 'Workspace', href: '/workspace', icon: <GearIcon /> },
     );
   }
@@ -76,6 +77,7 @@ export default async function ProtectedLayout({
               {isAdmin && (
                 <>
                   <NavLink href="/users">Usuarios</NavLink>
+                  <NavLink href="/workspace/plan">Planes</NavLink>
                   <NavLink href="/workspace">Workspace</NavLink>
                 </>
               )}

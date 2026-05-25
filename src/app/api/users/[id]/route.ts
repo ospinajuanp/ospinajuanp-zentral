@@ -56,7 +56,7 @@ export async function PUT(
         { status: 403 }
       );
     }
-    if (!['admin', 'hijo'].includes(role)) {
+    if (!['admin', 'operador', 'hijo'].includes(role)) {
       return NextResponse.json({ error: 'Rol inválido' }, { status: 400 });
     }
     user.role = role;

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const quota = await checkQuota(workspaceId);
     if (!quota.allowed) {
       return NextResponse.json(
-        { error: 'Cuota mensual agotada. Contacta al administrador.' },
+        { error: 'Llegaste al límite de procesamientos de este mes. Contacta a tu administrador.' },
         { status: 429 }
       );
     }
@@ -62,6 +62,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('[process-image] Error:', error);
-    return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'No se pudo procesar la imagen en este momento. Reintenta en unos minutos.' },
+      { status: 500 }
+    );
   }
 }

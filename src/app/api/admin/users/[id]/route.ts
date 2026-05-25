@@ -49,7 +49,7 @@ export async function PUT(
   if (name !== undefined) user.name = name;
   if (email !== undefined) user.email = email?.toLowerCase?.() ?? email;
   if (role !== undefined) {
-    if (!['superadmin', 'admin', 'hijo'].includes(role)) {
+    if (!['superadmin', 'admin', 'operador', 'hijo'].includes(role)) {
       return NextResponse.json({ error: 'Rol inválido' }, { status: 400 });
     }
     user.role = role;

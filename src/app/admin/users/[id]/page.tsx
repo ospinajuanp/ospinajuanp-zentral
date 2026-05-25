@@ -27,7 +27,7 @@ export default function UserDetailPage() {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('hijo');
+  const [role, setRole] = useState('operador');
   const [isActive, setIsActive] = useState(true);
   const [password, setPassword] = useState('');
 
@@ -179,7 +179,7 @@ export default function UserDetailPage() {
                 onChange={(e) => setRole(e.target.value)}
                 className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
               >
-                <option value="hijo">Usuario</option>
+                <option value="operador">Operador</option>
                 <option value="admin">Admin</option>
                 <option value="superadmin">SuperAdmin</option>
               </select>

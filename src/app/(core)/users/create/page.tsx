@@ -8,7 +8,7 @@ export default function CreateUserPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('hijo');
+  const [role, setRole] = useState('operador');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState(false);
@@ -123,11 +123,11 @@ export default function CreateUserPage() {
               onChange={(e) => setRole(e.target.value)}
               className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
             >
-              <option value="hijo">Usuario — acceso solo a módulos asignados</option>
+              <option value="operador">Operador — acceso solo a módulos asignados</option>
               <option value="admin">Admin — puede gestionar usuarios y workspace</option>
             </select>
             <p className="mt-1 text-xs text-slate-500">
-              {role === 'hijo'
+              {role === 'operador'
                 ? 'Los usuarios solo ven los módulos que tiene su workspace.'
                 : 'Los admins pueden crear y gestionar usuarios.'}
             </p>

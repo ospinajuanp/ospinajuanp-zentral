@@ -14,11 +14,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Sin workspace asignado' }, { status: 403 });
     }
 
-    const processed = await processPendingMatches(workspaceId);
+    const result = await processPendingMatches(workspaceId);
 
-    return NextResponse.json({ success: true, processed });
+    return NextResponse.json({
+      success: true,
+      processed: result.processed,
+      results: result.results,
+    });
   } catch (error) {
     console.error('[sync-email] Error:', error);
-    return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'No se pudo verificar los pagos en este momento. Reintenta en unos minutos.' },
+      { status: 500 }
+    );
   }
 }

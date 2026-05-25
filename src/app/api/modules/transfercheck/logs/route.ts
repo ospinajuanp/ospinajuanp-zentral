@@ -67,6 +67,10 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    if (auth.role !== 'admin' && auth.role !== 'superadmin') {
+      return NextResponse.json({ error: 'Solo administradores pueden conciliar' }, { status: 403 });
+    }
+
     const body = await req.json();
     const { logId, monto, referencia, fecha } = body;
 

@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // For admin/hijo roles, verify workspace is active
+  // For admin/operador roles, verify workspace is active
   if (user.role !== 'superadmin' && user.workspace) {
     const workspace = await Workspace.findById(user.workspace);
     if (!workspace || !workspace.isActive) {

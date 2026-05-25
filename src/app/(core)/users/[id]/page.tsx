@@ -25,7 +25,7 @@ export default function EditUserPage() {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('hijo');
+  const [role, setRole] = useState('operador');
   const [password, setPassword] = useState('');
 
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function EditUserPage() {
               onChange={(e) => setRole(e.target.value)}
               className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
             >
-              <option value="hijo">Usuario</option>
+              <option value="operador">Operador</option>
               <option value="admin">Admin</option>
             </select>
           </div>

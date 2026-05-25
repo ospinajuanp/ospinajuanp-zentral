@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     const inactiveUsers = allUsers.filter((u) => !u.isActive).length;
     const superadmins = allUsers.filter((u) => u.role === 'superadmin').length;
     const admins = allUsers.filter((u) => u.role === 'admin').length;
-    const hijos = allUsers.filter((u) => u.role === 'hijo').length;
+    const operadores = allUsers.filter((u) => u.role === 'operador' || u.role === 'hijo').length;
 
     // Subscription stats
     const activeSubscriptions = allSubscriptions.filter((s) => s.status === 'active').length;
@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
         inactive: inactiveUsers,
         superadmins,
         admins,
-        hijos,
+        operadores,
       },
       subscriptions: {
         total: allSubscriptions.length,

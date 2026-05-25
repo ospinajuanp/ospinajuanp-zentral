@@ -1,4 +1,4 @@
-export type Role = 'superadmin' | 'admin' | 'hijo';
+export type Role = 'superadmin' | 'admin' | 'operador' | 'hijo';
 
 export type ModuleTier = 'free' | 'premium';
 

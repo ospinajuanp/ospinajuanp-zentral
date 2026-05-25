@@ -71,7 +71,15 @@ export async function processPendingMatch(logId: string, workspaceId: string): P
   }
 }
 
-export async function processPendingMatches(workspaceId: string): Promise<number> {
+export interface SyncItemResult {
+  logId: string;
+  referencia: string;
+  monto: number;
+  newStatus: 'matched' | 'pending_email' | 'manual_error';
+  error?: string;
+}
+
+export async function processPendingMatches(workspaceId: string): Promise<{ processed: number; results: SyncItemResult[] }> {
   await dbConnect();
 
   const logs = await TransferCheckLog.find({
@@ -79,13 +87,22 @@ export async function processPendingMatches(workspaceId: string): Promise<number
     status: 'pending_email',
   }).limit(50);
 
-  let processed = 0;
+  const results: SyncItemResult[] = [];
+
   for (const log of logs) {
-    await processPendingMatch(String(log._id), workspaceId);
-    processed += 1;
+    const updated = await processPendingMatch(String(log._id), workspaceId);
+    if (updated) {
+      const result: SyncItemResult = {
+        logId: String(updated._id),
+        referencia: updated.photoData.referencia,
+        monto: updated.photoData.monto,
+        newStatus: updated.status,
+      };
+      results.push(result);
+    }
   }
 
-  return processed;
+  return { processed: logs.length, results };
 }
 
 export async function createTransferCheckLog(
