@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { PaginationBar } from '@/components/pagination';
 import { useToastContext } from '@/contexts/toast-context';
 
@@ -72,6 +73,7 @@ export default function WorkspacePlanPage() {
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
   const toast = useToastContext();
+  const router = useRouter();
 
   // Payment gateway state
   const [step, setStep] = useState<PaymentStep>('idle');
@@ -145,6 +147,7 @@ export default function WorkspacePlanPage() {
 
       setCurrentPlanId(planId);
       toast.success(`Plan "${data.purchase.planName}" activado correctamente.`);
+      router.refresh();
 
       await loadPurchases(purchPage, purchLimit);
     } catch {
@@ -185,6 +188,7 @@ export default function WorkspacePlanPage() {
         return;
       }
 
+      router.refresh();
       await loadPurchases(purchPage, purchLimit);
     } catch {
       toast.error('No se pudo actualizar el estado.');
