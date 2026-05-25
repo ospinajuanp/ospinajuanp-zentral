@@ -151,17 +151,6 @@ function UploadTab({ onProcessed }: { onProcessed: () => void }) {
   const [gmailMissing, setGmailMissing] = useState(false);
   const [inputKey, setInputKey] = useState(0);
 
-  // Auto-clear each result after 20 seconds
-  useEffect(() => {
-    if (results.length === 0) return;
-    const timers = results.map((r) =>
-      setTimeout(() => {
-        setResults((prev) => prev.filter((p) => p._id !== r._id));
-      }, 20000)
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [results]);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
@@ -319,6 +308,11 @@ function ResultCard({
   onDebug: (logId: string) => void;
   onDismiss: () => void;
 }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 20000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
   return (
     <div className="rounded-md border border-slate-800 bg-slate-900 p-4 sm:p-6">
       <div className="flex items-start justify-between gap-3">
