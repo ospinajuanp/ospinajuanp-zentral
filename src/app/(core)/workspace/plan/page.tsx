@@ -198,45 +198,6 @@ export default function WorkspacePlanPage() {
     }
   }
 
-  async function handleReactivate(purchase: PurchaseData) {
-    if (!session?.workspaceId) return;
-    const now = new Date();
-    const expiresAt = new Date(purchase.expiresAt);
-
-    if (expiresAt > now) {
-      // Dentro del periodo: reactivar sin pago, creando nuevo registro
-      setToggling(purchase._id);
-      setError('');
-      try {
-        const res = await fetch(
-          `/api/workspaces/${session.workspaceId}/purchases/${purchase._id}/reactivate`,
-          { method: 'POST' }
-        );
-
-        if (!res.ok) {
-          const data = await res.json();
-          setError(data.error || 'Error al reactivar la compra');
-          return;
-        }
-
-        await loadPurchases(purchPage, purchLimit);
-      } catch {
-        setError('No se pudo reactivar la compra.');
-      } finally {
-        setToggling(null);
-      }
-      return;
-    }
-
-    // Fuera del periodo: abrir pasarela de pago para renovar
-    const plan = plans.find((p) => p._id === purchase.plan);
-    if (plan) {
-      openGateway(plan);
-    } else {
-      setError('No se encontro el plan para reactivar. Contacta con soporte.');
-    }
-  }
-
   async function processPayment() {
     if (!selectedPlan) return;
     setStep('processing');
@@ -672,21 +633,31 @@ export default function WorkspacePlanPage() {
                             {toggling === p._id ? '...' : 'Desactivar'}
                           </button>
                         ) : (
-                          <button
-                            onClick={() => handleReactivate(p)}
-                            disabled={toggling === p._id}
-                            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                              new Date(p.expiresAt) > new Date()
-                                ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
-                                : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20'
-                            } ${toggling === p._id ? 'opacity-50' : ''}`}
-                          >
-                            {toggling === p._id
-                              ? '...'
-                              : new Date(p.expiresAt) > new Date()
-                                ? 'Reactivar'
-                                : 'Renovar'}
-                          </button>
+                          (() => {
+                            const exp = new Date(p.expiresAt);
+                            if (exp > new Date()) {
+                              return (
+                                <button
+                                  onClick={() => handleToggle(p._id, 'active')}
+                                  disabled={toggling === p._id}
+                                  className={`rounded-md px-3 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors ${toggling === p._id ? 'opacity-50' : ''}`}
+                                >
+                                  {toggling === p._id ? '...' : 'Reactivar'}
+                                </button>
+                              );
+                            }
+                            const plan = plans.find((pl) => pl._id === p.plan);
+                            return plan ? (
+                              <button
+                                onClick={() => openGateway(plan)}
+                                className="rounded-md px-3 py-1 text-xs font-medium bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-colors"
+                              >
+                                Renovar
+                              </button>
+                            ) : (
+                              <span className="text-xs text-slate-500">—</span>
+                            );
+                          })()
                         )}
                       </td>
                     </tr>
