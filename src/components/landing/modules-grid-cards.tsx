@@ -60,13 +60,13 @@ export function ModulesGridCards({ modules }: { modules: ModuleCard[] }) {
       {/* Desktop carousel controls below */}
         <div className="mt-8 hidden justify-center gap-3 sm:flex">
           <button onClick={scrollPrev}
-            className={`rounded-full border border-slate-700 p-2.5 transition-colors ${!canScrollPrev ? 'pointer-events-none opacity-30 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+            className={`rounded-full border border-slate-700 p-2.5 transition-colors ${!canScrollPrev ? 'opacity-30 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
             aria-label="Anterior"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           </button>
           <button onClick={scrollNext}
-            className={`rounded-full border border-slate-700 p-2.5 transition-colors ${!canScrollNext ? 'pointer-events-none opacity-30 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+            className={`rounded-full border border-slate-700 p-2.5 transition-colors ${!canScrollNext ? 'opacity-30 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
             aria-label="Siguiente"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
