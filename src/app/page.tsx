@@ -7,6 +7,7 @@ import { Pricing } from '@/components/landing/pricing';
 import { About } from '@/components/landing/about';
 import { Cta } from '@/components/landing/cta';
 import { Footer } from '@/components/landing/footer';
+import { RefreshOnMount } from '@/components/landing/refresh-on-mount';
 import { Spinner } from '@/components/icons';
 
 function SectionFallback() {
@@ -22,6 +23,7 @@ function SectionFallback() {
 export default function LandingPage() {
   return (
     <>
+      <RefreshOnMount />
       <Header />
       <Hero />
       <Features />

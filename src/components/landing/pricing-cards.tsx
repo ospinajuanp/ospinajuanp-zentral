@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import useEmblaCarousel from 'embla-carousel-react';
 
 interface PlanCardData {
@@ -24,32 +25,63 @@ interface PlanCardData {
 
 export function PricingCards({ plans }: { plans: PlanCardData[] }) {
   const [showAllMobile, setShowAllMobile] = useState(false);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ align: 'start', dragFree: false, loop: false });
 
-  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
-  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+  const scrollPrev = useCallback(() => {
+    if (emblaApi?.canScrollPrev()) emblaApi.scrollPrev();
+  }, [emblaApi]);
+  const scrollNext = useCallback(() => {
+    if (emblaApi?.canScrollNext()) emblaApi.scrollNext();
+  }, [emblaApi]);
 
   /* prevent link clicks during drag */
   const draggedRef = useRef(false);
+  /* prevent reInit from cancelling scroll animation */
+  const isScrollingRef = useRef(false);
 
   useEffect(() => {
     if (!emblaApi) return;
     const onPointerDown = () => { draggedRef.current = false; };
-    const onScroll = () => { draggedRef.current = true; };
+    const onScroll = () => {
+      draggedRef.current = true;
+      isScrollingRef.current = true;
+    };
+    const onSettle = () => {
+      isScrollingRef.current = false;
+    };
+    const onSelect = () => {
+      setCanScrollPrev(emblaApi.canScrollPrev());
+      setCanScrollNext(emblaApi.canScrollNext());
+    };
+    /* sync initial boundary state — select event may have already fired */
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
     emblaApi.on('pointerDown', onPointerDown);
     emblaApi.on('scroll', onScroll);
+    emblaApi.on('settle', onSettle);
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
     return () => {
       emblaApi.off('pointerDown', onPointerDown);
       emblaApi.off('scroll', onScroll);
+      emblaApi.off('settle', onSettle);
+      emblaApi.off('select', onSelect);
+      emblaApi.off('reInit', onSelect);
     };
   }, [emblaApi]);
 
-  /* reInit carousel when slide heights change (e.g., feature expand/collapse) */
+  /* reInit carousel when slide heights change (e.g., feature expand/collapse)
+     - skip while scroll animation is in progress to avoid cancelling it */
   useEffect(() => {
     if (!emblaApi) return;
     const container = emblaApi.containerNode();
-    const observer = new ResizeObserver(() => emblaApi.reInit());
+    const observer = new ResizeObserver(() => {
+      if (isScrollingRef.current) return;
+      emblaApi.reInit();
+    });
     observer.observe(container);
     return () => observer.disconnect();
   }, [emblaApi]);
@@ -72,13 +104,13 @@ export function PricingCards({ plans }: { plans: PlanCardData[] }) {
       {/* Desktop carousel controls below cards */}
         <div className="mt-10 hidden justify-center gap-3 sm:flex">
           <button onClick={scrollPrev}
-            className="rounded-full border border-slate-700 p-2.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className={`rounded-full border border-slate-700 p-2.5 transition-colors ${!canScrollPrev ? 'pointer-events-none opacity-30 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
             aria-label="Anterior"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           </button>
           <button onClick={scrollNext}
-            className="rounded-full border border-slate-700 p-2.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className={`rounded-full border border-slate-700 p-2.5 transition-colors ${!canScrollNext ? 'pointer-events-none opacity-30 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
             aria-label="Siguiente"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -203,7 +235,7 @@ function PlanCard({ plan, draggedRef }: { plan: PlanCardData; draggedRef?: React
         </button>
       )}
 
-      <a
+      <Link
         href={p.ctaLink || '#'}
         onClick={(e) => {
           if (draggedRef?.current) e.preventDefault();
@@ -215,7 +247,7 @@ function PlanCard({ plan, draggedRef }: { plan: PlanCardData; draggedRef?: React
         }`}
       >
         {p.cta}
-      </a>
+      </Link>
     </div>
   );
 }
