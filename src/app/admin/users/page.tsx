@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { DeleteUserButton } from './delete-button';
 import { PaginationBar } from '@/components/pagination';
 
 interface UserItem {
@@ -157,7 +156,6 @@ export default function UsersPage() {
                       >
                         Editar
                       </Link>
-                      <DeleteUserButton userId={u._id.toString()} userName={u.name} />
                     </div>
                   </td>
                 </tr>
