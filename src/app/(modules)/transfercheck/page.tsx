@@ -183,8 +183,10 @@ function UploadTab({ onProcessed }: { onProcessed: () => void }) {
         toast.success('Comprobante conciliado exitosamente.');
       } else if (logStatus === 'pending_email') {
         toast.info('Comprobante procesado. Pendiente de conciliacion.');
+      } else if (logStatus === 'manual_error') {
+        toast.error('Comprobante procesado. Sin coincidencia — ya no se procesara mas.');
       } else {
-        toast.info('Comprobante procesado. Sin coincidencia en Gmail.');
+        toast.info('Comprobante procesado.');
       }
       onProcessed();
     } catch {
@@ -373,7 +375,9 @@ function SyncTab({ onProcessed }: { onProcessed: () => void }) {
         if (matched > 0) parts.push(`${matched} conciliado${matched !== 1 ? 's' : ''}`);
         if (pending > 0) parts.push(`${pending} pendiente${pending !== 1 ? 's' : ''}`);
         if (errors > 0) parts.push(`${errors} sin coincidencia`);
-        if (parts.length === 1 && matched === data.processed) {
+        if (errors > 0) {
+          toast.error(`${data.processed} verificado${data.processed !== 1 ? 's' : ''}: ${parts.join(', ')}.`);
+        } else if (parts.length === 1 && matched === data.processed) {
           toast.success(`${data.processed} comprobante${data.processed !== 1 ? 's' : ''} conciliado${data.processed !== 1 ? 's' : ''}.`);
         } else {
           toast.info(`${data.processed} verificado${data.processed !== 1 ? 's' : ''}: ${parts.join(', ')}.`);
