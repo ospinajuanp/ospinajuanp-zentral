@@ -151,7 +151,7 @@ export default function WorkspacePlanPage() {
           return (
             <div
               key={plan._id}
-              className={`rounded-md border p-6 ${
+              className={`flex flex-col h-full rounded-md border p-6 ${
                 plan.highlighted
                   ? 'border-indigo-600 bg-indigo-950/20'
                   : isEnterprise
@@ -205,7 +205,7 @@ export default function WorkspacePlanPage() {
                   handlePurchase(plan._id);
                 }}
                 disabled={buying === plan._id || isCurrent}
-                className={`mt-4 w-full rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
+                className={`mt-auto w-full rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
                   isCurrent
                     ? 'bg-slate-800 text-slate-500 cursor-default'
                     : isEnterprise
