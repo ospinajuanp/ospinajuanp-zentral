@@ -77,9 +77,10 @@ export default function WorkspacesPage() {
         </div>
       ) : (
         <>
-          <div className="mt-8 overflow-hidden rounded-md border border-slate-800 bg-slate-900 sm:overflow-x-auto">
+          {/* desktop table */}
+          <div className="mt-8 hidden overflow-hidden rounded-md border border-slate-800 bg-slate-900 sm:block">
             <table className="w-full text-sm">
-              <thead className="max-sm:hidden">
+              <thead>
                 <tr className="border-b border-slate-800 bg-slate-950 text-left">
                   <th className="px-6 py-3 font-medium text-slate-400">Nombre</th>
                   <th className="px-6 py-3 font-medium text-slate-400">Slug</th>
@@ -91,39 +92,28 @@ export default function WorkspacesPage() {
               <tbody>
                 {workspaces.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                      No hay workspaces registrados.
-                    </td>
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">No hay workspaces registrados.</td>
                   </tr>
                 ) : (
                   workspaces.map((ws) => (
-                    <tr key={ws._id} className="block border-b border-slate-800 p-4 sm:table-row sm:border-none sm:p-0">
-                      <td className="block sm:table-cell sm:px-6 sm:py-4">
-                        <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Nombre</span>
+                    <tr key={ws._id} className="border-b border-slate-800 last:border-0">
+                      <td className="px-6 py-4">
                         <span className="font-medium text-white">{ws.name}</span>
                       </td>
-                      <td className="block sm:table-cell sm:px-6 sm:py-4">
-                        <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Slug</span>
+                      <td className="px-6 py-4">
                         <span className="font-mono text-slate-400">{ws.slug}</span>
                       </td>
-                      <td className="block sm:table-cell sm:px-6 sm:py-4">
-                        <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Admin</span>
+                      <td className="px-6 py-4">
                         <span className="text-slate-400">{ws.owner?.name ?? '—'}</span>
                       </td>
-                      <td className="block sm:table-cell sm:px-6 sm:py-4">
-                        <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Estado</span>
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            ws.isActive
-                              ? 'bg-emerald-500/10 text-emerald-500'
-                              : 'bg-rose-500/10 text-rose-500'
-                          }`}
-                        >
+                      <td className="px-6 py-4">
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          ws.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
+                        }`}>
                           {ws.isActive ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
-                      <td className="block sm:table-cell sm:px-6 sm:py-4">
-                        <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Accion</span>
+                      <td className="px-6 py-4">
                         <Link
                           href={`/admin/workspaces/${ws._id}`}
                           className="text-sm font-medium text-indigo-400 underline underline-offset-2 hover:text-white"
@@ -136,6 +126,46 @@ export default function WorkspacesPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* mobile cards */}
+          <div className="mt-8 space-y-3 sm:hidden">
+            {workspaces.length === 0 ? (
+              <p className="py-12 text-center text-sm text-slate-500">No hay workspaces registrados.</p>
+            ) : (
+              workspaces.map((ws) => (
+                <div key={ws._id} className="rounded-md border border-slate-800 bg-slate-900 p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-medium text-white">{ws.name}</h3>
+                      <p className="mt-0.5 font-mono text-xs text-slate-400">{ws.slug}</p>
+                    </div>
+                    <Link
+                      href={`/admin/workspaces/${ws._id}`}
+                      className="text-xs font-medium text-indigo-400 underline underline-offset-2 hover:text-white"
+                    >
+                      Editar
+                    </Link>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-slate-500">Admin</span>
+                      <p className="mt-0.5 text-slate-400">{ws.owner?.name ?? '—'}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Estado</span>
+                      <p className="mt-0.5">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          ws.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
+                        }`}>
+                          {ws.isActive ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <PaginationBar

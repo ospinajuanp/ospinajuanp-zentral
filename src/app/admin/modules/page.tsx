@@ -70,9 +70,10 @@ export default function ModulesPage() {
         </div>
       ) : (
         <>
-          <div className="mt-8 overflow-hidden rounded-md border border-slate-800 bg-slate-900 sm:overflow-x-auto">
+          {/* desktop table */}
+          <div className="mt-8 hidden overflow-hidden rounded-md border border-slate-800 bg-slate-900 sm:block">
             <table className="w-full text-sm">
-              <thead className="max-sm:hidden">
+              <thead>
                 <tr className="border-b border-slate-800 bg-slate-950 text-left">
                   <th className="px-6 py-3 font-medium text-slate-400">Modulo</th>
                   <th className="px-6 py-3 font-medium text-slate-400">Key</th>
@@ -85,52 +86,40 @@ export default function ModulesPage() {
               <tbody>
                 {modules.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                      No hay modulos registrados.
-                    </td>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">No hay modulos registrados.</td>
                   </tr>
                 ) : (
                   modules.map((mod) => (
-                    <tr key={mod._id} className="block border-b border-slate-800 p-4 sm:table-row sm:border-none sm:p-0">
-                      <td className="block sm:table-cell sm:px-6 sm:py-4">
-                        <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Modulo</span>
+                    <tr key={mod._id} className="border-b border-slate-800 last:border-0">
+                      <td className="px-6 py-4">
                         <span className="font-medium text-white">{mod.name}</span>
                         {mod.description && (
-                          <span className="ml-2 text-xs text-slate-500 max-sm:hidden">{mod.description}</span>
+                          <span className="ml-2 text-xs text-slate-500">{mod.description}</span>
                         )}
                       </td>
-                      <td className="block sm:table-cell sm:px-6 sm:py-4">
-                        <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Key</span>
+                      <td className="px-6 py-4">
                         <span className="font-mono text-slate-400">{mod.key}</span>
                       </td>
-                      <td className="block sm:table-cell sm:px-6 sm:py-4">
-                        <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Tier</span>
+                      <td className="px-6 py-4">
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          mod.tier === 'free'
-                            ? 'bg-emerald-500/10 text-emerald-500'
-                            : 'bg-indigo-500/10 text-indigo-400'
+                          mod.tier === 'free' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-indigo-500/10 text-indigo-400'
                         }`}>
                           {mod.tier === 'free' ? 'Gratis' : 'Premium'}
                         </span>
                       </td>
-                      <td className="block sm:table-cell sm:px-6 sm:py-4">
-                        <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Cuota</span>
+                      <td className="px-6 py-4">
                         <span className="text-slate-400">{mod.defaultQuota}/mes</span>
                       </td>
-                      <td className="block sm:table-cell sm:px-6 sm:py-4">
-                        <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Estado</span>
+                      <td className="px-6 py-4">
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          mod.status === 'active'
-                            ? 'bg-emerald-500/10 text-emerald-500'
-                            : mod.status === 'coming_soon'
-                            ? 'bg-amber-500/10 text-amber-400'
-                            : 'bg-rose-500/10 text-rose-500'
+                          mod.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' :
+                          mod.status === 'coming_soon' ? 'bg-amber-500/10 text-amber-400' :
+                          'bg-rose-500/10 text-rose-500'
                         }`}>
                           {mod.status === 'active' ? 'Activo' : mod.status === 'coming_soon' ? 'Proximamente' : 'Inactivo'}
                         </span>
                       </td>
-                      <td className="block sm:table-cell sm:px-6 sm:py-4">
-                        <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Accion</span>
+                      <td className="px-6 py-4">
                         <Link
                           href={`/admin/modules/${mod._id}`}
                           className="text-sm font-medium text-indigo-400 underline underline-offset-2 hover:text-white"
@@ -143,6 +132,60 @@ export default function ModulesPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* mobile cards */}
+          <div className="mt-8 space-y-3 sm:hidden">
+            {modules.length === 0 ? (
+              <p className="py-12 text-center text-sm text-slate-500">No hay modulos registrados.</p>
+            ) : (
+              modules.map((mod) => (
+                <div key={mod._id} className="rounded-md border border-slate-800 bg-slate-900 p-4">
+                  <div className="flex items-start justify-between">
+                    <h3 className="font-medium text-white">{mod.name}</h3>
+                    <Link
+                      href={`/admin/modules/${mod._id}`}
+                      className="text-xs font-medium text-indigo-400 underline underline-offset-2 hover:text-white"
+                    >
+                      Editar
+                    </Link>
+                  </div>
+                  {mod.description && <p className="mt-1 text-xs text-slate-500">{mod.description}</p>}
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-slate-500">Key</span>
+                      <p className="mt-0.5 font-mono text-slate-400">{mod.key}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Cuota</span>
+                      <p className="mt-0.5 text-slate-400">{mod.defaultQuota}/mes</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Tier</span>
+                      <p className="mt-0.5">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          mod.tier === 'free' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-indigo-500/10 text-indigo-400'
+                        }`}>
+                          {mod.tier === 'free' ? 'Gratis' : 'Premium'}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Estado</span>
+                      <p className="mt-0.5">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          mod.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' :
+                          mod.status === 'coming_soon' ? 'bg-amber-500/10 text-amber-400' :
+                          'bg-rose-500/10 text-rose-500'
+                        }`}>
+                          {mod.status === 'active' ? 'Activo' : mod.status === 'coming_soon' ? 'Proximamente' : 'Inactivo'}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <PaginationBar
