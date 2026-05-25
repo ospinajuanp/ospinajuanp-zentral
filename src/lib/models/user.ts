@@ -25,6 +25,7 @@ const userSchema = new Schema<IUser>(
     passwordHash: {
       type: String,
       required: true,
+      select: false,
     },
     name: {
       type: String,
@@ -55,5 +56,13 @@ const userSchema = new Schema<IUser>(
   },
   { timestamps: true }
 );
+
+userSchema.set('toJSON', {
+  transform: (_doc, ret) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _, ...safe } = ret;
+    return safe;
+  },
+});
 
 export const User = mongoose.models.User ?? mongoose.model<IUser>('User', userSchema);

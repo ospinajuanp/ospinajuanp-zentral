@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
   await dbConnect();
 
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const user = await User.findOne({ email: email.toLowerCase() }).select('+passwordHash');
 
   if (!user) {
     return NextResponse.json(
