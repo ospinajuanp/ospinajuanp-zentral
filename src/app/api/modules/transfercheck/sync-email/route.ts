@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuth } from '@/lib/auth/api';
-import { processPendingMatches } from '@/lib/modules/transfercheck/matcher';
+import { processPendingMatches, consumeQuota } from '@/lib/modules/transfercheck/matcher';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +15,10 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await processPendingMatches(workspaceId);
+
+    if (result.processed > 0) {
+      await consumeQuota(workspaceId, result.processed);
+    }
 
     return NextResponse.json({
       success: true,

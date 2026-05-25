@@ -30,11 +30,11 @@ export async function checkQuota(
   return { allowed: remaining > 0, remaining: Math.max(0, remaining) };
 }
 
-export async function consumeQuota(workspaceId: string): Promise<void> {
+export async function consumeQuota(workspaceId: string, count = 1): Promise<void> {
   await dbConnect();
   await ModuleSubscription.findOneAndUpdate(
     { workspace: workspaceId, moduleKey: 'transfercheck', status: 'active' },
-    { $inc: { usedQuota: 1 } }
+    { $inc: { usedQuota: count } }
   );
 }
 
