@@ -188,6 +188,11 @@ export default function WorkspacePlanPage() {
         return;
       }
 
+      toast.success(
+        newStatus === 'active'
+          ? 'Plan reactivado. Las cuotas fueron recalculadas.'
+          : 'Plan desactivado. Las cuotas fueron recalculadas.'
+      );
       router.refresh();
       await loadPurchases(purchPage, purchLimit);
     } catch {
