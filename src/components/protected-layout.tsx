@@ -78,7 +78,7 @@ export default async function ProtectedLayout({
                 <>
                   <NavLink href="/users">Usuarios</NavLink>
                   <NavLink href="/workspace/plan">Planes</NavLink>
-                  <NavLink href="/workspace">Workspace</NavLink>
+                  <NavLink href="/workspace" exact>Workspace</NavLink>
                 </>
               )}
 
