@@ -3,6 +3,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 interface BottomNavItem {
   label: string;
@@ -34,7 +35,7 @@ export function SidebarShell({ sidebar, children, bottomNav }: SidebarShellProps
 
       {/* main */}
       <main className="flex-1 bg-slate-950 px-4 pb-20 pt-4 lg:px-8 lg:pb-8 lg:pt-8">
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </main>
 
       {/* mobile bottom nav */}

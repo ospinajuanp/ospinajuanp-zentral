@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { AppProviders } from '@/components/app-providers';
 import './globals.css';
 
 export const viewport = {
@@ -57,7 +58,7 @@ export default function RootLayout({
         >
           Saltar al contenido
         </a>
-        {children}
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
