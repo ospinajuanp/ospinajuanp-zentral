@@ -637,7 +637,7 @@ function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin
                       {log.retryCount}
                     </td>
                     <td className="py-4 text-right">
-                      {isAdmin && log.status !== 'matched' && (
+                      {log.status !== 'matched' && (
                         <button
                           onClick={() => setManualForm({ logId: log._id, monto: String(log.photoData.monto), referencia: log.photoData.referencia })}
                           className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
@@ -708,7 +708,7 @@ function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin
                     <p className="font-mono text-xs text-slate-300">{log.photoData.referencia}</p>
                   </div>
                 </div>
-                {isAdmin && log.status !== 'matched' && (
+                {log.status !== 'matched' && (
                   <button
                     onClick={() => setManualForm({ logId: log._id, monto: String(log.photoData.monto), referencia: log.photoData.referencia })}
                     className="mt-3 w-full rounded-md border border-slate-700 py-2 text-xs text-slate-300 hover:bg-slate-800"
@@ -769,7 +769,7 @@ function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin
       )}
 
       {/* Manual reconciliation modal */}
-      {isAdmin && manualForm && (
+      {manualForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setManualForm(null)}>
           <div
             className="w-full max-w-md rounded-md border border-slate-800 bg-slate-950 p-6 mx-4"
