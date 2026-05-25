@@ -137,7 +137,7 @@ export default function TransferCheckDashboard() {
 
       <div className="mt-8">
         {activeTab === 'upload' && <UploadTab onError={setError} onProcessed={() => setQuotaVersion((v) => v + 1)} />}
-        {activeTab === 'sync' && <SyncTab onError={setError} />}
+        {activeTab === 'sync' && <SyncTab onError={setError} onProcessed={() => setQuotaVersion((v) => v + 1)} />}
         {activeTab === 'logs' && <LogsTab onError={setError} isAdmin={isAdmin} />}
         {activeTab === 'config' && <ConfigTab onError={setError} />}
       </div>
@@ -338,7 +338,7 @@ interface SyncItemResult {
   error?: string;
 }
 
-function SyncTab({ onError }: { onError: (msg: string) => void }) {
+function SyncTab({ onError, onProcessed }: { onError: (msg: string) => void; onProcessed: () => void }) {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ processed: number; results: SyncItemResult[] } | null>(null);
 
@@ -359,6 +359,7 @@ function SyncTab({ onError }: { onError: (msg: string) => void }) {
       }
 
       setSyncResult({ processed: data.processed, results: data.results });
+      if (data.processed > 0) onProcessed();
     } catch {
       onError('No se pudo conectar. Revisa tu conexión a internet.');
     } finally {
