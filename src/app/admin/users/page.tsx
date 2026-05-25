@@ -156,11 +156,11 @@ export default function UsersPage() {
               <p className="py-12 text-center text-sm text-slate-500">No hay usuarios registrados.</p>
             ) : (
               users.map((u) => (
-                <div key={u._id} className="rounded-md border border-slate-800 bg-slate-900 p-4">
+                <div key={u._id} className="rounded-md border border-slate-800 bg-slate-900 p-4 pb-5">
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-medium text-white">{u.name}</h3>
-                      <p className="text-xs text-slate-400">{u.email}</p>
+                      <p className="mt-1 text-xs text-slate-400">{u.email}</p>
                     </div>
                     <Link
                       href={`/admin/users/${u._id.toString()}`}
@@ -169,22 +169,22 @@ export default function UsersPage() {
                       Editar
                     </Link>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                     <div>
                       <span className="text-slate-500">Rol</span>
-                      <p className="mt-0.5">
+                      <p className="mt-1">
                         <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-400">{u.role}</span>
                       </p>
                     </div>
                     <div>
                       <span className="text-slate-500">Workspace</span>
-                      <p className="mt-0.5 text-slate-400">
+                      <p className="mt-1 text-slate-400">
                         {u.workspace ? workspaceMap.get(u.workspace.toString()) ?? '—' : '—'}
                       </p>
                     </div>
                     <div className="col-span-2">
                       <span className="text-slate-500">Estado</span>
-                      <p className="mt-0.5">
+                      <p className="mt-1">
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                           u.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
                         }`}>

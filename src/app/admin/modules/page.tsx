@@ -140,7 +140,7 @@ export default function ModulesPage() {
               <p className="py-12 text-center text-sm text-slate-500">No hay modulos registrados.</p>
             ) : (
               modules.map((mod) => (
-                <div key={mod._id} className="rounded-md border border-slate-800 bg-slate-900 p-4">
+                <div key={mod._id} className="rounded-md border border-slate-800 bg-slate-900 p-4 pb-5">
                   <div className="flex items-start justify-between">
                     <h3 className="font-medium text-white">{mod.name}</h3>
                     <Link
@@ -151,18 +151,18 @@ export default function ModulesPage() {
                     </Link>
                   </div>
                   {mod.description && <p className="mt-1 text-xs text-slate-500">{mod.description}</p>}
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                     <div>
                       <span className="text-slate-500">Key</span>
-                      <p className="mt-0.5 font-mono text-slate-400">{mod.key}</p>
+                      <p className="mt-1 font-mono text-slate-400">{mod.key}</p>
                     </div>
                     <div>
                       <span className="text-slate-500">Cuota</span>
-                      <p className="mt-0.5 text-slate-400">{mod.defaultQuota}/mes</p>
+                      <p className="mt-1 text-slate-400">{mod.defaultQuota}/mes</p>
                     </div>
                     <div>
                       <span className="text-slate-500">Tier</span>
-                      <p className="mt-0.5">
+                      <p className="mt-1">
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                           mod.tier === 'free' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-indigo-500/10 text-indigo-400'
                         }`}>
@@ -172,7 +172,7 @@ export default function ModulesPage() {
                     </div>
                     <div>
                       <span className="text-slate-500">Estado</span>
-                      <p className="mt-0.5">
+                      <p className="mt-1">
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                           mod.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' :
                           mod.status === 'coming_soon' ? 'bg-amber-500/10 text-amber-400' :

@@ -174,9 +174,9 @@ export default function PlansPage() {
                   (s, im) => s + (im.quotaOverride ?? im.module.defaultQuota), 0
                 );
                 return (
-                  <div key={plan._id} className="rounded-md border border-slate-800 bg-slate-900 p-4">
+                  <div key={plan._id} className="rounded-md border border-slate-800 bg-slate-900 p-4 pb-5">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-medium text-white">{plan.name}</h3>
                         {plan.highlighted && (
                           <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-300">Destacado</span>
@@ -195,22 +195,22 @@ export default function PlansPage() {
                     <p className="mt-1 text-xs text-slate-400">
                       {plan.price || 'Sin precio'}{plan.price && plan.price !== 'A medida' ? '/mes' : ''} — {plan.description}
                     </p>
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <span className="text-slate-500">Modulos</span>
-                        <p className="mt-0.5 text-slate-400">{plan.includedModules.length}</p>
+                        <p className="mt-1 text-slate-400">{plan.includedModules.length}</p>
                       </div>
                       <div>
                         <span className="text-slate-500">Usuarios</span>
-                        <p className="mt-0.5 text-slate-400">{plan.maxUsers === 0 ? 'Ilimitados' : plan.maxUsers}</p>
+                        <p className="mt-1 text-slate-400">{plan.maxUsers === 0 ? 'Ilimitados' : plan.maxUsers}</p>
                       </div>
                       <div>
                         <span className="text-slate-500">Cuota</span>
-                        <p className="mt-0.5 text-slate-400">{totalQuota}/mes</p>
+                        <p className="mt-1 text-slate-400">{totalQuota}/mes</p>
                       </div>
                       <div>
                         <span className="text-slate-500">Orden</span>
-                        <p className="mt-0.5 text-slate-400">#{plan.sortOrder}</p>
+                        <p className="mt-1 text-slate-400">#{plan.sortOrder}</p>
                       </div>
                     </div>
                     {plan.extraFeatures.length > 0 && (

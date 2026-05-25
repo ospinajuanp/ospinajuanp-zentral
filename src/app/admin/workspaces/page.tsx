@@ -134,11 +134,11 @@ export default function WorkspacesPage() {
               <p className="py-12 text-center text-sm text-slate-500">No hay workspaces registrados.</p>
             ) : (
               workspaces.map((ws) => (
-                <div key={ws._id} className="rounded-md border border-slate-800 bg-slate-900 p-4">
+                <div key={ws._id} className="rounded-md border border-slate-800 bg-slate-900 p-4 pb-5">
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-medium text-white">{ws.name}</h3>
-                      <p className="mt-0.5 font-mono text-xs text-slate-400">{ws.slug}</p>
+                      <p className="mt-1 font-mono text-xs text-slate-400">{ws.slug}</p>
                     </div>
                     <Link
                       href={`/admin/workspaces/${ws._id}`}
@@ -147,14 +147,14 @@ export default function WorkspacesPage() {
                       Editar
                     </Link>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                     <div>
                       <span className="text-slate-500">Admin</span>
-                      <p className="mt-0.5 text-slate-400">{ws.owner?.name ?? '—'}</p>
+                      <p className="mt-1 text-slate-400">{ws.owner?.name ?? '—'}</p>
                     </div>
                     <div>
                       <span className="text-slate-500">Estado</span>
-                      <p className="mt-0.5">
+                      <p className="mt-1">
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                           ws.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
                         }`}>
