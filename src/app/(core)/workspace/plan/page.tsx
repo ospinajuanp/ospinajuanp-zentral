@@ -62,7 +62,7 @@ export default function WorkspacePlanPage() {
         const purchasesData = await purchasesRes.json();
 
         if (plansData.plans) setPlans(plansData.plans);
-        if (wsData.workspace?.plan) setCurrentPlanId(wsData.workspace.plan._id || wsData.workspace.plan);
+        if (wsData.workspace?.plans) setCurrentPlanId(wsData.workspace.plans[0]?._id || wsData.workspace.plans[0] || null);
         if (purchasesData.purchases) setPurchases(purchasesData.purchases);
       } catch {
         setError('No se pudo cargar la informacion de planes.');
@@ -190,11 +190,9 @@ export default function WorkspacePlanPage() {
                 ))}
               </ul>
 
-              {plan.maxUsers > 0 && (
-                <p className="mt-3 text-xs text-slate-500">
-                  Hasta {plan.maxUsers} usuario{plan.maxUsers !== 1 ? 's' : ''}
-                </p>
-              )}
+              <p className="mt-3 text-xs text-slate-500">
+                {plan.maxUsers === 0 ? 'Usuarios ilimitados' : `Hasta ${plan.maxUsers} usuario${plan.maxUsers !== 1 ? 's' : ''}`}
+              </p>
 
               <button
                 onClick={() => handlePurchase(plan._id)}

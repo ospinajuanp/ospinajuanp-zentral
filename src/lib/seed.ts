@@ -1,9 +1,10 @@
 import dbConnect from './db/mongoose';
 import { User } from './models/user';
 import { Workspace } from './models/workspace';
-import { ModuleSubscription } from './models/module-subscription';
 import { Module } from './models/module';
 import { Plan } from './models/plan';
+import { WorkspacePurchase } from './models/workspace-purchase';
+import { recalculateQuotas } from './purchase/recalculate-quotas';
 import { hashPassword } from './auth';
 
 interface PlanSeed {
@@ -61,28 +62,32 @@ const defaultPlanDefs: PlanSeed[] = [
 ];
 
 const defaultModules = [
-  { key: 'transfercheck', name: 'TransferCheck', description: 'Verificación y validación de transferencias bancarias en tiempo real.', tier: 'free' as const, status: 'active' as const, defaultQuota: 100 },
+  { key: 'transfercheck', name: 'TransferCheck', description: 'Verificación y validación de transferencias bancarias.', tier: 'free' as const, status: 'active' as const, defaultQuota: 100 },
   { key: 'antecedentes', name: 'AntecedentesCheck', description: 'Consulta de antecedentes judiciales, policiales y comerciales.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500 },
   { key: 'facturacion', name: 'Facturación Electrónica', description: 'Gestión de facturación electrónica y seguimiento de pagos.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500 },
   { key: 'cartera', name: 'Cartera', description: 'Gestión de cuentas de cobros, seguimiento de pagos y reconciliación.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500 },
 ];
 
-const subscriptionQuotas: Record<string, number> = { transfercheck: 100, antecedentes: 500, facturacion: 500, cartera: 500 };
+async function createPurchase(
+  workspaceId: unknown,
+  plan: { _id: unknown; name: string; monthlyPrice: number | null; includedModules: { module: { key: string; tier: string; defaultQuota: number }; quotaOverride: number | null }[] },
+) {
+  const modules = plan.includedModules.map((pm) => ({
+    moduleKey: pm.module.key,
+    quota: pm.quotaOverride ?? pm.module.defaultQuota ?? 100,
+    tier: pm.module.tier ?? 'free',
+  }));
 
-async function createSubscriptions(workspaceId: unknown, moduleKeys: string[], allModules: Record<string, unknown>[], status: string) {
-  for (const key of moduleKeys) {
-    const mod = allModules.find((m) => m.key === key);
-    if (!mod) continue;
-    await ModuleSubscription.create({
-      workspace: workspaceId,
-      moduleKey: key,
-      tier: mod.tier,
-      status,
-      monthlyQuota: subscriptionQuotas[key] ?? mod.defaultQuota,
-      usedQuota: 0,
-      quotaResetAt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
-    });
-  }
+  await WorkspacePurchase.create({
+    workspace: workspaceId,
+    plan: plan._id,
+    planName: plan.name,
+    amount: plan.monthlyPrice || 0,
+    currency: 'COP',
+    status: 'active',
+    paymentMethod: 'simulated',
+    modules,
+  });
 }
 
 export async function seed() {
@@ -94,7 +99,7 @@ export async function seed() {
     return;
   }
 
-  // ──── Users ────
+  // ──── Superadmin ────
   const superAdmin = await User.create({
     email: 'admin@zentral.dev',
     passwordHash: await hashPassword('admin123'),
@@ -107,9 +112,8 @@ export async function seed() {
   // ──── Modules ────
   for (const mod of defaultModules) {
     await Module.create(mod);
-    console.log(`[seed] Module: ${mod.key} (${mod.status})`);
+    console.log(`[seed] Module: ${mod.key} (${mod.tier}, ${mod.status})`);
   }
-
   const allModules = await Module.find().lean();
 
   // ──── Plans ────
@@ -139,27 +143,31 @@ export async function seed() {
       whatsappNumber: def.whatsappNumber,
     });
 
-    planIds[def.name] = String(plan._id);
-    console.log(`[seed] Plan: ${def.name}`);
-
-    // Update ctaLink after creation (needs plan._id)
-    const isEnterprise = def.isEnterprise;
-    if (!isEnterprise) {
-      plan.ctaLink = `/register?plan=${plan._id}`;
-    } else {
-      plan.ctaLink = `https://wa.me/${def.whatsappNumber}?text=Hola%2C%20me%20interesa%20el%20plan%20Enterprise`;
-    }
+    plan.ctaLink = def.isEnterprise
+      ? `https://wa.me/${def.whatsappNumber}?text=Hola%2C%20me%20interesa%20el%20plan%20Enterprise`
+      : `/register?plan=${plan._id}`;
     await plan.save();
+
+    planIds[def.name] = String(plan._id);
+    console.log(`[seed] Plan: ${def.name} ($${def.monthlyPrice ?? 'a medida'})`);
   }
 
-  // ──── Workspace 1: Demo Corp (Premium) ────
-  const premiumPlanId = planIds['Premium'];
+  // Resolve plans with modules populated
+  const freePlan = await Plan.findById(planIds['Free']).populate('includedModules.module', 'key tier defaultQuota');
+  const premiumPlan = await Plan.findById(planIds['Premium']).populate('includedModules.module', 'key tier defaultQuota');
+  const plusPlan = await Plan.findById(planIds['Premium Plus']).populate('includedModules.module', 'key tier defaultQuota');
+
+  if (!freePlan || !premiumPlan || !plusPlan) {
+    throw new Error('Failed to resolve seed plans');
+  }
+
+  // ──── Workspace 1: Demo Corp (Free + Premium) ────
   const ws1 = await Workspace.create({
     name: 'Demo Corp',
     slug: 'demo-corp',
     isActive: true,
     isPayReady: true,
-    plan: premiumPlanId,
+    plans: [freePlan._id, premiumPlan._id],
   });
 
   const admin1 = await User.create({
@@ -175,17 +183,18 @@ export async function seed() {
   ws1.owner = admin1._id;
   await ws1.save();
 
-  await createSubscriptions(ws1._id, ['transfercheck', 'antecedentes', 'facturacion', 'cartera'], allModules, 'active');
-  console.log('[seed] Workspace: Demo Corp → admin@demo-corp.com / demo123 (Premium)');
+  await createPurchase(ws1._id, freePlan!);
+  await createPurchase(ws1._id, premiumPlan!);
+  await recalculateQuotas(ws1._id);
+  console.log('[seed] Workspace: Demo Corp → admin@demo-corp.com / demo123 (Free + Premium, $12/mes)');
 
-  // ──── Workspace 2: Plus Corp (Premium Plus) ────
-  const plusPlanId = planIds['Premium Plus'];
+  // ──── Workspace 2: Plus Corp (Free + Premium Plus) ────
   const ws2 = await Workspace.create({
     name: 'Plus Corp',
     slug: 'plus-corp',
     isActive: true,
     isPayReady: true,
-    plan: plusPlanId,
+    plans: [freePlan._id, plusPlan._id],
   });
 
   const admin2 = await User.create({
@@ -201,10 +210,12 @@ export async function seed() {
   ws2.owner = admin2._id;
   await ws2.save();
 
-  await createSubscriptions(ws2._id, ['transfercheck', 'antecedentes', 'facturacion', 'cartera'], allModules, 'active');
-  console.log('[seed] Workspace: Plus Corp → admin@plus-corp.com / plus123 (Premium Plus)');
+  await createPurchase(ws2._id, freePlan!);
+  await createPurchase(ws2._id, plusPlan!);
+  await recalculateQuotas(ws2._id);
+  console.log('[seed] Workspace: Plus Corp → admin@plus-corp.com / plus123 (Free + Premium Plus, $24/mes)');
 
-  // ──── Hijo user in Plus Corp ────
+  // ──── Operador in Plus Corp ────
   await User.create({
     email: 'operador@plus-corp.com',
     passwordHash: await hashPassword('operador123'),

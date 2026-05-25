@@ -41,7 +41,7 @@ export default function EditPlanPage() {
   const [price, setPrice] = useState('');
   const [monthlyPrice, setMonthlyPrice] = useState('');
   const [description, setDescription] = useState('');
-  const [maxUsers, setMaxUsers] = useState('1');
+  const [maxUsers, setMaxUsers] = useState('0');
   const [cta, setCta] = useState('');
   const [ctaLink, setCtaLink] = useState('');
   const [highlighted, setHighlighted] = useState(false);
@@ -271,6 +271,7 @@ export default function EditPlanPage() {
                 <label htmlFor="maxUsers" className="block text-sm font-medium text-slate-400">Usuarios máximos</label>
                 <input id="maxUsers" type="number" min={0} required value={maxUsers} onChange={(e) => setMaxUsers(e.target.value)}
                   className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
+                <p className="mt-1 text-xs text-slate-500">0 = usuarios ilimitados</p>
               </div>
             </div>
             <div>

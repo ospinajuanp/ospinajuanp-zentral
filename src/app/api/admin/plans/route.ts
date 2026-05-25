@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       monthlyPrice: monthlyPrice ?? null,
       description: description ?? '',
       includedModules: includedModules ?? [],
-      maxUsers: maxUsers ?? 1,
+      maxUsers: maxUsers ?? 0,
       extraFeatures: extraFeatures ?? [],
       support: support ?? 'ninguno',
       onboarding: onboarding ?? 'ninguno',

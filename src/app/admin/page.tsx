@@ -50,13 +50,15 @@ export default async function AdminDashboard() {
   let mrr = 0;
   for (const ws of allWorkspaces) {
     if (!ws.isActive || !ws.isPayReady) continue;
-    if (!ws.plan) continue;
-    const plan = allPlans.find((p) => String(p._id) === String(ws.plan));
-    if (plan && plan.monthlyPrice) mrr += plan.monthlyPrice;
+    if (!ws.plans || ws.plans.length === 0) continue;
+    for (const planId of ws.plans) {
+      const plan = allPlans.find((p) => String(p._id) === String(planId));
+      if (plan && plan.monthlyPrice) mrr += plan.monthlyPrice;
+    }
   }
 
   const paidPlanIds = new Set(allPlans.filter((p) => p.monthlyPrice && p.monthlyPrice > 0).map((p) => String(p._id)));
-  const wPaid = allWorkspaces.filter((w) => w.plan && paidPlanIds.has(String(w.plan))).length;
+  const wPaid = allWorkspaces.filter((w) => w.plans && w.plans.some((pid: { toString: () => string }) => paidPlanIds.has(String(pid)))).length;
 
   return (
     <div className="space-y-6">

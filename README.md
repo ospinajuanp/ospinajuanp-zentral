@@ -30,8 +30,8 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | Rol | Acceso |
 |---|---|---|
 | **superadmin** | Global — dashboard con stats, CRUD de workspaces, usuarios, módulos, planes, suscripciones |
-| **admin** | Dueño del workspace — dashboard, usuarios, planes, configuración del workspace, compra de planes |
-| **operador** | Usuario operativo — acceso limitado a módulos asignados por el admin (antes llamado "hijo") |
+| **admin** | Dueño del workspace — dashboard, usuarios, planes, configuración, compra de planes |
+| **operador** | Usuario operativo — acceso a módulos asignados, puede conciliar comprobantes |
 | **hijo** | (Legado — retrocompatible, mismo comportamiento que operador) |
 
 ---
@@ -225,7 +225,7 @@ pnpm run seed    # Poblar base de datos
 | email | String | único, lowercase |
 | passwordHash | String | bcrypt |
 | name | String | — |
-| role | enum | superadmin \| admin \| hijo |
+| role | enum | superadmin \| admin \| operador \| hijo |
 | workspace | ref → Workspace | nullable |
 | isActive | Boolean | default: false (registro), se activa al verificar email |
 | createdBy | ref → User | nullable |
@@ -238,7 +238,7 @@ pnpm run seed    # Poblar base de datos
 | owner | ref → User | nullable |
 | isActive | Boolean | default: true |
 | isPayReady | Boolean | default: false (pago pendiente hasta confirmación) |
-| plan | ref → Plan | Plan asociado (opcional) |
+| plans | ObjectId[] | Array de planes contratados |
 
 ### Module
 | Campo | Tipo | Detalle |
@@ -281,6 +281,19 @@ pnpm run seed    # Poblar base de datos
 | whatsappNumber | String | Solo para enterprise |
 | sortOrder | Number | Orden de aparición |
 | isActive | Boolean | Visible en landing |
+
+### WorkspacePurchase
+| Campo | Tipo | Detalle |
+|---|---|---|
+| workspace | ref → Workspace | Índice |
+| plan | ref → Plan | Plan comprado |
+| planName | String | Nombre del plan |
+| amount | Number | Monto pagado |
+| currency | String | COP |
+| status | enum | active \| expired \| cancelled |
+| paymentMethod | String | simulated |
+| modules | Array | [{ moduleKey, quota, tier }] |
+| purchasedAt | Date | Fecha de compra |
 
 ---
 

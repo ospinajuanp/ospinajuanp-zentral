@@ -111,7 +111,7 @@ export default function PlansPage() {
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
-                          {plan.maxUsers} usuario{plan.maxUsers !== 1 ? 's' : ''}
+                          {plan.maxUsers === 0 ? 'Ilimitados' : `${plan.maxUsers} usuario${plan.maxUsers !== 1 ? 's' : ''}`}
                         </span>
                         <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
                           {plan.includedModules.length} módulo{plan.includedModules.length !== 1 ? 's' : ''}

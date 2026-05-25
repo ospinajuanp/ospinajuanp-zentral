@@ -12,7 +12,7 @@ interface WorkspaceData {
   isActive: boolean;
   isPayReady: boolean;
   owner?: { _id: string; name: string; email: string } | null;
-  plan?: { _id: string; name: string; price: string; isEnterprise: boolean } | null;
+  plans?: { _id: string; name: string; price: string; isEnterprise: boolean }[];
 }
 
 interface UserSummary {
@@ -356,12 +356,16 @@ export default function WorkspaceDetailPage() {
               </label>
             </div>
 
-            {workspace.plan && (
+            {workspace.plans && workspace.plans.length > 0 && (
               <div className="rounded-md border border-slate-700/50 bg-slate-950 p-3">
-                <p className="text-xs text-slate-500">Plan asociado:</p>
-                <p className="text-sm font-medium text-white">{workspace.plan.name}</p>
-                {workspace.plan.price && <p className="text-xs text-slate-400">{workspace.plan.price}/mes</p>}
-                {workspace.plan.isEnterprise && <span className="mt-1 inline-block rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-500">Enterprise</span>}
+                <p className="text-xs text-slate-500">Planes contratados:</p>
+                {workspace.plans.map((p) => (
+                  <div key={p._id} className="mt-1 flex items-center gap-2">
+                    <p className="text-sm font-medium text-white">{p.name}</p>
+                    {p.price && <p className="text-xs text-slate-400">{p.price}/mes</p>}
+                    {p.isEnterprise && <span className="inline-block rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-500">Enterprise</span>}
+                  </div>
+                ))}
               </div>
             )}
 

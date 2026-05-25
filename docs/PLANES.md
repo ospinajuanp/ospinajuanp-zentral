@@ -103,9 +103,10 @@ Contacto vía WhatsApp.
 1. Usuario hace clic en el CTA de un plan en la landing → va a `/register?plan=PLAN_ID`
 2. El formulario de registro envía `planId` al backend
 3. El backend busca el plan y crea el workspace con:
-   - `plan`: referencia al Plan seleccionado
+   - `plans`: [Free, PlanSeleccionado] — array de planes (Free siempre incluido)
    - `isPayReady`: `true` si es plan gratuito (monthlyPrice = 0), `false` si es de pago
    - `ModuleSubscription`s: según los `includedModules` del plan
+   - `WorkspacePurchase`: registro de compra para cada plan
 4. Si `isPayReady = false`: subs se crean con `status: 'inactive'`
 5. El workspace muestra los módulos en el dashboard pero con overlay "Pago pendiente"
 6. Superadmin togglea `isPayReady = true` → todas las subs pasan a `active`

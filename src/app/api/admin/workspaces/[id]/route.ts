@@ -18,7 +18,7 @@ export async function GET(
   await dbConnect();
   const { id } = await params;
 
-  const workspace = await Workspace.findById(id).populate('owner', 'name email').populate('plan', 'name price isEnterprise').lean();
+  const workspace = await Workspace.findById(id).populate('owner', 'name email').populate('plans', 'name price isEnterprise').lean();
   if (!workspace) {
     return NextResponse.json({ error: 'Workspace no encontrado' }, { status: 404 });
   }

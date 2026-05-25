@@ -3,8 +3,8 @@ import { getApiAuth } from '@/lib/auth/api';
 import dbConnect from '@/lib/db/mongoose';
 import { Workspace } from '@/lib/models/workspace';
 import { Plan } from '@/lib/models/plan';
-import { ModuleSubscription } from '@/lib/models/module-subscription';
 import { WorkspacePurchase } from '@/lib/models/workspace-purchase';
+import { recalculateQuotas } from '@/lib/purchase/recalculate-quotas';
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,7 +34,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Workspace no encontrado' }, { status: 404 });
     }
 
-    const plan = await Plan.findById(planId);
+    // Migrate old workspaces from plan (singular) to plans (array)
+    if (!workspace.plans || !Array.isArray(workspace.plans)) {
+      workspace.plans = [];
+    }
+
+    const plan = await Plan.findById(planId)
+      .populate('includedModules.module', 'key defaultQuota tier')
+      .lean();
     if (!plan) {
       return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 });
     }
@@ -42,42 +49,40 @@ export async function POST(req: NextRequest) {
     const amount = plan.monthlyPrice || 0;
     const isFree = amount === 0;
 
-    // Simulated purchase — always completes
+    // Free plans: solo 1 por workspace
+    const planIdStr = plan._id.toString();
+    if (isFree && workspace.plans.some((p: { toString: () => string }) => p.toString() === planIdStr)) {
+      return NextResponse.json(
+        { error: 'Ya tenés el plan gratuito contratado. Solo se permite uno por workspace.' },
+        { status: 400 }
+      );
+    }
+
+    const modules = plan.includedModules.map((pm: { module: { key: string; tier: string; defaultQuota: number }; quotaOverride: number | null }) => ({
+      moduleKey: pm.module.key,
+      quota: pm.quotaOverride ?? pm.module.defaultQuota ?? 100,
+      tier: pm.module.tier ?? 'free',
+    }));
+
     const purchase = await WorkspacePurchase.create({
       workspace: workspace._id,
       plan: plan._id,
       planName: plan.name,
       amount,
       currency: 'COP',
-      status: 'completed',
+      status: 'active',
       paymentMethod: 'simulated',
+      modules,
     });
 
-    // Update workspace
-    workspace.plan = plan._id;
-    workspace.isPayReady = isFree;
+    if (!workspace.plans.some((p: { toString: () => string }) => p.toString() === planIdStr)) {
+      workspace.plans.push(plan._id);
+    }
+
+    workspace.isPayReady = true;
     await workspace.save();
 
-    // Remove old module subscriptions
-    await ModuleSubscription.deleteMany({ workspace: workspace._id });
-
-    // Create new module subscriptions from plan
-    const now = new Date();
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-    const subscriptions = plan.includedModules.map((pm: { module: { toString: () => string }; quotaOverride: number | null }) => ({
-      workspace: workspace._id,
-      moduleKey: pm.module.toString(),
-      tier: 'premium' as const,
-      status: isFree ? 'active' as const : 'active' as const, // simulated: always active
-      monthlyQuota: pm.quotaOverride || 100,
-      usedQuota: 0,
-      quotaResetAt: nextMonth,
-    }));
-
-    if (subscriptions.length > 0) {
-      await ModuleSubscription.insertMany(subscriptions);
-    }
+    await recalculateQuotas(workspace._id.toString());
 
     return NextResponse.json({
       success: true,

@@ -54,7 +54,7 @@ El dashboard muestra métricas agrupadas en 4 secciones con cards clicables:
 ### Detalle (`/admin/workspaces/[id]`)
 - **Información**: editar nombre, slug, activo/inactivo
 - **Pago confirmado**: checkbox `isPayReady`. Al activarlo, todas las suscripciones `inactive` pasan a `active`. Al desactivarlo, las `active` pasan a `inactive`
-- **Plan asociado**: muestra el plan vinculado (nombre, precio, badge Enterprise si aplica)
+- **Planes contratados**: lista de planes vinculados al workspace con nombre, precio, badge Enterprise
 - **Usuarios**: lista de usuarios del workspace
 - **Módulos**: gestión de suscripciones
   - Agregar módulo: seleccionar de los disponibles (no suscritos), tier y cuota

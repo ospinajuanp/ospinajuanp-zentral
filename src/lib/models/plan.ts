@@ -66,7 +66,7 @@ const planSchema = new Schema<IPlan>(
     },
     maxUsers: {
       type: Number,
-      default: 1,
+      default: 0,
     },
     extraFeatures: {
       type: [String],

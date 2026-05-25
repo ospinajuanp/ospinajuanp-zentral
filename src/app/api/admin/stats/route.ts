@@ -69,10 +69,12 @@ export async function GET(req: NextRequest) {
     let mrr = 0;
     for (const ws of allWorkspaces) {
       if (!ws.isActive || !ws.isPayReady) continue;
-      if (!ws.plan) continue;
-      const plan = allPlans.find((p) => String(p._id) === String(ws.plan));
-      if (plan && plan.monthlyPrice) {
-        mrr += plan.monthlyPrice;
+      if (!ws.plans || ws.plans.length === 0) continue;
+      for (const planId of ws.plans) {
+        const plan = allPlans.find((p) => String(p._id) === String(planId));
+        if (plan && plan.monthlyPrice) {
+          mrr += plan.monthlyPrice;
+        }
       }
     }
 

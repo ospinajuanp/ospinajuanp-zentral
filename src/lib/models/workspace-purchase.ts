@@ -1,17 +1,33 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IPurchasedModule {
+  moduleKey: string;
+  quota: number;
+  tier: string;
+}
+
 export interface IWorkspacePurchase extends Document {
   workspace: mongoose.Types.ObjectId;
   plan: mongoose.Types.ObjectId;
   planName: string;
   amount: number;
   currency: string;
-  status: 'completed' | 'pending' | 'cancelled';
+  status: 'active' | 'expired' | 'cancelled';
   paymentMethod: string;
+  modules: IPurchasedModule[];
   purchasedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const purchasedModuleSchema = new Schema<IPurchasedModule>(
+  {
+    moduleKey: { type: String, required: true },
+    quota: { type: Number, required: true },
+    tier: { type: String, required: true },
+  },
+  { _id: false }
+);
 
 const workspacePurchaseSchema = new Schema<IWorkspacePurchase>(
   {
@@ -40,12 +56,16 @@ const workspacePurchaseSchema = new Schema<IWorkspacePurchase>(
     },
     status: {
       type: String,
-      enum: ['completed', 'pending', 'cancelled'],
-      default: 'completed',
+      enum: ['active', 'expired', 'cancelled'],
+      default: 'active',
     },
     paymentMethod: {
       type: String,
       default: 'simulated',
+    },
+    modules: {
+      type: [purchasedModuleSchema],
+      default: [],
     },
     purchasedAt: {
       type: Date,
