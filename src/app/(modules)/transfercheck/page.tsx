@@ -170,6 +170,7 @@ function UploadTab({ onProcessed }: { onProcessed: () => void }) {
       if (!res.ok) {
         if (data.gmailRequired) {
           setGmailMissing(true);
+          toast.info('Conecta tu correo de Gmail antes de procesar comprobantes.');
           return;
         }
         toast.error(data.error || 'Error al procesar');
@@ -177,6 +178,7 @@ function UploadTab({ onProcessed }: { onProcessed: () => void }) {
       }
 
       setResult(data.log);
+      toast.success('Comprobante procesado exitosamente.');
       onProcessed();
     } catch {
       toast.error('No se pudo procesar. Revisa tu conexión a internet.');
@@ -355,7 +357,12 @@ function SyncTab({ onProcessed }: { onProcessed: () => void }) {
       }
 
       setSyncResult({ processed: data.processed, results: data.results });
-      if (data.processed > 0) onProcessed();
+      if (data.processed > 0) {
+        onProcessed();
+        toast.success(`${data.processed} comprobante${data.processed !== 1 ? 's' : ''} verificado${data.processed !== 1 ? 's' : ''}.`);
+      } else {
+        toast.info('No se encontraron comprobantes pendientes.');
+      }
     } catch {
       toast.error('No se pudo conectar. Revisa tu conexión a internet.');
     } finally {

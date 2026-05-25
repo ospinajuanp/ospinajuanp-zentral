@@ -13,12 +13,17 @@ export async function checkQuota(
 
   const now = new Date();
 
-  // Reset quota if period elapsed
+  // Reset quota only if period has elapsed (or never set)
   await ModuleSubscription.findOneAndUpdate(
     {
       workspace: workspaceId,
       moduleKey: 'transfercheck',
       status: 'active',
+      $or: [
+        { quotaResetAt: { $lte: now } },
+        { quotaResetAt: null },
+        { quotaResetAt: { $exists: false } },
+      ],
     },
     {
       $set: {
