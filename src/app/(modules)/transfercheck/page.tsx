@@ -356,22 +356,6 @@ function ResultCard({
         </div>
       </div>
 
-      {result.emailData && (
-        <div className="mt-3 rounded-md border border-emerald-800 bg-emerald-500/10 px-3 py-2 sm:px-4 sm:py-3">
-          <p className="text-xs text-emerald-400 sm:text-sm">
-            Pago confirmado en tu correo: {result.emailData.subject}
-          </p>
-        </div>
-      )}
-
-      {result.status === 'manual_error' && (
-        <div className="mt-3 rounded-md border border-amber-700 bg-amber-500/10 px-3 py-2 sm:px-4 sm:py-3">
-          <p className="text-xs text-amber-400 sm:text-sm">
-            No encontramos este pago en tu correo despues de varios intentos. Revisalo en el Historial.
-          </p>
-        </div>
-      )}
-
       {DEBUG && (
         <div className="mt-3">
           <DebugPanel
