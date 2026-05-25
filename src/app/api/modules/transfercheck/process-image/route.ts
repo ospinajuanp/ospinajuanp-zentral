@@ -62,7 +62,13 @@ export async function POST(req: NextRequest) {
 
     const log = await createTransferCheckLog(workspaceId, auth.userId, extraction.data);
 
-    await consumeQuota(workspaceId);
+    const consumed = await consumeQuota(workspaceId);
+    if (!consumed.consumed) {
+      return NextResponse.json(
+        { error: 'Llegaste al limite de procesamientos de este mes. Contacta a tu administrador.' },
+        { status: 429 }
+      );
+    }
 
     await processPendingMatch(String(log._id), workspaceId);
 
@@ -71,7 +77,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       log: updatedLog,
-      quota: { remaining: quota.remaining - 1, used: quota.remaining - 1 },
+      quota: { remaining: consumed.remaining, used: quota.remaining - 1 },
     });
   } catch (error) {
     console.error('[process-image] Error:', error);
