@@ -130,13 +130,24 @@ export interface SyncItemResult {
   error?: string;
 }
 
-export async function processPendingMatches(workspaceId: string): Promise<{ processed: number; results: SyncItemResult[] }> {
+export async function processPendingMatches(
+  workspaceId: string,
+  maxToProcess?: number
+): Promise<{ processed: number; results: SyncItemResult[] }> {
   await dbConnect();
 
-  const logs = await TransferCheckLog.find({
+  let query = TransferCheckLog.find({
     workspace: workspaceId,
     status: 'pending_email',
-  }).limit(50);
+  }).sort({ createdAt: 1 });
+
+  if (maxToProcess !== undefined) {
+    query = query.limit(maxToProcess);
+  } else {
+    query = query.limit(50);
+  }
+
+  const logs = await query;
 
   const results: SyncItemResult[] = [];
 

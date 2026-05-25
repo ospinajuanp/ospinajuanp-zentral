@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuth } from '@/lib/auth/api';
-import { processPendingMatches, consumeQuota } from '@/lib/modules/transfercheck/matcher';
+import { processPendingMatches, consumeQuota, checkQuota } from '@/lib/modules/transfercheck/matcher';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +14,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Sin workspace asignado' }, { status: 403 });
     }
 
-    const result = await processPendingMatches(workspaceId);
+    const quota = await checkQuota(workspaceId);
+    if (!quota.allowed) {
+      return NextResponse.json(
+        { error: 'Sin cuota disponible este mes. Contacta a tu administrador.' },
+        { status: 429 }
+      );
+    }
+
+    const result = await processPendingMatches(workspaceId, quota.remaining);
 
     if (result.processed > 0) {
       await consumeQuota(workspaceId, result.processed);

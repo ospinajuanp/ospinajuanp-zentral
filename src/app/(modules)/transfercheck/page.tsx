@@ -131,8 +131,8 @@ export default function TransferCheckDashboard() {
       </div>
 
       <div className="mt-8">
-        {activeTab === 'upload' && <UploadTab onProcessed={() => setQuotaVersion((v) => v + 1)} />}
-        {activeTab === 'sync' && <SyncTab onProcessed={() => setQuotaVersion((v) => v + 1)} />}
+        {activeTab === 'upload' && <UploadTab onProcessed={() => setQuotaVersion((v) => v + 1)} quota={quota} />}
+        {activeTab === 'sync' && <SyncTab onProcessed={() => setQuotaVersion((v) => v + 1)} quota={quota} />}
         {activeTab === 'logs' && <LogsTab isAdmin={isAdmin} />}
         {activeTab === 'consolidated' && <ConsolidatedTab />}
         {activeTab === 'config' && <ConfigTab />}
@@ -141,7 +141,7 @@ export default function TransferCheckDashboard() {
   );
 }
 
-function UploadTab({ onProcessed }: { onProcessed: () => void }) {
+function UploadTab({ onProcessed, quota }: { onProcessed: () => void; quota: { used: number; total: number; remaining: number; unlimited: boolean } | null }) {
   const toast = useToastContext();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -150,6 +150,8 @@ function UploadTab({ onProcessed }: { onProcessed: () => void }) {
   const [debugLoading, setDebugLoading] = useState(false);
   const [gmailMissing, setGmailMissing] = useState(false);
   const [inputKey, setInputKey] = useState(0);
+
+  const noQuota = quota && !quota.unlimited && quota.remaining <= 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -247,10 +249,12 @@ function UploadTab({ onProcessed }: { onProcessed: () => void }) {
 
           <button
             type="submit"
-            disabled={!file || uploading}
+            disabled={!file || uploading || !!noQuota}
             className="mt-6 w-full rounded-md bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
-            {uploading ? (
+            {noQuota ? (
+              'Sin cuota disponible'
+            ) : uploading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 Procesando...
@@ -378,10 +382,12 @@ interface SyncItemResult {
   error?: string;
 }
 
-function SyncTab({ onProcessed }: { onProcessed: () => void }) {
+function SyncTab({ onProcessed, quota }: { onProcessed: () => void; quota: { used: number; total: number; remaining: number; unlimited: boolean } | null }) {
   const toast = useToastContext();
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ processed: number; results: SyncItemResult[] } | null>(null);
+
+  const noQuota = quota && !quota.unlimited && quota.remaining <= 0;
 
   async function handleSync() {
     setSyncing(true);
@@ -439,10 +445,12 @@ function SyncTab({ onProcessed }: { onProcessed: () => void }) {
 
         <button
           onClick={handleSync}
-          disabled={syncing}
+          disabled={syncing || !!noQuota}
           className="mt-6 w-full rounded-md bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
         >
-          {syncing ? (
+          {noQuota ? (
+            'Sin cuota disponible'
+          ) : syncing ? (
             <span className="flex items-center justify-center gap-2">
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
               Verificando...
