@@ -80,7 +80,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const { id } = await params;
     await dbConnect();
 
-    const workspaceCount = await Workspace.countDocuments({ plan: id });
+    const workspaceCount = await Workspace.countDocuments({ plans: id });
     if (workspaceCount > 0) {
       return NextResponse.json(
         { error: 'No se puede eliminar el plan porque hay workspaces que lo usan.' },
