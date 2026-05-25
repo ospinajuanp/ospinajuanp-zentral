@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useToastContext } from '@/contexts/toast-context';
 import { Button } from '@/components/ui';
 
@@ -10,6 +11,7 @@ export default function CreateUserPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const toast = useToastContext();
+  const router = useRouter();
   const [role, setRole] = useState('operador');
   const [loading, setLoading] = useState(false);
 
@@ -32,6 +34,7 @@ export default function CreateUserPage() {
       }
 
       toast.success('Usuario creado correctamente');
+      router.push('/users');
     } catch {
       toast.error('Error de conexión');
     } finally {
