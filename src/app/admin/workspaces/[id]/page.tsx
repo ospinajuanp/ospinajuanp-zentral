@@ -103,7 +103,7 @@ export default function WorkspaceDetailPage() {
     fetch('/api/admin/modules')
       .then((res) => res.json())
       .then((data) => {
-        if (data.modules) setAvailableModules(data.modules);
+        if (data.items) setAvailableModules(data.items);
       })
       .catch((err) => { console.error(err); setError('Error de conexión'); });
   }, []);

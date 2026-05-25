@@ -11,12 +11,28 @@ export async function GET(req: NextRequest) {
     }
 
     await dbConnect();
-    const plans = await Plan.find()
-      .populate('includedModules.module', 'key name defaultQuota tier')
-      .sort({ sortOrder: 1, name: 1 })
-      .lean();
 
-    return NextResponse.json({ plans });
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(5, parseInt(searchParams.get('limit') || '10')));
+
+    const [plans, total] = await Promise.all([
+      Plan.find()
+        .populate('includedModules.module', 'key name defaultQuota tier')
+        .sort({ sortOrder: 1, name: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Plan.countDocuments(),
+    ]);
+
+    return NextResponse.json({
+      items: plans,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch {
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
   }

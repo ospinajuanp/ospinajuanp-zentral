@@ -1,18 +1,72 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import dbConnect from '@/lib/db/mongoose';
-import { User } from '@/lib/models/user';
-import { Workspace } from '@/lib/models/workspace';
 import { DeleteUserButton } from './delete-button';
+import { PaginationBar } from '@/components/pagination';
 
-export const dynamic = 'force-dynamic';
+interface UserItem {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  workspace?: string;
+}
 
-export default async function UsersPage() {
-  await dbConnect();
+interface WorkspaceItem {
+  _id: string;
+  name: string;
+}
 
-  const users = await User.find({}).sort({ createdAt: -1 });
-  const workspaces = await Workspace.find({}).lean();
+export default function UsersPage() {
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
-  const workspaceMap = new Map(workspaces.map((w) => [w._id.toString(), w.name]));
+  function loadUsers(p: number, l: number) {
+    setLoading(true);
+    fetch(`/api/admin/users?page=${p}&limit=${l}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.items) {
+          setUsers(data.items);
+          setTotal(data.total);
+          setPage(data.page);
+          setTotalPages(data.totalPages);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadUsers(page, limit);
+    fetch('/api/admin/workspaces?limit=100')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.items) setWorkspaces(data.items);
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function changePage(p: number) {
+    setPage(p);
+    loadUsers(p, limit);
+  }
+
+  function changeLimit(l: number) {
+    setLimit(l);
+    setPage(1);
+    loadUsers(1, l);
+  }
+
+  const workspaceMap = new Map(workspaces.map((w) => [w._id, w.name]));
 
   return (
     <div>
@@ -20,12 +74,12 @@ export default async function UsersPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Usuarios</h1>
           <p className="mt-1 text-sm text-slate-400">
-            {users.length} usuario{users.length !== 1 ? 's' : ''} registrado{users.length !== 1 ? 's' : ''}.
+            {total} usuario{total !== 1 ? 's' : ''} registrado{total !== 1 ? 's' : ''}.
           </p>
         </div>
         <button
           disabled
-          title="La creación de usuarios desde aquí no está disponible temporalmente."
+          title="La creacion de usuarios desde aqui no esta disponible temporalmente."
           className="w-fit cursor-not-allowed rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-slate-500"
         >
           + Crear usuario
@@ -41,11 +95,19 @@ export default async function UsersPage() {
               <th className="px-6 py-3 font-medium text-slate-400">Rol</th>
               <th className="px-6 py-3 font-medium text-slate-400">Workspace</th>
               <th className="px-6 py-3 font-medium text-slate-400">Estado</th>
-              <th className="px-6 py-3 font-medium text-slate-400">Acción</th>
+              <th className="px-6 py-3 font-medium text-slate-400">Accion</th>
             </tr>
           </thead>
           <tbody>
-            {users.length === 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center">
+                  <div className="flex justify-center">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                  </div>
+                </td>
+              </tr>
+            ) : users.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                   No hay usuarios registrados.
@@ -53,7 +115,7 @@ export default async function UsersPage() {
               </tr>
             ) : (
               users.map((u) => (
-                <tr key={u._id.toString()} className="block border-b border-slate-800 p-4 sm:table-row sm:border-none sm:p-0">
+                <tr key={u._id} className="block border-b border-slate-800 p-4 sm:table-row sm:border-none sm:p-0">
                   <td className="block sm:table-cell sm:px-6 sm:py-4">
                     <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Nombre</span>
                     <span className="font-medium text-white">{u.name}</span>
@@ -87,7 +149,7 @@ export default async function UsersPage() {
                     </span>
                   </td>
                   <td className="block sm:table-cell sm:px-6 sm:py-4">
-                    <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Acción</span>
+                    <span className="block text-xs text-slate-500 max-sm:mb-0.5 sm:hidden">Accion</span>
                     <div className="flex items-center gap-3">
                       <Link
                         href={`/admin/users/${u._id.toString()}`}
@@ -104,6 +166,15 @@ export default async function UsersPage() {
           </tbody>
         </table>
       </div>
+
+      <PaginationBar
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        limit={limit}
+        onPageChange={changePage}
+        onLimitChange={changeLimit}
+      />
     </div>
   );
 }

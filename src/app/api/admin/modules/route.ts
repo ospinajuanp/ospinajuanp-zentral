@@ -11,9 +11,27 @@ export async function GET(req: NextRequest) {
     }
 
     await dbConnect();
-    const modules = await Module.find().sort({ key: 1 }).lean();
 
-    return NextResponse.json({ modules });
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(5, parseInt(searchParams.get('limit') || '10')));
+
+    const [modules, total] = await Promise.all([
+      Module.find()
+        .sort({ key: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Module.countDocuments(),
+    ]);
+
+    return NextResponse.json({
+      items: modules,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch {
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
   }

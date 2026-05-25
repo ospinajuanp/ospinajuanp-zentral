@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { PaginationBar } from '@/components/pagination';
 
 interface PlanModule {
   _id: string;
@@ -63,6 +64,10 @@ export default function WorkspacePlanPage() {
   const [plans, setPlans] = useState<PlanData[]>([]);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   const [purchases, setPurchases] = useState<PurchaseData[]>([]);
+  const [purchPage, setPurchPage] = useState(1);
+  const [purchLimit, setPurchLimit] = useState(10);
+  const [purchTotal, setPurchTotal] = useState(0);
+  const [purchTotalPages, setPurchTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -85,7 +90,7 @@ export default function WorkspacePlanPage() {
         const [plansRes, wsRes, purchasesRes] = await Promise.all([
           fetch('/api/plans'),
           fetch(`/api/workspaces/${sessionData.workspaceId}`),
-          fetch(`/api/workspaces/${sessionData.workspaceId}/purchases`),
+          fetch(`/api/workspaces/${sessionData.workspaceId}/purchases?page=1&limit=10`),
         ]);
 
         const plansData = await plansRes.json();
@@ -94,7 +99,12 @@ export default function WorkspacePlanPage() {
 
         if (plansData.plans) setPlans(plansData.plans);
         if (wsData.workspace?.plans) setCurrentPlanId(wsData.workspace.plans[0]?._id || wsData.workspace.plans[0] || null);
-        if (purchasesData.purchases) setPurchases(purchasesData.purchases);
+        if (purchasesData.items) {
+          setPurchases(purchasesData.items);
+          setPurchTotal(purchasesData.total);
+          setPurchPage(purchasesData.page);
+          setPurchTotalPages(purchasesData.totalPages);
+        }
       } catch {
         setError('No se pudo cargar la informacion de planes.');
       } finally {
@@ -102,6 +112,18 @@ export default function WorkspacePlanPage() {
       }
     })();
   }, []);
+
+  async function loadPurchases(p: number, l: number) {
+    if (!session?.workspaceId) return;
+    const res = await fetch(`/api/workspaces/${session.workspaceId}/purchases?page=${p}&limit=${l}`);
+    const data = await res.json();
+    if (data.items) {
+      setPurchases(data.items);
+      setPurchTotal(data.total);
+      setPurchPage(data.page);
+      setPurchTotalPages(data.totalPages);
+    }
+  }
 
   async function handlePurchase(planId: string) {
     if (!session?.workspaceId) return;
@@ -126,10 +148,7 @@ export default function WorkspacePlanPage() {
       setCurrentPlanId(planId);
       setSuccess(`Plan "${data.purchase.planName}" activado correctamente.`);
 
-      // Refresh purchases
-      const purchasesRes = await fetch(`/api/workspaces/${session.workspaceId}/purchases`);
-      const purchasesData = await purchasesRes.json();
-      if (purchasesData.purchases) setPurchases(purchasesData.purchases);
+      await loadPurchases(purchPage, purchLimit);
     } catch {
       setError('No se pudo procesar la compra. Revisa tu conexion.');
     } finally {
@@ -171,9 +190,7 @@ export default function WorkspacePlanPage() {
         return;
       }
 
-      const purchasesRes = await fetch(`/api/workspaces/${session.workspaceId}/purchases`);
-      const purchasesData = await purchasesRes.json();
-      if (purchasesData.purchases) setPurchases(purchasesData.purchases);
+      await loadPurchases(purchPage, purchLimit);
     } catch {
       setError('No se pudo actualizar el estado.');
     } finally {
@@ -202,9 +219,7 @@ export default function WorkspacePlanPage() {
           return;
         }
 
-        const purchasesRes = await fetch(`/api/workspaces/${session.workspaceId}/purchases`);
-        const purchasesData = await purchasesRes.json();
-        if (purchasesData.purchases) setPurchases(purchasesData.purchases);
+        await loadPurchases(purchPage, purchLimit);
       } catch {
         setError('No se pudo reactivar la compra.');
       } finally {
@@ -680,6 +695,22 @@ export default function WorkspacePlanPage() {
               </tbody>
             </table>
           </div>
+
+          <PaginationBar
+            page={purchPage}
+            totalPages={purchTotalPages}
+            total={purchTotal}
+            limit={purchLimit}
+            onPageChange={(p) => {
+              setPurchPage(p);
+              loadPurchases(p, purchLimit);
+            }}
+            onLimitChange={(l) => {
+              setPurchLimit(l);
+              setPurchPage(1);
+              loadPurchases(1, l);
+            }}
+          />
         </div>
       )}
     </div>

@@ -61,15 +61,17 @@ export default function CreatePlanPage() {
     fetch('/api/admin/modules')
       .then((res) => res.json())
       .then((data) => {
-        if (data.modules) setAvailableModules(data.modules);
+        if (data.items) setAvailableModules(data.items);
       })
-      .catch(() => {});
-    fetch('/api/admin/plans')
+      .catch((err) => { console.error(err); setError('Error de conexion'); });
+
+    // Load existing plans to calculate sortOrder
+    fetch('/api/admin/plans?limit=100')
       .then((res) => res.json())
       .then((data) => {
-        if (data.plans) {
-          setAvailablePlans(data.plans);
-          setSortOrder(data.plans.length + 1);
+        if (data.items) {
+          setAvailablePlans(data.items);
+          setSortOrder(data.items.length + 1);
         }
       })
       .catch(() => {});

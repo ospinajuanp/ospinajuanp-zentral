@@ -20,31 +20,46 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    const purchases = (await WorkspacePurchase.find({
-      workspace: auth.workspaceId,
-    })
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .lean()).map((p) => {
-        const purchasedAt = new Date(p.purchasedAt);
-        const expiresAt = new Date(purchasedAt);
-        expiresAt.setMonth(expiresAt.getMonth() + 1);
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(5, parseInt(searchParams.get('limit') || '10')));
 
-        return {
-          _id: p._id.toString(),
-          plan: p.plan?.toString(),
-          planName: p.planName,
-          amount: p.amount,
-          currency: p.currency,
-          status: p.status,
-          modules: p.modules,
-          purchasedAt: purchasedAt.toISOString(),
-          expiresAt: expiresAt.toISOString(),
-          createdAt: p.createdAt,
-        };
-      });
+    const filter = { workspace: auth.workspaceId };
+    const [raw, total] = await Promise.all([
+      WorkspacePurchase.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      WorkspacePurchase.countDocuments(filter),
+    ]);
 
-    return NextResponse.json({ purchases });
+    const items = raw.map((p) => {
+      const purchasedAt = new Date(p.purchasedAt);
+      const expiresAt = new Date(purchasedAt);
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+      return {
+        _id: p._id.toString(),
+        plan: p.plan?.toString(),
+        planName: p.planName,
+        amount: p.amount,
+        currency: p.currency,
+        status: p.status,
+        modules: p.modules,
+        purchasedAt: purchasedAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        createdAt: p.createdAt,
+      };
+    });
+
+    return NextResponse.json({
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     console.error('[purchases] Error:', error);
     return NextResponse.json(

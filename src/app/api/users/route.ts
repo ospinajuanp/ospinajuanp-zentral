@@ -13,11 +13,23 @@ export async function GET(request: NextRequest) {
 
   await dbConnect();
 
-  const users = await User.find({ workspace: auth.workspaceId })
-    .sort({ createdAt: -1 })
-    .lean();
+  const { searchParams } = new URL(request.url);
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+  const limit = Math.min(100, Math.max(5, parseInt(searchParams.get('limit') || '10')));
 
-  return NextResponse.json({ users, count: users.length });
+  const filter = { workspace: auth.workspaceId };
+  const [users, total] = await Promise.all([
+    User.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    User.countDocuments(filter),
+  ]);
+
+  return NextResponse.json({
+    items: users,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  });
 }
 
 export async function POST(request: NextRequest) {

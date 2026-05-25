@@ -14,19 +14,30 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const isActive = searchParams.get('isActive');
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+  const limit = Math.min(100, Math.max(5, parseInt(searchParams.get('limit') || '10')));
 
   const filter: Record<string, unknown> = {};
   if (isActive === 'true') filter.isActive = true;
   if (isActive === 'false') filter.isActive = false;
 
-  const workspaces = await Workspace.find(filter)
-    .sort({ createdAt: -1 })
-    .populate('owner', 'name email')
-    .lean();
+  const [workspaces, total] = await Promise.all([
+    Workspace.find(filter)
+      .sort({ createdAt: -1 })
+      .populate('owner', 'name email')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    Workspace.countDocuments(filter),
+  ]);
 
-  const count = await Workspace.countDocuments(filter);
-
-  return NextResponse.json({ workspaces, count });
+  return NextResponse.json({
+    items: workspaces,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  });
 }
 
 export async function POST(request: NextRequest) {

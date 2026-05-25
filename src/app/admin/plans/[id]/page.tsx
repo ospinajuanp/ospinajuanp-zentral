@@ -70,13 +70,14 @@ export default function EditPlanPage() {
     fetch('/api/admin/modules')
       .then((res) => res.json())
       .then((data) => {
-        if (data.modules) setAvailableModules(data.modules);
+        if (data.items) setAvailableModules(data.items);
       })
-      .catch((err) => { console.error(err); setError('Error de conexión'); });
-    fetch('/api/admin/plans')
+      .catch((err) => { console.error(err); setError('Error de conexion'); });
+
+    void fetch('/api/admin/plans?limit=100')
       .then((res) => res.json())
       .then((data) => {
-        if (data.plans) setAvailablePlans(data.plans.filter((p: { _id: string }) => p._id !== planId));
+        if (data.items) setAvailablePlans(data.items.filter((p: { _id: string }) => p._id !== planId));
       })
       .catch((err) => { console.error(err); setError('Error de conexión'); });
   }, [planId]);
