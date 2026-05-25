@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 const DEBUG = false;
 
-type Tab = 'upload' | 'sync' | 'logs' | 'config';
+type Tab = 'upload' | 'sync' | 'logs' | 'consolidated' | 'config';
 
 interface TransferLog {
   _id: string;
@@ -66,7 +66,7 @@ export default function TransferCheckDashboard() {
 
   const isAdmin = role === 'admin' || role === 'superadmin';
   const tabs: Tab[] = isAdmin
-    ? ['upload', 'sync', 'logs', 'config']
+    ? ['upload', 'sync', 'logs', 'consolidated', 'config']
     : ['upload', 'sync', 'logs'];
 
   if (role === null) {
@@ -124,6 +124,7 @@ export default function TransferCheckDashboard() {
             {tab === 'upload' && 'Subir comprobante'}
             {tab === 'sync' && 'Verificar pagos'}
             {tab === 'logs' && 'Historial'}
+            {tab === 'consolidated' && 'Consolidado'}
             {tab === 'config' && 'Configuración'}
           </button>
         ))}
@@ -139,6 +140,7 @@ export default function TransferCheckDashboard() {
         {activeTab === 'upload' && <UploadTab onError={setError} onProcessed={() => setQuotaVersion((v) => v + 1)} />}
         {activeTab === 'sync' && <SyncTab onError={setError} onProcessed={() => setQuotaVersion((v) => v + 1)} />}
         {activeTab === 'logs' && <LogsTab onError={setError} isAdmin={isAdmin} />}
+        {activeTab === 'consolidated' && <ConsolidatedTab onError={setError} />}
         {activeTab === 'config' && <ConfigTab onError={setError} />}
       </div>
     </div>
@@ -832,6 +834,251 @@ function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ConsolidatedStats {
+  totalConciliados: number;
+  conciliadosAutomaticos: number;
+  conciliadosManuales: number;
+  totalErrorManual: number;
+  montoConciliados: number;
+  montoAutomaticos: number;
+  montoManuales: number;
+  montoErrorManual: number;
+}
+
+interface ConsolidatedLog {
+  _id: string;
+  photoData: { monto: number; referencia: string; fecha: string };
+  status: 'pending_email' | 'matched' | 'manual_error';
+  retryCount: number;
+  createdAt: string;
+  userId: { name: string; email: string };
+  resolvedBy: { name: string; email: string } | null;
+}
+
+function ConsolidatedTab({ onError }: { onError: (msg: string) => void }) {
+  const today = new Date().toISOString().split('T')[0];
+  const [dateFrom, setDateFrom] = useState(today);
+  const [dateTo, setDateTo] = useState(today);
+  const [stats, setStats] = useState<ConsolidatedStats | null>(null);
+  const [logs, setLogs] = useState<ConsolidatedLog[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  async function fetchData() {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('fechaDesde', dateFrom);
+      params.set('fechaHasta', dateTo);
+
+      const res = await fetch(`/api/modules/transfercheck/consolidado?${params}`);
+      const data = await res.json();
+
+      if (res.ok) {
+        setStats(data.stats);
+        setLogs(data.logs);
+      } else {
+        onError(data.error || 'Error al cargar');
+      }
+    } catch {
+      onError('No se pudo cargar el consolidado.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleDownload() {
+    const existing = (window as unknown as Record<string, unknown>).__xlsx;
+    if (!existing) {
+      import('xlsx').then((module) => {
+        (window as unknown as Record<string, unknown>).__xlsx = module;
+        generateExcel(module);
+      });
+      return;
+    }
+    generateExcel(existing);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function generateExcel(xlsx: any) {
+    const summary = [
+      ['Resumen', 'Cantidad', 'Monto total'],
+      ['Conciliados', stats?.totalConciliados || 0, stats?.montoConciliados || 0],
+      ['Automático', stats?.conciliadosAutomaticos || 0, stats?.montoAutomaticos || 0],
+      ['Manual', stats?.conciliadosManuales || 0, stats?.montoManuales || 0],
+      ['Error manual', stats?.totalErrorManual || 0, stats?.montoErrorManual || 0],
+      [],
+      ['Fecha', 'Monto', 'Referencia', 'Estado', 'Subido por', 'Conciliado por', 'Intentos'],
+    ];
+
+    const rows = logs.map((log) => [
+      new Date(log.createdAt).toLocaleDateString('es-CO'),
+      log.photoData.monto,
+      log.photoData.referencia,
+      log.status === 'matched' ? 'Conciliado' : log.status === 'manual_error' ? 'Error manual' : 'Pendiente',
+      log.userId?.name || '-',
+      log.resolvedBy?.name || (log.status === 'matched' ? 'Automático' : '-'),
+      log.retryCount,
+    ]);
+
+    const sheet = xlsx.utils.aoa_to_sheet([...summary, ...rows]);
+    const wb = { Sheets: { Consolidado: sheet }, SheetNames: ['Consolidado'] };
+    const buf = xlsx.write(wb, { bookType: 'xlsx', type: 'base64' });
+
+    const url = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${buf}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `consolidado-${dateFrom}_${dateTo}.xlsx`;
+    a.click();
+  }
+
+  const statusLabels: Record<string, string> = {
+    matched: 'Conciliado',
+    manual_error: 'Error manual',
+    pending_email: 'Pendiente',
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Date filter */}
+      <div className="flex flex-wrap items-end gap-2 mb-6">
+        <div>
+          <label className="block text-xs text-slate-500 mb-1">Desde</label>
+          <input
+            type="date"
+            value={dateFrom}
+            max={dateTo}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-hidden"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-slate-500 mb-1">Hasta</label>
+          <input
+            type="date"
+            value={dateTo}
+            min={dateFrom}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-hidden"
+          />
+        </div>
+        <button
+          onClick={fetchData}
+          className="rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+        >
+          Filtrar
+        </button>
+      </div>
+
+      {stats && (
+        <>
+          {/* Stats cards */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            <div className="rounded-md border border-emerald-800 bg-emerald-950/20 p-4">
+              <p className="text-xs text-emerald-500">Conciliados</p>
+              <p className="mt-1 text-2xl font-bold text-white">{stats.totalConciliados}</p>
+              <p className="mt-1 text-xs text-emerald-400">${stats.montoConciliados.toLocaleString('es-CO')}</p>
+            </div>
+            <div className="rounded-md border border-indigo-800 bg-indigo-950/20 p-4">
+              <p className="text-xs text-indigo-400">Automático</p>
+              <p className="mt-1 text-2xl font-bold text-white">{stats.conciliadosAutomaticos}</p>
+              <p className="mt-1 text-xs text-indigo-300">${stats.montoAutomaticos.toLocaleString('es-CO')}</p>
+            </div>
+            <div className="rounded-md border border-violet-800 bg-violet-950/20 p-4">
+              <p className="text-xs text-violet-400">Manual</p>
+              <p className="mt-1 text-2xl font-bold text-white">{stats.conciliadosManuales}</p>
+              <p className="mt-1 text-xs text-violet-300">${stats.montoManuales.toLocaleString('es-CO')}</p>
+            </div>
+            <div className="rounded-md border border-rose-800 bg-rose-950/20 p-4">
+              <p className="text-xs text-rose-400">Error manual</p>
+              <p className="mt-1 text-2xl font-bold text-white">{stats.totalErrorManual}</p>
+              <p className="mt-1 text-xs text-rose-300">${stats.montoErrorManual.toLocaleString('es-CO')}</p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleDownload}
+            className="mb-4 rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
+          >
+            <span className="flex items-center gap-2">
+              📥 Descargar Excel
+            </span>
+          </button>
+        </>
+      )}
+
+      {/* Detailed table */}
+      {logs.length === 0 ? (
+        <div className="rounded-md border border-slate-800 bg-slate-900 py-12 text-center">
+          <p className="text-sm text-slate-400">No hay comprobantes en este rango de fechas.</p>
+        </div>
+      ) : (
+        <div className="hidden sm:block">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-800 text-left text-xs uppercase text-slate-500">
+                <th className="pb-3 pr-4">Fecha</th>
+                <th className="pb-3 pr-4">Monto</th>
+                <th className="pb-3 pr-4">Referencia</th>
+                <th className="pb-3 pr-4">Estado</th>
+                <th className="pb-3 pr-4">Subido por</th>
+                <th className="pb-3 pr-4">Conciliado por</th>
+                <th className="pb-3 pr-4">Intentos</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {logs.map((log) => (
+                <tr key={log._id} className="hover:bg-slate-900/50">
+                  <td className="py-3 pr-4 text-slate-300 whitespace-nowrap">
+                    {new Date(log.createdAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                  </td>
+                  <td className="py-3 pr-4 font-medium text-white whitespace-nowrap">
+                    ${log.photoData.monto.toLocaleString('es-CO')}
+                  </td>
+                  <td className="py-3 pr-4 text-slate-300 font-mono text-xs">
+                    {log.photoData.referencia}
+                  </td>
+                  <td className="py-3 pr-4 whitespace-nowrap">
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      log.status === 'matched'
+                        ? log.resolvedBy ? 'bg-violet-500/10 text-violet-400' : 'bg-emerald-500/10 text-emerald-500'
+                        : log.status === 'manual_error'
+                          ? 'bg-rose-500/10 text-rose-500'
+                          : 'bg-amber-500/10 text-amber-500'
+                    }`}>
+                      {statusLabels[log.status]}
+                    </span>
+                  </td>
+                  <td className="py-3 pr-4 text-slate-400 text-xs">
+                    {log.userId?.name || '-'}
+                  </td>
+                  <td className="py-3 pr-4 text-slate-400 text-xs">
+                    {log.resolvedBy?.name || (log.status === 'matched' ? 'Automático' : '-')}
+                  </td>
+                  <td className="py-3 pr-4 text-slate-500">
+                    {log.retryCount}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
