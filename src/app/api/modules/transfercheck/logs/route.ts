@@ -67,7 +67,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    if (auth.role !== 'admin' && auth.role !== 'superadmin' && auth.role !== 'operador') {
+    if (auth.role !== 'admin' && auth.role !== 'superadmin' && auth.role !== 'operador' && auth.role !== 'hijo') {
       return NextResponse.json({ error: 'Solo administradores y operadores pueden conciliar' }, { status: 403 });
     }
 
