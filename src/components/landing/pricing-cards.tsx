@@ -156,8 +156,9 @@ function PlanCard({ plan, draggedRef }: { plan: PlanCardData; draggedRef?: React
   );
   const features: string[] = [
     `Módulos: ${moduleNames}`,
-    `${p.maxUsers} usuario${p.maxUsers !== 1 ? 's' : ''}`,
-    p.maxUsers === 0 ? 'Usuarios ilimitados' : '',
+    p.maxUsers > 0
+      ? `${p.maxUsers} usuario${p.maxUsers !== 1 ? 's' : ''}`
+      : 'Usuarios ilimitados',
     ...(totalQuota > 0
       ? [`Hasta ${totalQuota} consultas / mes en total`]
       : ['Consultas ilimitadas']),
@@ -218,8 +219,8 @@ function PlanCard({ plan, draggedRef }: { plan: PlanCardData; draggedRef?: React
 
       {/* flexible features area */}
       <ul className="mt-8 flex-1 space-y-3">
-        {visibleFeatures.map((feature) => (
-          <li key={feature} className="flex items-start gap-3 text-sm">
+           {visibleFeatures.map((feature, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm">
             <svg
               className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
                 p.highlighted ? 'text-emerald-400' : 'text-emerald-500'
