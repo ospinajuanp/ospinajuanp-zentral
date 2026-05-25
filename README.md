@@ -29,73 +29,69 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 
 | Rol | Acceso |
 |---|---|---|
-| **superadmin** | Global — dashboard con stats, CRUD de workspaces, usuarios, módulos, planes, suscripciones |
-| **admin** | Dueño del workspace — dashboard, usuarios, planes, configuración, compra de planes |
-| **operador** | Usuario operativo — acceso a módulos asignados, puede conciliar comprobantes |
-| **hijo** | (Legado — retrocompatible, mismo comportamiento que operador) |
+| **superadmin** | Global — dashboard con stats, CRUD de workspaces, usuarios, modulos, planes, suscripciones |
+| **admin** | Dueno del workspace — dashboard, usuarios, planes, configuracion, compra de planes |
+| **operador** | Usuario operativo — acceso a modulos asignados, puede conciliar comprobantes |
+| **hijo** | (Legado — retrocompatible, mismo comportamiento que operador, no visible en UI) |
 
 ---
 
 ## Estado Actual
 
 ### Landing Page
-- Header, Hero, Features, **Módulos** (desde DB, ordenados por status → tier), **Precios** (desde DB, con carrusel Embla 3+ planes, soporte drag + botones), About, CTA, Footer
-- Carrusel desktop para 3+ planes con arrastre (drag) y botones de navegación centrados debajo
-- Mobile: primeras 3 cards + botón "Ver X planes más" expandible
+- Header, Hero, Features, Modulos (desde BD), Precios (desde BD, carrusel Embla v8 sin ResizeObserver), About, CTA, Footer
+- SEO: metadata (OG, Twitter, keywords), viewport, sitemap.xml, robots.ts, skip-link
+- A11y: aria-labelledby en secciones, emoji aria-hidden, footer flex-wrap, links absolutos
 
 ### Auth
-- JWT custom (jose) con httpOnly cookie, SameSite=Strict, 7d expiración
-- Login, registro, logout, recuperación de contraseña, verificación de email
+- JWT custom (jose) con httpOnly cookie, SameSite=Strict, 7d expiracion
+- Login, registro, logout, recuperacion de contrasena, verificacion de email
 - Rate limiting: 25 intentos / 5 min para login y register (Upstash Redis, fixed window)
-- Sesión por inactividad (15 min, auto-logout)
+- Sesion por inactividad (15 min, auto-logout)
 - Registro con plan: `/register?plan=PLAN_ID` asocia el workspace al plan seleccionado
 
-### Planes y Módulos (Catálogo Dinámico)
-- **Module CRUD**: superadmin puede crear/editar/eliminar módulos (key, name, tier, status, cuota)
-- **Plan CRUD**: planes de precios configurables desde BD con soporte para:
-  - Precio opcional (vacío = "Sin precio" en la landing)
-  - `isEnterprise`: planes a medida con borde punteado ámbar y CTA de WhatsApp
-  - `whatsappNumber`: genera link `https://wa.me/NUMBER` automáticamente
-  - `support`: ninguno, email, prioritario, canales, dedicado
-  - `onboarding`: ninguno, autoguiado, videos, documentación, dedicado
-  - `ctaLink`: autogenerado `/register?plan=ID` para planes normales
-  - "Basado en": hereda módulos + usuarios + características + soporte + onboarding de otro plan (solo lectura en checkboxes)
-  - Módulos heredados visibles como solo lectura; solo los extras son seleccionables
-  - Botones rápidos: Gratis / Premium / Todos / Ninguno para filtrar módulos
-- **Pricing Component**: server component que carga planes desde BD con populate de módulos
-  - Free: muestra cuota máxima entre módulos gratis
-  - Premium: muestra suma total de cuotas de módulos premium
-  - Enterprise: borde punteado, sin precio, CTA de WhatsApp
-- **Registration**: crea workspace + subscriptions según el plan seleccionado
-  - Planes gratis: `isPayReady = true`, subs `active`
-  - Planes de pago/enterprise: `isPayReady = false`, subs `inactive`
+### Planes y Modulos (Catalogo Dinamico)
+- **Module CRUD**: superadmin puede crear/editar/eliminar modulos
+- **Plan CRUD**: planes configurables con herencia "Basado en", maxUsers (0 = ilimitado)
+  - Enterprise: borde punteado, WhatsApp CTA
+  - ctaLink autogenerado: `/register?plan=ID` o `https://wa.me/NUMBER`
+- **Sistema multi-plan**: workspace.plans[] soporta multiples compras simultaneas
+  - Free siempre incluido (max 1), planes pagos acumulativos
+  - `recalculateQuotas()` agrega cuotas de todas las compras activas
+- **Pasarela de pago simulada**: modal con formulario TC pre-llenado, procesamiento simulado
+  - Estados: idle → gateway → processing → success/rejected
+  - Solo planes de pago visibles (Free y Enterprise ocultos)
+- **Historial de compras**: Plan | Estado | Periodo | Monto | Accion (DD/MM/YYYY)
+  - Desactivar: quita cuotas del workspace
+  - Reactivar (dentro del periodo): nueva compra sin pago, trazabilidad completa
+  - Renovar (expirado): abre pasarela de pago
+- **WorkspacePurchase**: `paymentMethod: 'simulated' | 'reactivated'`
 
 ### Webhook de Pago / isPayReady
-- `Workspace.isPayReady`: flag booleano (default: false al registrarse con plan de pago)
-- Cuando `isPayReady = false`: módulos visibles en dashboard pero inactivos, con banner "Pago pendiente"
-- Superadmin togglea `isPayReady` desde el panel de workspace → activa todas las suscripciones
-- `Workspace.plan`: referencia al Plan asociado
+- `Workspace.isPayReady`: flag booleano
+- Superadmin togglea desde el panel de workspace → activa/desactiva suscripciones
 
-### Paneles de Administración
-- **Dashboard Superadmin**: stats agrupados en 4 secciones (Workspaces, Módulos, Planes, Usuarios + Suscripciones) con cards clicables
-  - MRR calculado de workspaces activos con pago confirmado
-  - Cards simplificadas con solo métricas accionables
+### Paneles de Administracion
+- **Dashboard Superadmin**: stats de Facturacion, Workspaces, Modulos, Usuarios + Suscripciones
+- **Paginacion en todas las listas**: PaginationBar reusable con selector 5/10/20/50/100
+  - Admin users, admin workspaces, admin modules, admin plans, workspace users, purchase history
 - **Admin**: dashboard, usuarios CRUD, workspace settings
-- **Superadmin**: workspaces list/detail/create/delete, users list/detail, módulos CRUD, planes CRUD, gestión de suscripciones por workspace
+- **Superadmin**: workspaces, users, modulos, planes CRUD, gestion de suscripciones
 
 ### UI/UX
-- Responsive: sidebar desktop + bottom nav mobile + bottom sheet "Más"
+- Responsive: sidebar desktop sticky + bottom nav mobile + bottom sheet "Mas"
+- Sidebar bottom sheet: aria-expanded, aria-labels, Escape key
 - Tablas responsive (stack a cards en mobile)
-- Sesión timeout con `SessionTimeout`
+- Sesion timeout con `SessionTimeout`
 - Error pages 404/500, loading spinners
-- Componentes compartidos: AuthLayout, InputField, Button, StatusCard, ErrorMessage, ConfirmDialog
+- Componentes compartidos: AuthLayout, InputField, Button, StatusCard, ErrorMessage, ConfirmDialog, PaginationBar
 - SidebarShell con NavLink activo por pathname
-- Quota helper: `checkQuota()` y `getQuotaInfo()` para control de consumo por módulo
+- Quota helper: `checkQuota()` y `getQuotaInfo()` para control de consumo por modulo
 
 ### Seguridad y SEO
 - Seguridad: headers CSP/HSTS en `next.config.ts`
-- Metadata OG/locale es_CO, sitemap.xml, robots.txt
-- Proxy Edge protege rutas, inyecta headers de sesión
+- Metadata OG/locale es_CO, sitemap.ts, robots.ts
+- Proxy Edge protege rutas, inyecta headers de sesion
 - Workspace isolation en todas las queries
 
 ---
@@ -124,11 +120,14 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `/admin/plans/[id]` | superadmin | Editar plan |
 | `/admin/users` | superadmin | Lista global de usuarios |
 | `/admin/users/[id]` | superadmin | Detalle de usuario |
-| `/users` | admin | Lista de usuarios del workspace |
+| `/users` | admin | Lista de usuarios del workspace (paginado) |
 | `/users/create` | admin | Crear usuario |
 | `/users/[id]` | admin | Editar usuario |
-| `/workspace` | admin | Configuración del workspace |
-| `/workspace/plan` | admin | Compra y gestión de planes |
+| `/workspace` | admin | Configuracion del workspace |
+| `/workspace/plan` | admin | Compra y gestion de planes + historial |
+| `/antecedentes` | Autenticado | Modulo AntecedentesCheck (proximamente) |
+| `/cartera` | Autenticado | Modulo Cartera (proximamente) |
+| `/facturacion` | Autenticado | Modulo Facturacion Electronica (proximamente) |
 
 ### API Routes
 
@@ -156,7 +155,9 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `/api/users/[id]` | GET/PUT/DELETE | admin | CRUD usuario del workspace |
 | `/api/workspaces/[id]` | GET/PUT | admin | Ver/renombrar workspace |
 | `/api/workspaces/[id]/purchase` | POST | admin | Comprar plan (simulado) |
-| `/api/workspaces/[id]/purchases` | GET | admin | Historial de compras |
+| `/api/workspaces/[id]/purchases` | GET | admin | Historial de compras (paginado) |
+| `/api/workspaces/[id]/purchases/[purchaseId]` | PATCH | admin | Activar/Desactivar compra |
+| `/api/workspaces/[id]/purchases/[purchaseId]/reactivate` | POST | admin | Reactivar compra (sin pago, nuevo registro) |
 | `/api/plans` | GET | Autenticado | Listar planes disponibles |
 | `/api/modules/transfercheck/process-image` | POST | Autenticado | Subir comprobante → OCR/Gemini → log + match Gmail |
 | `/api/modules/transfercheck/logs` | GET/PUT | Autenticado | Listar logs con filtros / Conciliación manual |
@@ -297,12 +298,13 @@ pnpm run seed    # Poblar base de datos
 
 ---
 
-## Documentación
+## Documentacion
 
-- [Catálogo de Módulos](docs/PLAN.md)
+- [Catalogo de Modulos](docs/PLAN.md)
 - [Planes de Precios](docs/PLANES.md)
-- [Panel de Administración](docs/ADMIN.md)
+- [Panel de Administracion](docs/ADMIN.md)
 - [Design System](docs/DESIGN_SYSTEM.md)
+- [Mejoras Planificadas](docs/MEJORAS.md)
 
 ---
 

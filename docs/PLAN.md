@@ -3,9 +3,11 @@
 | Módulo | Key | Tier | Estado | Cuota x defecto |
 |---|---|---|---|---|
 | TransferCheck | `transfercheck` | Free | Activo | 100 consultas/mes |
-| AntecedentesCheck | `antecedentes` | Premium | Próximamente | 500 consultas/mes |
-| Facturación Electrónica | `facturacion` | Premium | Próximamente | 500 consultas/mes |
-| Cartera | `cartera` | Premium | Próximamente | 500 consultas/mes |
+| AntecedentesCheck | `antecedentes` | Premium | Proximamente | 500 consultas/mes |
+| Facturacion Electronica | `facturacion` | Premium | Proximamente | 500 consultas/mes |
+| Cartera | `cartera` | Premium | Proximamente | 500 consultas/mes |
+
+> **Nota:** AntecedentesCheck, Facturacion Electronica y Cartera tienen paginas placeholder con quota bar. La implementacion funcional de sus APIs y UIs esta pendiente (ver `docs/MEJORAS.md`).
 
 ### TransferCheck
 - **Descripción:** Verificación y validación de transferencias bancarias mediante OCR (OCR.space) e IA (Gemini), con cruce automático contra correos de Gmail.

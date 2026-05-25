@@ -1,139 +1,125 @@
-# Panel de Administración (Superadmin)
+# Panel de Administracion (Superadmin)
 
-El panel de superadmin está en `/admin` y solo es accesible con rol `superadmin`.
+El panel de superadmin esta en `/admin` y solo es accesible con rol `superadmin`.
 
 ---
 
 ## Dashboard
 
-El dashboard muestra métricas agrupadas en 4 secciones con cards clicables:
+El dashboard muestra metricas agrupadas en secciones con cards clicables:
+
+### Facturacion
+| Card | Descripcion |
+|---|---|
+| MRR (USD) | Suma de monthlyPrice de workspaces activos con pago confirmado |
+| Pago confirmado | Workspaces con `isPayReady: true` |
+| Pago pendiente | Workspaces con `isPayReady: false` |
+| Planes de pago activos | Workspaces con al menos un plan pago contratado |
 
 ### Workspaces
-| Card | Descripción |
+| Card | Descripcion |
 |---|---|
 | Total | Todos los workspaces registrados |
 | Activos | Workspaces con `isActive: true` |
 | Inactivos | Workspaces con `isActive: false` |
-| Pago pendiente | Workspaces con `isPayReady: false` |
 
-### Módulos
-| Card | Descripción |
+### Modulos
+| Card | Descripcion |
 |---|---|
-| Total | Todos los módulos del catálogo |
-| Activos | Módulos con `status: active` |
-| Gratis | Módulos con `tier: free` |
-| Premium | Módulos con `tier: premium` |
-
-### Planes
-| Card | Descripción |
-|---|---|
-| Total | Todos los planes |
-| Activos | Planes visibles en landing |
-| Enterprise | Planes con `isEnterprise: true` |
-| MRR | Suma de `monthlyPrice` de workspaces activos con pago confirmado |
+| Total | Todos los modulos del catalogo |
+| Activos | Modulos con `status: active` |
+| Gratis | Modulos con `tier: free` |
+| Premium | Modulos con `tier: premium` |
 
 ### Usuarios + Suscripciones
-| Card | Descripción |
+| Card | Descripcion |
 |---|---|
 | Total usuarios | Todos los usuarios del sistema |
 | Activos | Usuarios con email verificado (`isActive: true`) |
-| Pend. verificación | Usuarios sin verificar email |
+| Pend. verificacion | Usuarios sin verificar email |
 | Admins | Usuarios con rol `admin` |
 | Suscripciones activas | Subs con `status: active` |
 | Premium | Subs con `tier: premium` |
 | Gratis | Subs con `tier: free` |
-| Workspaces activos | Total de workspaces activos |
 
 ---
 
-## Gestión de Workspaces
+## Gestion de Workspaces
 
 ### Lista (`/admin/workspaces`)
-- Muestra todos los workspaces con nombre, slug, estado, plan asociado y fecha de creación
+- Muestra todos los workspaces con nombre, slug, admin, estado
+- **Paginacion**: selector de 5/10/20/50/100 registros con navegacion de paginas
 
 ### Detalle (`/admin/workspaces/[id]`)
-- **Información**: editar nombre, slug, activo/inactivo
+- **Informacion**: editar nombre, slug, activo/inactivo
 - **Pago confirmado**: checkbox `isPayReady`. Al activarlo, todas las suscripciones `inactive` pasan a `active`. Al desactivarlo, las `active` pasan a `inactive`
-- **Planes contratados**: lista de planes vinculados al workspace con nombre, precio, badge Enterprise
+- **Planes contratados**: lista de planes vinculados al workspace (array `plans[]`)
 - **Usuarios**: lista de usuarios del workspace
-- **Módulos**: gestión de suscripciones
-  - Agregar módulo: seleccionar de los disponibles (no suscritos), tier y cuota
-  - Editar módulo: tier, status, cuota mensual
-  - Quitar módulo: confirmación con modal
+- **Modulos**: gestion de suscripciones
+  - Agregar modulo: seleccionar de los disponibles (no suscritos), tier y cuota
+  - Editar modulo: tier, status, cuota mensual
+  - Quitar modulo: confirmacion con modal
 - **Zona de peligro**: eliminar workspace (cascade: desvincula usuarios, elimina suscripciones)
 
-### Crear (`/admin/workspaces/create`)
-- Formulario con nombre, slug (auto-generado), owner opcional
-
 ---
 
-## Gestión de Módulos
+## Gestion de Modulos
 
 ### Lista (`/admin/modules`)
-- Muestra todos los módulos con key, nombre, tier, estado, cuota default
+- Muestra todos los modulos con key, nombre, tier, estado, cuota default
+- **Paginacion**: selector de 5/10/20/50/100 registros
 
 ### Crear (`/admin/modules/create`)
-- Key (slug único), nombre, descripción, tier (free/premium), estado (active/inactive/coming_soon), cuota default
-
-### Editar (`/admin/modules/[id]`)
-- Mismos campos que crear
-- Zona de peligro: eliminar módulo
+- Key (slug unico), nombre, descripcion, tier (free/premium), estado (active/inactive/coming_soon), cuota default
 
 ---
 
-## Gestión de Planes
+## Gestion de Planes
 
 ### Lista (`/admin/plans`)
-- Muestra todos los planes con nombre, precio, estado, destacado, enterprise
+- Muestra todos los planes como cards con nombre, precio, estado, destacado, modulos incluidos
+- **Paginacion**: selector de 5/10/20/50/100 registros
 
 ### Crear (`/admin/plans/create`)
-- **Información**: nombre, precio (opcional), precio mensual, usuarios máximos, descripción
-- **Módulos incluidos**:
-  - "Basado en": hereda módulos + datos de otro plan (solo lectura para los heredados)
-  - Módulos heredados visibles sin checkbox
-  - Módulos adicionales seleccionables con filtros rápidos (Gratis/Premium/Todos/Ninguno)
-  - Cuota override por módulo
-- **Características adicionales**: textarea, una por línea
+- **Informacion**: nombre, precio (opcional), precio mensual, usuarios maximos (0 = ilimitado), descripcion
+- **Modulos incluidos**:
+  - "Basado en": hereda modulos + datos de otro plan (solo lectura para los heredados)
+  - Modulos adicionales seleccionables con filtros rapidos (Gratis/Premium/Todos/Ninguno)
+  - Cuota override por modulo
+- **Caracteristicas adicionales**: textarea, una por linea
 - **Soporte y Onboarding**: dropdowns con opciones predefinidas
-- **Configuración**:
-  - Texto del botón (dropdown: Empezar gratis, Ver módulos, Contactar, Cotizar, Más información, Personalizado)
-  - Link del botón (autogenerado: `/register?plan=ID` o manual)
-  - Enterprise: muestra campo de WhatsApp number, autogenera link `https://wa.me/NUMBER`
-  - Orden (auto-incremental: cantidad de planes + 1)
-  - Plan destacado (badge "Más popular")
-
-### Editar (`/admin/plans/[id]`)
-- Mismos campos que crear
-- Zona de peligro: eliminar plan
+- **Configuracion**:
+  - Texto del boton (dropdown con opciones + personalizado)
+  - Link del boton (autogenerado: `/register?plan=ID` o `https://wa.me/NUMBER` para enterprise)
+  - Plan destacado (badge "Mas popular")
+  - Orden (auto-incremental)
 
 ---
 
-## Gestión de Usuarios
+## Gestion de Usuarios
 
 ### Lista (`/admin/users`)
 - Muestra todos los usuarios con nombre, email, rol, workspace, estado
-- Filtros disponibles en UI (activos, por rol, etc.)
+- Boton "Crear usuario" deshabilitado (los usuarios se crean por registro o desde el workspace)
+- **Paginacion**: selector de 5/10/20/50/100 registros
 
 ### Detalle (`/admin/users/[id]`)
-- Información del usuario, cambio de rol, estado
-
-### Crear (`/admin/users/create`)
-- Deshabilitado (retorna 501) — los usuarios se crean por registro
+- Informacion del usuario, cambio de rol, estado
 
 ---
 
 ## API Admin Endpoints
 
-| Ruta | Método | Descripción |
+| Ruta | Metodo | Descripcion |
 |---|---|---|
 | `/api/admin/stats` | GET | Datos agregados del dashboard |
-| `/api/admin/modules` | GET/POST | Listar/Crear módulo |
-| `/api/admin/modules/[id]` | GET/PUT/DELETE | CRUD módulo |
-| `/api/admin/plans` | GET/POST | Listar/Crear plan |
+| `/api/admin/modules` | GET/POST | Listar/Crear modulo (paginado: `?page=&limit=`) |
+| `/api/admin/modules/[id]` | GET/PUT/DELETE | CRUD modulo |
+| `/api/admin/plans` | GET/POST | Listar/Crear plan (paginado: `?page=&limit=`) |
 | `/api/admin/plans/[id]` | GET/PUT/DELETE | CRUD plan |
-| `/api/admin/workspaces` | GET/POST | Listar/Crear workspace |
+| `/api/admin/workspaces` | GET/POST | Listar/Crear workspace (paginado: `?page=&limit=`) |
 | `/api/admin/workspaces/[id]` | GET/PUT/DELETE | CRUD workspace (incluye isPayReady toggle) |
-| `/api/admin/workspaces/[id]/subscriptions` | GET/POST | Listar/Crear suscripción |
-| `/api/admin/workspaces/[id]/subscriptions/[subId]` | PUT/DELETE | Editar/Eliminar suscripción |
-| `/api/admin/users` | GET | Lista usuarios global |
+| `/api/admin/workspaces/[id]/subscriptions` | GET/POST | Listar/Crear suscripcion |
+| `/api/admin/workspaces/[id]/subscriptions/[subId]` | PUT/DELETE | Editar/Eliminar suscripcion |
+| `/api/admin/users` | GET | Lista usuarios global (paginado: `?page=&limit=&workspace=`) |
 | `/api/admin/users/[id]` | GET/PUT/DELETE | CRUD usuario |
