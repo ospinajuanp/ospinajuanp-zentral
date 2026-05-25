@@ -622,14 +622,14 @@ function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin
                     <td className="py-4 pr-4 whitespace-nowrap">
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         log.status === 'matched'
-                          ? log.resolvedBy ? 'bg-violet-500/10 text-violet-400' : 'bg-emerald-500/10 text-emerald-500'
+                          ? isAdmin && log.resolvedBy ? 'bg-violet-500/10 text-violet-400' : 'bg-emerald-500/10 text-emerald-500'
                           : log.status === 'manual_error'
                             ? 'bg-rose-500/10 text-rose-500'
                             : 'bg-amber-500/10 text-amber-500'
                       }`}>
                         {statusLabels[log.status]}
                       </span>
-                      {log.resolvedBy && (
+                      {isAdmin && log.resolvedBy && (
                         <p className="mt-0.5 text-xs text-slate-500">por {log.resolvedBy.name}</p>
                       )}
                     </td>
@@ -637,7 +637,7 @@ function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin
                       {log.retryCount}
                     </td>
                     <td className="py-4 text-right">
-                      {isAdmin && log.status === 'manual_error' && (
+                      {isAdmin && log.status !== 'matched' && (
                         <button
                           onClick={() => setManualForm({ logId: log._id, monto: String(log.photoData.monto), referencia: log.photoData.referencia })}
                           className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
@@ -683,14 +683,14 @@ function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin
                   <div>
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       log.status === 'matched'
-                        ? log.resolvedBy ? 'bg-violet-500/10 text-violet-400' : 'bg-emerald-500/10 text-emerald-500'
+                        ? isAdmin && log.resolvedBy ? 'bg-violet-500/10 text-violet-400' : 'bg-emerald-500/10 text-emerald-500'
                         : log.status === 'manual_error'
                           ? 'bg-rose-500/10 text-rose-500'
                           : 'bg-amber-500/10 text-amber-500'
                     }`}>
                       {statusLabels[log.status]}
                     </span>
-                    {log.resolvedBy && (
+                    {isAdmin && log.resolvedBy && (
                       <span className="ml-2 text-xs text-slate-500">por {log.resolvedBy.name}</span>
                     )}
                   </div>
@@ -708,7 +708,7 @@ function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin
                     <p className="font-mono text-xs text-slate-300">{log.photoData.referencia}</p>
                   </div>
                 </div>
-                {isAdmin && log.status === 'manual_error' && (
+                {isAdmin && log.status !== 'matched' && (
                   <button
                     onClick={() => setManualForm({ logId: log._id, monto: String(log.photoData.monto), referencia: log.photoData.referencia })}
                     className="mt-3 w-full rounded-md border border-slate-700 py-2 text-xs text-slate-300 hover:bg-slate-800"
