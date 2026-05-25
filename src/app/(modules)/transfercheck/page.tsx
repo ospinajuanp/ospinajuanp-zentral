@@ -151,12 +151,14 @@ function UploadTab({ onError, onProcessed }: { onError: (msg: string) => void; o
   const [result, setResult] = useState<TransferLog | null>(null);
   const [debugResult, setDebugResult] = useState<DebugResult | null>(null);
   const [debugLoading, setDebugLoading] = useState(false);
+  const [gmailMissing, setGmailMissing] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
     setUploading(true);
     onError('');
+    setGmailMissing(false);
 
     try {
       const formData = new FormData();
@@ -170,6 +172,10 @@ function UploadTab({ onError, onProcessed }: { onError: (msg: string) => void; o
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.gmailRequired) {
+          setGmailMissing(true);
+          return;
+        }
         onError(data.error || 'Error al procesar');
         return;
       }
@@ -185,6 +191,23 @@ function UploadTab({ onError, onProcessed }: { onError: (msg: string) => void; o
 
   return (
     <div>
+      {gmailMissing && (
+        <div className="mb-6 rounded-md border border-amber-800 bg-amber-950/30 p-6 text-center">
+          <p className="text-sm font-medium text-amber-400">
+            No tienes tu correo conectado
+          </p>
+          <p className="mt-1 text-xs text-amber-500/80">
+            Para procesar comprobantes necesitas conectar tu cuenta de Gmail.
+          </p>
+          <button
+            onClick={() => window.location.href = '/api/auth/gmail/connect?redirect=/transfercheck'}
+            className="mt-4 rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            Conectar Gmail
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="rounded-md border border-slate-800 bg-slate-900 p-8">
         <div className="mx-auto max-w-md">
           <label className="block text-sm font-medium text-slate-300">

@@ -3,6 +3,7 @@ import { getApiAuth } from '@/lib/auth/api';
 import { extractTransferData } from '@/lib/modules/transfercheck/extractor';
 import { createTransferCheckLog, processPendingMatch, checkQuota, consumeQuota } from '@/lib/modules/transfercheck/matcher';
 import { TransferCheckLog } from '@/lib/models/transfercheck-log';
+import { getGmailStatus } from '@/lib/modules/transfercheck/gmail-service';
 import '@/lib/models/user';
 
 export async function POST(req: NextRequest) {
@@ -15,6 +16,18 @@ export async function POST(req: NextRequest) {
     const workspaceId = auth.workspaceId;
     if (!workspaceId) {
       return NextResponse.json({ error: 'Sin workspace asignado' }, { status: 403 });
+    }
+
+    // Verificar que Gmail esté conectado antes de consumir cuota o procesar
+    const gmailStatus = await getGmailStatus(workspaceId);
+    if (!gmailStatus.connected) {
+      return NextResponse.json(
+        {
+          error: 'Conecta tu correo de Gmail antes de procesar comprobantes.',
+          gmailRequired: true,
+        },
+        { status: 400 }
+      );
     }
 
     const quota = await checkQuota(workspaceId);
