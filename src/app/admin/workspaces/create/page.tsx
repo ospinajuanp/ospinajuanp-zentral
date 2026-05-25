@@ -2,15 +2,16 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { Button, StatusCard } from '@/components/ui';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui';
 import { useToastContext } from '@/contexts/toast-context';
 
 export default function CreateWorkspacePage() {
   const toast = useToastContext();
+  const router = useRouter();
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [loading, setLoading] = useState(false);
-  const [created, setCreated] = useState(false);
 
   function handleNameChange(value: string) {
     setName(value);
@@ -35,24 +36,13 @@ export default function CreateWorkspacePage() {
         return;
       }
 
-      setCreated(true);
+      toast.success(`Workspace "${name}" creado correctamente.`);
+      router.push('/admin/workspaces');
     } catch {
       toast.error('Error de conexión');
     } finally {
       setLoading(false);
     }
-  }
-
-  if (created) {
-    return (
-      <div className="mx-auto max-w-lg">
-        <StatusCard
-          type="success"
-          message={`Workspace "${name}" creado correctamente.`}
-          action={{ label: 'Volver a workspaces', href: '/admin/workspaces' }}
-        />
-      </div>
-    );
   }
 
   return (

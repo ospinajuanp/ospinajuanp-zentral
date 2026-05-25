@@ -2,7 +2,8 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { Button, StatusCard } from '@/components/ui';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui';
 import { useToastContext } from '@/contexts/toast-context';
 import type { ModuleTier } from '@/types';
 
@@ -20,8 +21,8 @@ export default function CreateModulePage() {
   const [status, setStatus] = useState('active');
   const [defaultQuota, setDefaultQuota] = useState(100);
   const toast = useToastContext();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [created, setCreated] = useState(false);
 
   function handleNameChange(value: string) {
     setName(value);
@@ -42,28 +43,17 @@ export default function CreateModulePage() {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error ?? 'Error al crear módulo');
+        toast.error(data.error ?? 'Error al crear modulo');
         return;
       }
 
-      setCreated(true);
+      toast.success(`Modulo "${name}" creado correctamente.`);
+      router.push('/admin/modules');
     } catch {
       toast.error('Error de conexión');
     } finally {
       setLoading(false);
     }
-  }
-
-  if (created) {
-    return (
-      <div className="mx-auto max-w-lg">
-        <StatusCard
-          type="success"
-          message={`Módulo "${name}" creado correctamente.`}
-          action={{ label: 'Volver a módulos', href: '/admin/modules' }}
-        />
-      </div>
-    );
   }
 
   return (

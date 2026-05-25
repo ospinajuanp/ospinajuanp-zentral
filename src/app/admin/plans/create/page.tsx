@@ -2,7 +2,8 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
-import { Button, StatusCard } from '@/components/ui';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui';
 import { useToastContext } from '@/contexts/toast-context';
 
 interface ModuleOption {
@@ -55,8 +56,8 @@ export default function CreatePlanPage() {
   const [onboarding, setOnboarding] = useState('ninguno');
 
   const toast = useToastContext();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [created, setCreated] = useState(false);
 
   useEffect(() => {
     fetch('/api/admin/modules')
@@ -144,24 +145,13 @@ export default function CreatePlanPage() {
         return;
       }
 
-      setCreated(true);
+      toast.success(`Plan "${name}" creado correctamente.`);
+      router.push('/admin/plans');
     } catch {
       toast.error('Error de conexión');
     } finally {
       setLoading(false);
     }
-  }
-
-  if (created) {
-    return (
-      <div className="mx-auto max-w-lg">
-        <StatusCard
-          type="success"
-          message={`Plan "${name}" creado correctamente.`}
-          action={{ label: 'Volver a planes', href: '/admin/plans' }}
-        />
-      </div>
-    );
   }
 
   return (
