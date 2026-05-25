@@ -44,6 +44,39 @@ interface DebugResult {
 export default function TransferCheckDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('upload');
   const [error, setError] = useState('');
+  const [role, setRole] = useState<string | null>(null);
+  const [quota, setQuota] = useState<{ used: number; total: number; remaining: number; unlimited: boolean } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => setRole(data.role ?? null))
+      .catch(() => setRole(null));
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/modules/transfercheck/quota')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.error) setQuota(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const isAdmin = role === 'admin' || role === 'superadmin';
+  const tabs: Tab[] = isAdmin
+    ? ['upload', 'sync', 'logs', 'config']
+    : ['upload', 'sync', 'logs'];
+
+  if (role === null) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="flex justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -56,9 +89,28 @@ export default function TransferCheckDashboard() {
         </div>
       </div>
 
+      {quota && (
+        <div className="mt-6 rounded-md border border-slate-800 bg-slate-900 px-5 py-4">
+          <p className="text-sm font-medium text-slate-300">Cuota mensual</p>
+          <p className="mt-1 text-2xl font-bold text-white">
+            {quota.unlimited
+              ? 'Ilimitada'
+              : `${quota.used.toLocaleString()} / ${quota.total.toLocaleString()}`}
+          </p>
+          {!quota.unlimited && (
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-2 rounded-full bg-indigo-600 transition-all"
+                style={{ width: `${Math.min(100, (quota.used / quota.total) * 100)}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="mt-8 flex gap-1 rounded-lg bg-slate-900 p-1">
-        {(['upload', 'sync', 'logs', 'config'] as Tab[]).map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => { setActiveTab(tab); setError(''); }}
@@ -314,7 +366,7 @@ function SyncTab({ onError }: { onError: (msg: string) => void }) {
         <div className="mt-8 rounded-md border border-slate-800 bg-slate-950 px-5 py-4 text-left">
           <p className="text-sm font-medium text-slate-300">¿Cómo funciona?</p>
           <p className="mt-2 text-xs text-slate-500">
-            El sistema cruza los comprobantes pendientes con los correos de tu Gmail. Si encuentra una coincidencia exacta de monto y referencia, el pago se concilia automáticamente. Los comprobantes sin coincidencia quedan pendientes para que los verifiques manualmente desde el Historial.
+            El sistema cruza los comprobantes pendientes con los correos de tu Gmail. Si encuentra una coincidencia exacta de monto y referencia, el pago se concilia automáticamente. Después de 3 intentos sin coincidencia, el comprobante pasa a revisión manual.
           </p>
         </div>
       </div>

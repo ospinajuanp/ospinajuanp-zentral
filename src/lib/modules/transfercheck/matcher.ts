@@ -4,11 +4,30 @@ import { TransferCheckLog, type IPhotoData } from '@/lib/models/transfercheck-lo
 import { searchTransferEmails } from './gmail-service';
 import type { ITransferCheckLog } from '@/lib/models/transfercheck-log';
 
+const MAX_RETRIES = 3;
+
 export async function checkQuota(
   workspaceId: string
 ): Promise<{ allowed: boolean; remaining: number }> {
-  // TEMPORARY DEBUG: bypass quota check
-  return { allowed: true, remaining: 999 };
+  await dbConnect();
+  const sub = await ModuleSubscription.findOne({
+    workspace: workspaceId,
+    moduleKey: 'transfercheck',
+    status: 'active',
+  });
+
+  if (!sub) return { allowed: false, remaining: 0 };
+  if (sub.monthlyQuota <= 0) return { allowed: true, remaining: -1 };
+
+  const now = new Date();
+  if (sub.quotaResetAt && now >= sub.quotaResetAt) {
+    sub.usedQuota = 0;
+    sub.quotaResetAt = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    await sub.save();
+  }
+
+  const remaining = sub.monthlyQuota - sub.usedQuota;
+  return { allowed: remaining > 0, remaining: Math.max(0, remaining) };
 }
 
 export async function consumeQuota(workspaceId: string): Promise<void> {
@@ -38,6 +57,11 @@ export async function processPendingMatch(logId: string, workspaceId: string): P
     }
 
     log.retryCount += 1;
+
+    if (log.retryCount >= MAX_RETRIES) {
+      log.status = 'manual_error';
+    }
+
     log.nextRetryAt = null;
     await log.save();
     return log;
