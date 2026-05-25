@@ -88,11 +88,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Log no encontrado' }, { status: 404 });
     }
 
-    const workspaceId = auth.role === 'superadmin'
-      ? auth.workspaceId
-      : String(log.workspace);
-
-    if (String(log.workspace) !== workspaceId && auth.role !== 'superadmin') {
+    if (auth.role !== 'superadmin' && String(log.workspace) !== auth.workspaceId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 

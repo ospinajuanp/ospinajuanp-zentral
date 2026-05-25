@@ -29,6 +29,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Log no encontrado' }, { status: 404 });
     }
 
+    if (String(log.workspace) !== workspaceId && auth.role !== 'superadmin') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
+
     const result = await debugSearchTransferEmails(log.photoData, workspaceId);
 
     return NextResponse.json(result);
