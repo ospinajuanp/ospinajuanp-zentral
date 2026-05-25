@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
-import { ErrorMessage, Button, StatusCard } from '@/components/ui';
+import { useToastContext } from '@/contexts/toast-context';
+import { Button, StatusCard } from '@/components/ui';
 
 interface WorkspaceData {
   _id: string;
@@ -13,9 +14,8 @@ interface WorkspaceData {
 export default function WorkspaceSettingsPage() {
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
+  const toast = useToastContext();
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [name, setName] = useState('');
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function WorkspaceSettingsPage() {
       .then((res) => res.json())
       .then(async (session) => {
         if (!session.authenticated || !session.workspaceId) {
-          setError('No tienes un workspace asociado');
+          toast.error('No tienes un workspace asociado');
           setLoading(false);
           return;
         }
@@ -33,18 +33,16 @@ export default function WorkspaceSettingsPage() {
           setWorkspace(data.workspace);
           setName(data.workspace.name);
         } else {
-          setError('Workspace no encontrado');
+          toast.error('Workspace no encontrado');
         }
       })
-      .catch(() => setError('Error al cargar datos'))
+      .catch(() => toast.error('Error al cargar datos'))
       .finally(() => setLoading(false));
   }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!workspace) return;
-    setError('');
-    setSuccess('');
     setSaving(true);
 
     try {
@@ -57,13 +55,13 @@ export default function WorkspaceSettingsPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? 'Error al actualizar');
+        toast.error(data.error ?? 'Error al actualizar');
         return;
       }
 
-      setSuccess('Nombre del workspace actualizado correctamente.');
+      toast.success('Nombre del workspace actualizado correctamente.');
     } catch {
-      setError('Error de conexión');
+      toast.error('Error de conexión');
     } finally {
       setSaving(false);
     }
@@ -82,7 +80,7 @@ export default function WorkspaceSettingsPage() {
   if (!workspace) {
     return (
       <div className="mx-auto max-w-lg">
-        <StatusCard type="error" message={error || 'No se pudo cargar el workspace'} />
+        <StatusCard type="error" message="No se pudo cargar el workspace" />
       </div>
     );
   }
@@ -93,13 +91,6 @@ export default function WorkspaceSettingsPage() {
       <p className="mt-1 text-sm text-slate-400">
         Slug: <span className="font-mono">{workspace.slug}</span>
       </p>
-
-      {error && <ErrorMessage message={error} />}
-      {success && (
-        <div className="mb-4 rounded-md border border-emerald-800 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-500">
-          {success}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="mt-8 rounded-md border border-slate-800 bg-slate-900 p-6">
         <div>

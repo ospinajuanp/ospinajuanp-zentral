@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ConfirmDialog, ErrorMessage } from '@/components/ui';
+import { useToastContext } from '@/contexts/toast-context';
+import { ConfirmDialog } from '@/components/ui';
 import { PaginationBar } from '@/components/pagination';
 
 interface UserItem {
@@ -15,8 +16,8 @@ interface UserItem {
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserItem[]>([]);
+  const toast = useToastContext();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
@@ -37,7 +38,7 @@ export default function AdminUsersPage() {
           setTotalPages(data.totalPages);
         }
       })
-      .catch((err) => { console.error(err); setError('Error de conexion'); })
+      .catch((err) => { console.error(err); toast.error('Error de conexion'); })
       .finally(() => setLoading(false));
   }
 
@@ -56,10 +57,10 @@ export default function AdminUsersPage() {
         loadUsers(page, limit);
       } else {
         const data = await res.json();
-        setError(data.error ?? 'Error al eliminar');
+        toast.error(data.error ?? 'Error al eliminar');
       }
     } catch {
-      setError('Error de conexion');
+      toast.error('Error de conexion');
     } finally {
       setDeleting(false);
     }
@@ -92,8 +93,6 @@ export default function AdminUsersPage() {
           + Nuevo usuario
         </Link>
       </div>
-
-      {error && <ErrorMessage message={error} />}
 
       {loading ? (
         <div className="mt-8 flex justify-center py-12">

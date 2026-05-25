@@ -3,7 +3,8 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ErrorMessage, Button, ConfirmDialog } from '@/components/ui';
+import { Button, ConfirmDialog } from '@/components/ui';
+import { useToastContext } from '@/contexts/toast-context';
 
 interface ModuleOption {
   _id: string;
@@ -58,8 +59,7 @@ export default function EditPlanPage() {
   const [support, setSupport] = useState('ninguno');
   const [onboarding, setOnboarding] = useState('ninguno');
 
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const toast = useToastContext();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -72,14 +72,14 @@ export default function EditPlanPage() {
       .then((data) => {
         if (data.items) setAvailableModules(data.items);
       })
-      .catch((err) => { console.error(err); setError('Error de conexion'); });
+      .catch((err) => { console.error(err); toast.error('Error de conexion'); });
 
     void fetch('/api/admin/plans?limit=100')
       .then((res) => res.json())
       .then((data) => {
         if (data.items) setAvailablePlans(data.items.filter((p: { _id: string }) => p._id !== planId));
       })
-      .catch((err) => { console.error(err); setError('Error de conexión'); });
+      .catch((err) => { console.error(err); toast.error('Error de conexión'); });
   }, [planId]);
 
   useEffect(() => {
@@ -115,10 +115,10 @@ export default function EditPlanPage() {
             );
           }
         } else {
-          setError('Plan no encontrado');
+          toast.error('Plan no encontrado');
         }
       })
-      .catch(() => setError('Error al cargar'))
+      .catch(() => toast.error('Error al cargar'))
       .finally(() => setLoading(false));
   }, [planId]);
 
@@ -147,8 +147,6 @@ export default function EditPlanPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
-    setSuccess('');
     setSaving(true);
 
     const extraFeatures = extraFeaturesText
@@ -187,13 +185,13 @@ export default function EditPlanPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? 'Error al actualizar');
+        toast.error(data.error ?? 'Error al actualizar');
         return;
       }
 
-      setSuccess('Plan actualizado correctamente');
+      toast.success('Plan actualizado correctamente');
     } catch {
-      setError('Error de conexión');
+      toast.error('Error de conexión');
     } finally {
       setSaving(false);
     }
@@ -207,11 +205,11 @@ export default function EditPlanPage() {
         router.push('/admin/plans');
       } else {
         const data = await res.json();
-        setError(data.error ?? 'Error al eliminar');
+        toast.error(data.error ?? 'Error al eliminar');
         setDeleteConfirm(false);
       }
     } catch {
-      setError('Error de conexión');
+      toast.error('Error de conexión');
       setDeleteConfirm(false);
     } finally {
       setDeleting(false);
@@ -236,13 +234,6 @@ export default function EditPlanPage() {
       <p className="mt-1 text-sm text-slate-400">
         {name} — Configuración del plan.
       </p>
-
-      {error && <ErrorMessage message={error} />}
-      {success && (
-        <div className="mb-4 rounded-md border border-emerald-800 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-500">
-          {success}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         {/* info */}

@@ -2,20 +2,19 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { ErrorMessage, Button, StatusCard } from '@/components/ui';
+import { useToastContext } from '@/contexts/toast-context';
+import { Button } from '@/components/ui';
 
 export default function CreateUserPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const toast = useToastContext();
   const [role, setRole] = useState('operador');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [created, setCreated] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
@@ -28,28 +27,16 @@ export default function CreateUserPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? 'Error al crear usuario');
+        toast.error(data.error ?? 'Error al crear usuario');
         return;
       }
 
-      setCreated(true);
+      toast.success('Usuario creado correctamente');
     } catch {
-      setError('Error de conexión');
+      toast.error('Error de conexión');
     } finally {
       setLoading(false);
     }
-  }
-
-  if (created) {
-    return (
-      <div className="mx-auto max-w-lg">
-        <StatusCard
-          type="success"
-          message="Usuario creado correctamente."
-          action={{ label: 'Volver a usuarios', href: '/users' }}
-        />
-      </div>
-    );
   }
 
   return (
@@ -64,8 +51,6 @@ export default function CreateUserPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 rounded-md border border-slate-800 bg-slate-900 p-6">
-        {error && <ErrorMessage message={error} />}
-
         <div className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-slate-400">

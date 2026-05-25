@@ -2,7 +2,8 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
-import { ErrorMessage, Button, StatusCard } from '@/components/ui';
+import { Button, StatusCard } from '@/components/ui';
+import { useToastContext } from '@/contexts/toast-context';
 
 interface ModuleOption {
   _id: string;
@@ -53,7 +54,7 @@ export default function CreatePlanPage() {
   const [support, setSupport] = useState('ninguno');
   const [onboarding, setOnboarding] = useState('ninguno');
 
-  const [error, setError] = useState('');
+  const toast = useToastContext();
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState(false);
 
@@ -63,7 +64,7 @@ export default function CreatePlanPage() {
       .then((data) => {
         if (data.items) setAvailableModules(data.items);
       })
-      .catch((err) => { console.error(err); setError('Error de conexion'); });
+      .catch((err) => { console.error(err); toast.error('Error de conexion'); });
 
     // Load existing plans to calculate sortOrder
     fetch('/api/admin/plans?limit=100')
@@ -102,7 +103,6 @@ export default function CreatePlanPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     const extraFeatures = extraFeaturesText
@@ -140,13 +140,13 @@ export default function CreatePlanPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? 'Error al crear plan');
+        toast.error(data.error ?? 'Error al crear plan');
         return;
       }
 
       setCreated(true);
     } catch {
-      setError('Error de conexión');
+      toast.error('Error de conexión');
     } finally {
       setLoading(false);
     }
@@ -176,7 +176,6 @@ export default function CreatePlanPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-        {error && <ErrorMessage message={error} />}
 
         {/* info */}
         <div className="rounded-md border border-slate-800 bg-slate-900 p-6">

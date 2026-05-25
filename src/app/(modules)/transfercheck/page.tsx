@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useToastContext } from '@/contexts/toast-context';
 
 const DEBUG = false;
 
@@ -43,7 +44,6 @@ interface DebugResult {
 
 export default function TransferCheckDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('upload');
-  const [error, setError] = useState('');
   const [role, setRole] = useState<string | null>(null);
   const [quota, setQuota] = useState<{ used: number; total: number; remaining: number; unlimited: boolean } | null>(null);
   const [quotaVersion, setQuotaVersion] = useState(0);
@@ -114,7 +114,7 @@ export default function TransferCheckDashboard() {
         {tabs.map((tab) => (
           <button
             key={tab}
-            onClick={() => { setActiveTab(tab); setError(''); }}
+            onClick={() => setActiveTab(tab)}
             className={`flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
               activeTab === tab
                 ? 'bg-slate-800 text-white'
@@ -130,24 +130,19 @@ export default function TransferCheckDashboard() {
         ))}
       </div>
 
-      {error && (
-        <div className="mt-4 rounded-md bg-rose-500/10 px-4 py-3 text-sm text-rose-500" role="alert">
-          {error}
-        </div>
-      )}
-
       <div className="mt-8">
-        {activeTab === 'upload' && <UploadTab onError={setError} onProcessed={() => setQuotaVersion((v) => v + 1)} />}
-        {activeTab === 'sync' && <SyncTab onError={setError} onProcessed={() => setQuotaVersion((v) => v + 1)} />}
-        {activeTab === 'logs' && <LogsTab onError={setError} isAdmin={isAdmin} />}
-        {activeTab === 'consolidated' && <ConsolidatedTab onError={setError} />}
-        {activeTab === 'config' && <ConfigTab onError={setError} />}
+        {activeTab === 'upload' && <UploadTab onProcessed={() => setQuotaVersion((v) => v + 1)} />}
+        {activeTab === 'sync' && <SyncTab onProcessed={() => setQuotaVersion((v) => v + 1)} />}
+        {activeTab === 'logs' && <LogsTab isAdmin={isAdmin} />}
+        {activeTab === 'consolidated' && <ConsolidatedTab />}
+        {activeTab === 'config' && <ConfigTab />}
       </div>
     </div>
   );
 }
 
-function UploadTab({ onError, onProcessed }: { onError: (msg: string) => void; onProcessed: () => void }) {
+function UploadTab({ onProcessed }: { onProcessed: () => void }) {
+  const toast = useToastContext();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<TransferLog | null>(null);
@@ -159,7 +154,6 @@ function UploadTab({ onError, onProcessed }: { onError: (msg: string) => void; o
     e.preventDefault();
     if (!file) return;
     setUploading(true);
-    onError('');
     setGmailMissing(false);
 
     try {
@@ -178,14 +172,14 @@ function UploadTab({ onError, onProcessed }: { onError: (msg: string) => void; o
           setGmailMissing(true);
           return;
         }
-        onError(data.error || 'Error al procesar');
+        toast.error(data.error || 'Error al procesar');
         return;
       }
 
       setResult(data.log);
       onProcessed();
     } catch {
-      onError('No se pudo procesar. Revisa tu conexión a internet.');
+      toast.error('No se pudo procesar. Revisa tu conexión a internet.');
     } finally {
       setUploading(false);
     }
@@ -340,14 +334,14 @@ interface SyncItemResult {
   error?: string;
 }
 
-function SyncTab({ onError, onProcessed }: { onError: (msg: string) => void; onProcessed: () => void }) {
+function SyncTab({ onProcessed }: { onProcessed: () => void }) {
+  const toast = useToastContext();
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ processed: number; results: SyncItemResult[] } | null>(null);
 
   async function handleSync() {
     setSyncing(true);
     setSyncResult(null);
-    onError('');
 
     try {
       const res = await fetch('/api/modules/transfercheck/sync-email', {
@@ -356,14 +350,14 @@ function SyncTab({ onError, onProcessed }: { onError: (msg: string) => void; onP
       const data = await res.json();
 
       if (!res.ok) {
-        onError(data.error || 'Error al verificar pagos');
+        toast.error(data.error || 'Error al verificar pagos');
         return;
       }
 
       setSyncResult({ processed: data.processed, results: data.results });
       if (data.processed > 0) onProcessed();
     } catch {
-      onError('No se pudo conectar. Revisa tu conexión a internet.');
+      toast.error('No se pudo conectar. Revisa tu conexión a internet.');
     } finally {
       setSyncing(false);
     }
@@ -461,7 +455,8 @@ function SyncTab({ onError, onProcessed }: { onError: (msg: string) => void; onP
   );
 }
 
-function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin: boolean }) {
+function LogsTab({ isAdmin }: { isAdmin: boolean }) {
+  const toast = useToastContext();
   const [logs, setLogs] = useState<TransferLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
@@ -490,11 +485,11 @@ function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin
         setTotalPages(data.totalPages);
       }
     } catch {
-      onError('No se pudo cargar el historial. Reintenta en unos minutos.');
+      toast.error('No se pudo cargar el historial. Reintenta en unos minutos.');
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, page, dateFrom, dateTo, onError]);
+  }, [statusFilter, page, dateFrom, dateTo]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
@@ -518,10 +513,10 @@ function LogsTab({ onError, isAdmin }: { onError: (msg: string) => void; isAdmin
         fetchLogs();
       } else {
         const data = await res.json();
-        onError(data.error || 'Error al conciliar');
+        toast.error(data.error || 'Error al conciliar');
       }
     } catch {
-      onError('Error de conexión');
+      toast.error('Error de conexión');
     } finally {
       setReconciling(null);
     }
@@ -861,7 +856,8 @@ interface ConsolidatedLog {
   resolvedBy: { name: string; email: string } | null;
 }
 
-function ConsolidatedTab({ onError }: { onError: (msg: string) => void }) {
+function ConsolidatedTab() {
+  const toast = useToastContext();
   const today = new Date().toISOString().split('T')[0];
   const [dateFrom, setDateFrom] = useState(today);
   const [dateTo, setDateTo] = useState(today);
@@ -887,10 +883,10 @@ function ConsolidatedTab({ onError }: { onError: (msg: string) => void }) {
         setStats(data.stats);
         setLogs(data.logs);
       } else {
-        onError(data.error || 'Error al cargar');
+        toast.error(data.error || 'Error al cargar');
       }
     } catch {
-      onError('No se pudo cargar el consolidado.');
+      toast.error('No se pudo cargar el consolidado.');
     } finally {
       setLoading(false);
     }
@@ -1085,7 +1081,8 @@ function ConsolidatedTab({ onError }: { onError: (msg: string) => void }) {
   );
 }
 
-function ConfigTab({ onError }: { onError: (msg: string) => void }) {
+function ConfigTab() {
+  const toast = useToastContext();
   const [connected, setConnected] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -1109,10 +1106,10 @@ function ConfigTab({ onError }: { onError: (msg: string) => void }) {
     }
 
     if (errorMsg) {
-      onError(decodeURIComponent(errorMsg));
+      toast.error(decodeURIComponent(errorMsg));
       window.history.replaceState({}, '', '/transfercheck');
     }
-  }, [onError]);
+  }, []);
 
   async function handleDisconnect() {
     setDisconnecting(true);
@@ -1122,10 +1119,10 @@ function ConfigTab({ onError }: { onError: (msg: string) => void }) {
         setConnected(false);
       } else {
         const data = await res.json();
-        onError(data.error || 'Error al desconectar');
+        toast.error(data.error || 'Error al desconectar');
       }
     } catch {
-      onError('Error de conexión');
+      toast.error('Error de conexión');
     } finally {
       setDisconnecting(false);
     }

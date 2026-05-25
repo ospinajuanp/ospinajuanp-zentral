@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { PaginationBar } from '@/components/pagination';
+import { useToastContext } from '@/contexts/toast-context';
 
 interface PlanModule {
   _id: string;
@@ -70,8 +71,7 @@ export default function WorkspacePlanPage() {
   const [purchTotalPages, setPurchTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const toast = useToastContext();
 
   // Payment gateway state
   const [step, setStep] = useState<PaymentStep>('idle');
@@ -106,7 +106,7 @@ export default function WorkspacePlanPage() {
           setPurchTotalPages(purchasesData.totalPages);
         }
       } catch {
-        setError('No se pudo cargar la informacion de planes.');
+        toast.error('No se pudo cargar la informacion de planes.');
       } finally {
         setLoading(false);
       }
@@ -128,8 +128,6 @@ export default function WorkspacePlanPage() {
   async function handlePurchase(planId: string) {
     if (!session?.workspaceId) return;
     setBuying(planId);
-    setError('');
-    setSuccess('');
 
     try {
       const res = await fetch(`/api/workspaces/${session.workspaceId}/purchase`, {
@@ -141,16 +139,16 @@ export default function WorkspacePlanPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Error al procesar la compra');
+        toast.error(data.error || 'Error al procesar la compra');
         return;
       }
 
       setCurrentPlanId(planId);
-      setSuccess(`Plan "${data.purchase.planName}" activado correctamente.`);
+      toast.success(`Plan "${data.purchase.planName}" activado correctamente.`);
 
       await loadPurchases(purchPage, purchLimit);
     } catch {
-      setError('No se pudo procesar la compra. Revisa tu conexion.');
+      toast.error('No se pudo procesar la compra. Revisa tu conexion.');
     } finally {
       setBuying(null);
     }
@@ -160,8 +158,6 @@ export default function WorkspacePlanPage() {
     setSelectedPlan(plan);
     setForm(DEFAULT_PAYMENT);
     setStep('gateway');
-    setError('');
-    setSuccess('');
   }
 
   function closeGateway() {
@@ -172,7 +168,6 @@ export default function WorkspacePlanPage() {
   async function handleToggle(purchaseId: string, newStatus: 'active' | 'cancelled') {
     if (!session?.workspaceId) return;
     setToggling(purchaseId);
-    setError('');
 
     try {
       const res = await fetch(
@@ -186,13 +181,13 @@ export default function WorkspacePlanPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || 'Error al actualizar el estado');
+        toast.error(data.error || 'Error al actualizar el estado');
         return;
       }
 
       await loadPurchases(purchPage, purchLimit);
     } catch {
-      setError('No se pudo actualizar el estado.');
+      toast.error('No se pudo actualizar el estado.');
     } finally {
       setToggling(null);
     }
@@ -229,18 +224,6 @@ export default function WorkspacePlanPage() {
       <p className="mt-1 text-sm text-slate-400">
         Adquiere planes para tu empresa. El plan Free ya esta incluido en tu workspace.
       </p>
-
-      {error && (
-        <div className="mt-4 rounded-md border border-rose-800 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="mt-4 rounded-md border border-emerald-800 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
-          {success}
-        </div>
-      )}
 
       {/* Plans grid */}
       {visiblePlans.length === 0 ? (

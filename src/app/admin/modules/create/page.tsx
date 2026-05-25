@@ -2,7 +2,8 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { ErrorMessage, Button, StatusCard } from '@/components/ui';
+import { Button, StatusCard } from '@/components/ui';
+import { useToastContext } from '@/contexts/toast-context';
 import type { ModuleTier } from '@/types';
 
 const moduleStatuses: { value: string; label: string }[] = [
@@ -18,7 +19,7 @@ export default function CreateModulePage() {
   const [tier, setTier] = useState<ModuleTier>('free');
   const [status, setStatus] = useState('active');
   const [defaultQuota, setDefaultQuota] = useState(100);
-  const [error, setError] = useState('');
+  const toast = useToastContext();
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState(false);
 
@@ -29,7 +30,6 @@ export default function CreateModulePage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
@@ -42,13 +42,13 @@ export default function CreateModulePage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? 'Error al crear módulo');
+        toast.error(data.error ?? 'Error al crear módulo');
         return;
       }
 
       setCreated(true);
     } catch {
-      setError('Error de conexión');
+      toast.error('Error de conexión');
     } finally {
       setLoading(false);
     }
@@ -78,7 +78,6 @@ export default function CreateModulePage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 rounded-md border border-slate-800 bg-slate-900 p-6">
-        {error && <ErrorMessage message={error} />}
 
         <div className="space-y-4">
           <div>

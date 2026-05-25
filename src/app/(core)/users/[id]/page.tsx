@@ -3,7 +3,8 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ErrorMessage, Button, StatusCard } from '@/components/ui';
+import { useToastContext } from '@/contexts/toast-context';
+import { Button, StatusCard } from '@/components/ui';
 
 interface UserData {
   _id: string;
@@ -19,9 +20,8 @@ export default function EditUserPage() {
 
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const toast = useToastContext();
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -38,17 +38,15 @@ export default function EditUserPage() {
           setEmail(data.user.email);
           setRole(data.user.role);
         } else {
-          setError('Usuario no encontrado');
+          toast.error('Usuario no encontrado');
         }
       })
-      .catch(() => setError('Error al cargar'))
+      .catch(() => toast.error('Error al cargar'))
       .finally(() => setLoading(false));
   }, [userId]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
-    setSuccess('');
     setSaving(true);
 
     try {
@@ -64,14 +62,14 @@ export default function EditUserPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? 'Error al actualizar');
+        toast.error(data.error ?? 'Error al actualizar');
         return;
       }
 
-      setSuccess('Usuario actualizado correctamente');
+      toast.success('Usuario actualizado correctamente');
       setPassword('');
     } catch {
-      setError('Error de conexión');
+      toast.error('Error de conexión');
     } finally {
       setSaving(false);
     }
@@ -92,7 +90,7 @@ export default function EditUserPage() {
       <div className="mx-auto max-w-lg">
         <StatusCard
           type="error"
-          message={error || 'Usuario no encontrado'}
+          message="Usuario no encontrado"
           action={{ label: 'Volver a usuarios', href: '/users' }}
         />
       </div>
@@ -106,13 +104,6 @@ export default function EditUserPage() {
       </Link>
 
       <h1 className="mt-4 text-2xl font-bold tracking-tight text-white">Editar usuario</h1>
-
-      {error && <ErrorMessage message={error} />}
-      {success && (
-        <div className="mb-4 rounded-md border border-emerald-800 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-500">
-          {success}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="mt-8 rounded-md border border-slate-800 bg-slate-900 p-6">
         <div className="space-y-4">

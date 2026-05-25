@@ -3,7 +3,8 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ErrorMessage, Button, StatusCard, ConfirmDialog } from '@/components/ui';
+import { Button, StatusCard, ConfirmDialog } from '@/components/ui';
+import { useToastContext } from '@/contexts/toast-context';
 
 interface WorkspaceData {
   _id: string;
@@ -48,8 +49,7 @@ export default function WorkspaceDetailPage() {
   const [subscriptions, setSubscriptions] = useState<SubSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const toast = useToastContext();
 
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -92,10 +92,10 @@ export default function WorkspaceDetailPage() {
           setUsers(data.users ?? []);
           setSubscriptions(data.subscriptions ?? []);
         } else {
-          setError('Workspace no encontrado');
+          toast.error('Workspace no encontrado');
         }
       })
-      .catch(() => setError('Error al cargar'))
+      .catch(() => toast.error('Error al cargar'))
       .finally(() => setLoading(false));
   }, [wsId]);
 
@@ -105,7 +105,7 @@ export default function WorkspaceDetailPage() {
       .then((data) => {
         if (data.items) setAvailableModules(data.items);
       })
-      .catch((err) => { console.error(err); setError('Error de conexión'); });
+      .catch((err) => { console.error(err); toast.error('Error de conexión'); });
   }, []);
 
   useEffect(() => {
@@ -119,8 +119,6 @@ export default function WorkspaceDetailPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
-    setSuccess('');
     setSaving(true);
 
     try {
@@ -133,13 +131,13 @@ export default function WorkspaceDetailPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? 'Error al actualizar');
+        toast.error(data.error ?? 'Error al actualizar');
         return;
       }
 
-      setSuccess('Workspace actualizado correctamente');
+      toast.success('Workspace actualizado correctamente');
     } catch {
-      setError('Error de conexión');
+      toast.error('Error de conexión');
     } finally {
       setSaving(false);
     }
@@ -153,11 +151,11 @@ export default function WorkspaceDetailPage() {
         router.push('/admin/workspaces');
       } else {
         const data = await res.json();
-        setError(data.error ?? 'Error al eliminar');
+        toast.error(data.error ?? 'Error al eliminar');
         setDeleteConfirm(false);
       }
     } catch {
-      setError('Error de conexión');
+      toast.error('Error de conexión');
       setDeleteConfirm(false);
     } finally {
       setDeleting(false);
@@ -209,10 +207,10 @@ export default function WorkspaceDetailPage() {
         setSubscriptions((prev) => prev.filter((s) => s._id !== subId));
       } else {
         const data = await res.json();
-        setError(data.error ?? 'Error al eliminar módulo');
+        toast.error(data.error ?? 'Error al eliminar módulo');
       }
     } catch {
-      setError('Error de conexión');
+      toast.error('Error de conexión');
     } finally {
       setRemovingModule(false);
       setRemoveSubId(null);
@@ -229,7 +227,6 @@ export default function WorkspaceDetailPage() {
   async function handleSaveSub() {
     if (!editSubId) return;
     setSavingSub(true);
-    setError('');
 
     try {
       const res = await fetch(`/api/admin/workspaces/${wsId}/subscriptions/${editSubId}`, {
@@ -245,7 +242,7 @@ export default function WorkspaceDetailPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? 'Error al actualizar suscripción');
+        toast.error(data.error ?? 'Error al actualizar suscripción');
         return;
       }
 
@@ -253,9 +250,9 @@ export default function WorkspaceDetailPage() {
         prev.map((s) => (s._id === editSubId ? { ...s, ...data.subscription } : s))
       );
       setEditSubId(null);
-      setSuccess('Suscripción actualizada');
+      toast.success('Suscripción actualizada');
     } catch {
-      setError('Error de conexión');
+      toast.error('Error de conexión');
     } finally {
       setSavingSub(false);
     }
@@ -276,7 +273,7 @@ export default function WorkspaceDetailPage() {
     return (
       <StatusCard
         type="error"
-        message={error || 'Workspace no encontrado'}
+        message="Workspace no encontrado"
         action={{ label: 'Volver a workspaces', href: '/admin/workspaces' }}
       />
     );
@@ -289,13 +286,6 @@ export default function WorkspaceDetailPage() {
       </Link>
 
       <h1 className="mt-4 text-2xl font-bold tracking-tight text-white">Editar workspace</h1>
-
-      {error && <ErrorMessage message={error} />}
-      {success && (
-        <div className="mb-4 rounded-md border border-emerald-800 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-500">
-          {success}
-        </div>
-      )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <form onSubmit={handleSubmit} className="rounded-md border border-slate-800 bg-slate-900 p-6">

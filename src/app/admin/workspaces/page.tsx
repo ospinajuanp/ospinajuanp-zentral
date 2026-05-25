@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ErrorMessage } from '@/components/ui';
+import { useToastContext } from '@/contexts/toast-context';
 import { PaginationBar } from '@/components/pagination';
 
 interface WorkspaceItem {
@@ -14,9 +14,9 @@ interface WorkspaceItem {
 }
 
 export default function WorkspacesPage() {
+  const toast = useToastContext();
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
@@ -34,7 +34,7 @@ export default function WorkspacesPage() {
           setTotalPages(data.totalPages);
         }
       })
-      .catch((err) => { console.error(err); setError('Error de conexion'); })
+      .catch((err) => { console.error(err); toast.error('Error de conexion'); })
       .finally(() => setLoading(false));
   }
 
@@ -70,8 +70,6 @@ export default function WorkspacesPage() {
           + Nuevo workspace
         </Link>
       </div>
-
-      {error && <ErrorMessage message={error} />}
 
       {loading ? (
         <div className="mt-8 flex justify-center py-12">
