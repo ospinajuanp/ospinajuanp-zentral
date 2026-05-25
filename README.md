@@ -8,7 +8,7 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 ## Tech Stack
 
 | Tecnología | Propósito |
-|---|---|
+|---|---|---|
 | Next.js 16.2 (Turbopack) | Framework full-stack |
 | React 19.2 | UI |
 | TypeScript | Tipado |
@@ -19,6 +19,9 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | Upstash Redis | Rate limiting |
 | Resend | Emails transaccionales |
 | Embla Carousel | Carrusel de planes en landing |
+| Google Generative AI (Gemini 2.0 Flash) | Extracción IA de comprobantes |
+| Gmail API (googleapis) | Búsqueda de correos de transferencia |
+| OCR.space | OCR para lectura de comprobantes |
 
 ---
 
@@ -150,6 +153,13 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `/api/users` | GET/POST | admin | Listar/Crear usuario del workspace |
 | `/api/users/[id]` | GET/PUT/DELETE | admin | CRUD usuario del workspace |
 | `/api/workspaces/[id]` | GET/PUT | admin | Ver/renombrar workspace |
+| `/api/modules/transfercheck/process-image` | POST | Autenticado | Subir comprobante → OCR/Gemini → log + match Gmail |
+| `/api/modules/transfercheck/logs` | GET/PUT | Autenticado | Listar logs con filtros / Conciliación manual |
+| `/api/modules/transfercheck/sync-email` | POST | Autenticado | Verificar pagos pendientes contra Gmail |
+| `/api/modules/transfercheck/gmail-status` | GET | Autenticado | Estado de conexión Gmail |
+| `/api/modules/transfercheck/gmail-disconnect` | POST | Autenticado | Desconectar Gmail |
+| `/api/auth/gmail/connect` | GET | Público | Iniciar OAuth2 Gmail |
+| `/api/auth/gmail/callback` | GET | Público | Callback OAuth2 Gmail |
 
 ---
 
@@ -175,6 +185,11 @@ RESEND_API_KEY=re_...
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 KV_REST_API_URL=https://...upstash.io
 KV_REST_API_TOKEN=tu-token-upstash
+GEMINI_API_KEY=AIza...
+OCR_SPACE_API_KEY=K...
+GMAIL_CLIENT_ID=...apps.googleusercontent.com
+GMAIL_CLIENT_SECRET=GOCSPX-...
+GMAIL_REDIRECT_URI=http://localhost:3000/api/auth/gmail/callback
 ```
 
 ### Seed

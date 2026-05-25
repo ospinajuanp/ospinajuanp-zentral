@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuth } from '@/lib/auth/api';
 import { extractTransferData } from '@/lib/modules/transfercheck/extractor';
 import { createTransferCheckLog, processPendingMatch, checkQuota, consumeQuota } from '@/lib/modules/transfercheck/matcher';
+import { TransferCheckLog } from '@/lib/models/transfercheck-log';
+import '@/lib/models/user';
 
 export async function POST(req: NextRequest) {
   try {
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     await processPendingMatch(String(log._id), workspaceId);
 
-    const updatedLog = await log.populate('userId', 'name email');
+    const updatedLog = await TransferCheckLog.findById(log._id).populate('userId', 'name email');
 
     return NextResponse.json({
       success: true,

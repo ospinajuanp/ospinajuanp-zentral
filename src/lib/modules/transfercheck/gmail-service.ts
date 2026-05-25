@@ -69,19 +69,168 @@ async function getAuthClientForWorkspace(workspaceId: string) {
 }
 
 function searchAmountVariations(monto: number): string[] {
-  const formatted = monto.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const co = monto.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const intl = monto.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const plain = monto.toFixed(2);
-  const noDecimals = Math.floor(monto).toString();
-  const withComma = plain.replace('.', ',');
-  const numeric = monto.toFixed(2).replace('.', '');
+  const integer = Math.floor(monto).toString();
+  const intlInteger = Math.floor(monto).toLocaleString('en-US');
+  const coInteger = Math.floor(monto).toLocaleString('es-CO');
 
-  return [...new Set([formatted, plain, noDecimals, withComma, numeric, `$${formatted}`, `$${plain}`])];
+  const results = [
+    co,            // 173.000,00
+    intl,          // 173,000.00
+    plain,         // 173000.00
+    integer,       // 173000
+    intlInteger,   // 173,000
+    coInteger,     // 173.000
+  ];
+
+  return [...new Set(results)];
 }
 
 export interface GmailSearchResult {
   success: boolean;
   matches: IEmailData[];
   error?: string;
+}
+
+export interface DebugEmailResult {
+  messageId: string;
+  from: string;
+  subject: string;
+  date: string;
+  snippet: string;
+  bodyPreview: string;
+  matchedAmount: boolean;
+  matchedReference: boolean;
+  matchedReferenceInBody: boolean;
+}
+
+export interface DebugSearchResult {
+  success: boolean;
+  searchQuery: string;
+  amountVariations: string[];
+  referenceVariations: string[];
+  emails: DebugEmailResult[];
+  error?: string;
+}
+
+export async function debugSearchTransferEmails(
+  photoData: IPhotoData,
+  workspaceId: string
+): Promise<DebugSearchResult> {
+  const amounts = searchAmountVariations(photoData.monto);
+  const refs = [
+    photoData.referencia,
+    photoData.referencia.replace(/\s/g, ''),
+    photoData.referencia.replace(/-/g, ''),
+    photoData.referencia.replace(/[^0-9]/g, ''),
+  ];
+  const query = `(${amounts.join(' OR ')}) newer_than:1d`;
+
+  try {
+    const auth = await getAuthClientForWorkspace(workspaceId);
+    const gmail = google.gmail({ version: 'v1', auth });
+
+    console.log('[debug-gmail] Searching with query:', query);
+    console.log('[debug-gmail] Amount variations:', amounts);
+    console.log('[debug-gmail] Reference variations:', refs);
+
+    const response = await gmail.users.messages.list({
+      userId: 'me',
+      q: query,
+      maxResults: 20,
+    });
+
+    const messages = response.data.messages || [];
+    console.log('[debug-gmail] Found', messages.length, 'messages');
+
+    if (messages.length === 0) {
+      return {
+        success: true,
+        searchQuery: query,
+        amountVariations: amounts,
+        referenceVariations: refs,
+        emails: [],
+      };
+    }
+
+    const emails: DebugEmailResult[] = [];
+
+    for (const msg of messages.slice(0, 10)) {
+      const detail = await gmail.users.messages.get({
+        userId: 'me',
+        id: msg.id!,
+        format: 'full',
+      });
+
+      const headers = detail.data.payload?.headers || [];
+      const from = headers.find((h) => h.name === 'From')?.value || '';
+      const subject = headers.find((h) => h.name === 'Subject')?.value || '';
+      const date = headers.find((h) => h.name === 'Date')?.value || '';
+      const snippet = detail.data.snippet || '';
+
+      let bodyText = '';
+      if (detail.data.payload?.parts) {
+        for (const part of detail.data.payload.parts) {
+          if (part.mimeType === 'text/plain' && part.body?.data) {
+            bodyText = Buffer.from(part.body.data, 'base64').toString('utf-8');
+            break;
+          }
+        }
+      } else if (detail.data.payload?.body?.data) {
+        bodyText = Buffer.from(detail.data.payload.body.data, 'base64').toString('utf-8');
+      }
+
+      const bodyPreview = bodyText.substring(0, 1000);
+
+      let matchedReference = false;
+      for (const ref of refs) {
+        if (snippet.includes(ref) || subject.includes(ref) || bodyText.includes(ref)) {
+          matchedReference = true;
+          break;
+        }
+      }
+
+      let matchedReferenceInBody = false;
+      for (const ref of refs) {
+        if (bodyText.includes(ref)) {
+          matchedReferenceInBody = true;
+          break;
+        }
+      }
+
+      emails.push({
+        messageId: msg.id!,
+        from,
+        subject,
+        date,
+        snippet,
+        bodyPreview,
+        matchedAmount: true,
+        matchedReference,
+        matchedReferenceInBody,
+      });
+    }
+
+    return {
+      success: true,
+      searchQuery: query,
+      amountVariations: amounts,
+      referenceVariations: refs,
+      emails,
+    };
+  } catch (error) {
+    console.error('[debug-gmail] Error:', error);
+    return {
+      success: false,
+      searchQuery: query,
+      amountVariations: amounts,
+      referenceVariations: refs,
+      emails: [],
+      error: `Error al buscar correos: ${error}`,
+    };
+  }
 }
 
 export async function searchTransferEmails(

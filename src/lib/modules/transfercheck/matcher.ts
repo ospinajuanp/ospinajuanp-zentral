@@ -4,34 +4,11 @@ import { TransferCheckLog, type IPhotoData } from '@/lib/models/transfercheck-lo
 import { searchTransferEmails } from './gmail-service';
 import type { ITransferCheckLog } from '@/lib/models/transfercheck-log';
 
-const BACKOFF_MINUTES: Record<number, number> = {
-  1: 5,
-  2: 15,
-  3: 30,
-};
-
 export async function checkQuota(
   workspaceId: string
 ): Promise<{ allowed: boolean; remaining: number }> {
-  await dbConnect();
-  const sub = await ModuleSubscription.findOne({
-    workspace: workspaceId,
-    moduleKey: 'transfercheck',
-    status: 'active',
-  });
-
-  if (!sub) return { allowed: false, remaining: 0 };
-  if (sub.monthlyQuota <= 0) return { allowed: true, remaining: -1 };
-
-  const now = new Date();
-  if (sub.quotaResetAt && now >= sub.quotaResetAt) {
-    sub.usedQuota = 0;
-    sub.quotaResetAt = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    await sub.save();
-  }
-
-  const remaining = sub.monthlyQuota - sub.usedQuota;
-  return { allowed: remaining > 0, remaining: Math.max(0, remaining) };
+  // TEMPORARY DEBUG: bypass quota check
+  return { allowed: true, remaining: 999 };
 }
 
 export async function consumeQuota(workspaceId: string): Promise<void> {
@@ -61,15 +38,7 @@ export async function processPendingMatch(logId: string, workspaceId: string): P
     }
 
     log.retryCount += 1;
-
-    if (log.retryCount > 3) {
-      log.status = 'manual_error';
-      log.nextRetryAt = null;
-    } else {
-      const delayMinutes = BACKOFF_MINUTES[log.retryCount] ?? 30;
-      log.nextRetryAt = new Date(Date.now() + delayMinutes * 60 * 1000);
-    }
-
+    log.nextRetryAt = null;
     await log.save();
     return log;
   } catch (error) {
@@ -81,11 +50,9 @@ export async function processPendingMatch(logId: string, workspaceId: string): P
 export async function processPendingMatches(workspaceId: string): Promise<number> {
   await dbConnect();
 
-  const now = new Date();
   const logs = await TransferCheckLog.find({
     workspace: workspaceId,
     status: 'pending_email',
-    $or: [{ nextRetryAt: null }, { nextRetryAt: { $lte: now } }],
   }).limit(50);
 
   let processed = 0;

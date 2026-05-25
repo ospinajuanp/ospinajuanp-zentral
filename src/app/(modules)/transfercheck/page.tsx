@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+const DEBUG = false;
+
 type Tab = 'upload' | 'sync' | 'logs' | 'config';
 
 interface TransferLog {
@@ -16,6 +18,27 @@ interface TransferLog {
   userId: { name: string; email: string };
   resolvedBy: { name: string; email: string } | null;
   manualData: { monto: number; referencia: string; fecha: string } | null;
+}
+
+interface DebugEmail {
+  messageId: string;
+  from: string;
+  subject: string;
+  date: string;
+  snippet: string;
+  bodyPreview: string;
+  matchedAmount: boolean;
+  matchedReference: boolean;
+  matchedReferenceInBody: boolean;
+}
+
+interface DebugResult {
+  success: boolean;
+  searchQuery: string;
+  amountVariations: string[];
+  referenceVariations: string[];
+  emails: DebugEmail[];
+  error?: string;
 }
 
 export default function TransferCheckDashboard() {
@@ -46,7 +69,7 @@ export default function TransferCheckDashboard() {
             }`}
           >
             {tab === 'upload' && 'Subir comprobante'}
-            {tab === 'sync' && 'Sincronizar Gmail'}
+            {tab === 'sync' && 'Verificar pagos'}
             {tab === 'logs' && 'Historial'}
             {tab === 'config' && 'Configuración'}
           </button>
@@ -73,6 +96,8 @@ function UploadTab({ onError }: { onError: (msg: string) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<TransferLog | null>(null);
+  const [debugResult, setDebugResult] = useState<DebugResult | null>(null);
+  const [debugLoading, setDebugLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -193,11 +218,35 @@ function UploadTab({ onError }: { onError: (msg: string) => void }) {
           )}
 
           <button
-            onClick={() => { setResult(null); setFile(null); }}
+            onClick={() => { setResult(null); setFile(null); setDebugResult(null); }}
             className="mt-4 rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
           >
             Subir otro comprobante
           </button>
+
+          {DEBUG && (
+          <DebugPanel
+            logId={result._id}
+            debugResult={debugResult}
+            debugLoading={debugLoading}
+            onDebug={async () => {
+              setDebugLoading(true);
+              try {
+                const res = await fetch('/api/modules/transfercheck/debug-search', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ logId: result._id }),
+                });
+                const data = await res.json();
+                setDebugResult(data);
+              } catch {
+                setDebugResult({ success: false, searchQuery: '', amountVariations: [], referenceVariations: [], emails: [], error: 'Error de conexión' });
+              } finally {
+                setDebugLoading(false);
+              }
+            }}
+          />
+          )}
         </div>
       )}
     </div>
@@ -234,9 +283,9 @@ function SyncTab({ onError }: { onError: (msg: string) => void }) {
   return (
     <div className="rounded-md border border-slate-800 bg-slate-900 p-8">
       <div className="mx-auto max-w-md text-center">
-        <h3 className="text-lg font-semibold text-white">Sincronización con Gmail</h3>
+        <h3 className="text-lg font-semibold text-white">Verificar pagos</h3>
         <p className="mt-2 text-sm text-slate-400">
-          Busca correos que coincidan con los comprobantes pendientes y concilia automáticamente.
+          Cruza los comprobantes pendientes con los correos de Gmail y concilia los pagos automáticamente.
         </p>
 
         <button
@@ -263,13 +312,10 @@ function SyncTab({ onError }: { onError: (msg: string) => void }) {
         )}
 
         <div className="mt-8 rounded-md border border-slate-800 bg-slate-950 px-5 py-4 text-left">
-          <p className="text-sm font-medium text-slate-300">Backoff de reintentos</p>
-          <ul className="mt-2 space-y-1 text-xs text-slate-500">
-            <li>Retry 1 → espera 5 min</li>
-            <li>Retry 2 → espera 15 min</li>
-            <li>Retry 3 → espera 30 min</li>
-            <li>Retry 4+ → requiere conciliación manual</li>
-          </ul>
+          <p className="text-sm font-medium text-slate-300">¿Cómo funciona?</p>
+          <p className="mt-2 text-xs text-slate-500">
+            El sistema cruza los comprobantes pendientes con los correos de tu Gmail. Si encuentra una coincidencia exacta de monto y referencia, el pago se concilia automáticamente. Los comprobantes sin coincidencia quedan pendientes para que los verifiques manualmente desde el Historial.
+          </p>
         </div>
       </div>
     </div>
@@ -421,6 +467,29 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
                           Conciliar
                         </button>
                       )}
+                      {DEBUG && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('/api/modules/transfercheck/debug-search', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ logId: log._id }),
+                            });
+                            const data = await res.json();
+                            const win = window.open('', '_blank', 'width=900,height=700');
+                            if (win) {
+                              win.document.write('<pre style="font-size:12px;padding:16px;background:#111;color:#eee">' + JSON.stringify(data, null, 2) + '</pre>');
+                            }
+                          } catch (e) {
+                            console.error(e);
+                          }
+                        }}
+                        className="ml-2 rounded-md border border-amber-700 px-2 py-1.5 text-xs text-amber-400 hover:bg-amber-500/10"
+                      >
+                        Debug
+                      </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -463,6 +532,29 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
                   >
                     Conciliar manualmente
                   </button>
+                )}
+                {DEBUG && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/modules/transfercheck/debug-search', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ logId: log._id }),
+                      });
+                      const data = await res.json();
+                      const win = window.open('', '_blank', 'width=900,height=700');
+                      if (win) {
+                        win.document.write('<pre style="font-size:12px;padding:16px;background:#111;color:#eee">' + JSON.stringify(data, null, 2) + '</pre>');
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    }
+                  }}
+                  className="mt-2 w-full rounded-md border border-amber-700 py-2 text-xs text-amber-400 hover:bg-amber-500/10"
+                >
+                  Debug
+                </button>
                 )}
               </div>
             ))}
@@ -653,7 +745,7 @@ function ConfigTab({ onError }: { onError: (msg: string) => void }) {
           )}
         </div>
 
-        <div className="mt-8 space-y-4">
+          <div className="mt-8 space-y-4">
           <div className="rounded-md border border-slate-800 bg-slate-950 px-5 py-4">
             <p className="text-sm font-medium text-slate-300">¿Cómo funciona?</p>
             <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-slate-500">
@@ -672,6 +764,127 @@ function ConfigTab({ onError }: { onError: (msg: string) => void }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DebugPanel({
+  logId,
+  debugResult,
+  debugLoading,
+  onDebug,
+}: {
+  logId: string;
+  debugResult: DebugResult | null;
+  debugLoading: boolean;
+  onDebug: () => void;
+}) {
+  return (
+    <div className="mt-6 rounded-md border border-amber-800 bg-amber-950/20 p-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-amber-400">
+          Debug Gmail Search
+        </h3>
+        <button
+          onClick={onDebug}
+          disabled={debugLoading}
+          className="rounded-md bg-amber-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+        >
+          {debugLoading ? 'Buscando...' : 'Debug Search'}
+        </button>
+      </div>
+
+      {debugResult && (
+        <div className="mt-4 space-y-4">
+          <div className="rounded border border-amber-800 bg-black/30 p-3">
+            <p className="text-xs font-medium text-amber-400">Query enviada a Gmail:</p>
+            <code className="mt-1 block text-xs text-amber-300 break-all">{debugResult.searchQuery}</code>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded border border-amber-800 bg-black/30 p-3">
+              <p className="text-xs font-medium text-amber-400">Variaciones de monto:</p>
+              <ul className="mt-1 list-disc pl-4 text-xs text-amber-300 space-y-0.5">
+                {debugResult.amountVariations.map((v, i) => (
+                  <li key={i}>{v}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded border border-amber-800 bg-black/30 p-3">
+              <p className="text-xs font-medium text-amber-400">Variaciones de referencia:</p>
+              <ul className="mt-1 list-disc pl-4 text-xs text-amber-300 space-y-0.5">
+                {debugResult.referenceVariations.map((v, i) => (
+                  <li key={i}>{v}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <p className="text-xs text-amber-400">
+            Correos encontrados: {debugResult.emails.length}
+          </p>
+
+          {debugResult.emails.length === 0 && (
+            <p className="text-xs text-amber-500/60">
+              Ningún correo coincide con el monto en las últimas 24h. Verificá que el correo esté en la bandeja y que Gmail esté conectado.
+            </p>
+          )}
+
+          {debugResult.emails.map((email) => (
+            <div key={email.messageId} className="rounded border border-amber-800 bg-black/30 p-4">
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <span className="text-amber-500">From:</span>
+                  <p className="text-slate-300 mt-0.5">{email.from}</p>
+                </div>
+                <div>
+                  <span className="text-amber-500">Date:</span>
+                  <p className="text-slate-300 mt-0.5">{email.date}</p>
+                </div>
+                <div>
+                  <span className="text-amber-500">Subject:</span>
+                  <p className="text-slate-300 mt-0.5">{email.subject}</p>
+                </div>
+              </div>
+
+              <div className="mt-3 flex gap-3">
+                <span className={`rounded px-2 py-0.5 text-xs font-medium ${email.matchedReference ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                  Ref en Snippet/Subject: {email.matchedReference ? 'SI' : 'NO'}
+                </span>
+                <span className={`rounded px-2 py-0.5 text-xs font-medium ${email.matchedReferenceInBody ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                  Ref en Body: {email.matchedReferenceInBody ? 'SI' : 'NO'}
+                </span>
+              </div>
+
+              <details className="mt-3">
+                <summary className="cursor-pointer text-xs text-amber-500 hover:text-amber-400">
+                  Snippet (primeras ~100 letras)
+                </summary>
+                <pre className="mt-2 max-h-32 overflow-auto rounded bg-black/50 p-2 text-xs text-slate-400 whitespace-pre-wrap">{email.snippet}</pre>
+              </details>
+
+              <details className="mt-2">
+                <summary className="cursor-pointer text-xs text-amber-500 hover:text-amber-400">
+                  Body completo (primeros 1000 caracteres)
+                </summary>
+                <pre className="mt-2 max-h-64 overflow-auto rounded bg-black/50 p-2 text-xs text-slate-400 whitespace-pre-wrap">{email.bodyPreview}</pre>
+              </details>
+            </div>
+          ))}
+
+          {debugResult.error && (
+            <div className="rounded border border-rose-800 bg-rose-500/10 p-3">
+              <p className="text-xs text-rose-400">{debugResult.error}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!debugResult && !debugLoading && (
+        <p className="mt-2 text-xs text-amber-500/60">
+          Presioná &quot;Debug Search&quot; para ver qué encuentra Gmail con los datos extraídos de este comprobante (logId: {logId}).
+        </p>
+      )}
     </div>
   );
 }

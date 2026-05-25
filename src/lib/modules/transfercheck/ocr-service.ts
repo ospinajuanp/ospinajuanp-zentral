@@ -64,6 +64,9 @@ function parseAmount(raw: string): number {
     if (parts.length > 2) {
       return Number(cleaned.replace(/\./g, ''));
     }
+    if (parts.length === 2 && parts[1].length === 3) {
+      return Number(cleaned.replace('.', ''));
+    }
   }
 
   return Number(cleaned);

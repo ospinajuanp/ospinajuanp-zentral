@@ -8,7 +8,7 @@
 | Cartera | `cartera` | Premium | Próximamente | 500 consultas/mes |
 
 ### TransferCheck
-- **Descripción:** Verificación y validación de transferencias bancarias en tiempo real.
+- **Descripción:** Verificación y validación de transferencias bancarias mediante OCR (OCR.space) e IA (Gemini), con cruce automático contra correos de Gmail.
 - **Disponible en:** Free, Premium, Enterprise.
 - **Cuota mensual:** Determinada por el plan del workspace (100, 500, o ilimitado).
 
