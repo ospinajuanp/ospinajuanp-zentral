@@ -20,8 +20,7 @@ export default async function UsersPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Usuarios</h1>
           <p className="mt-1 text-sm text-slate-400">
-            {users.length} usuario{users.length !== 1 ? 's' : ''} registrado
-            {users.length !== 1 ? 's' : ''}.
+            {users.length} usuario{users.length !== 1 ? 's' : ''} registrado{users.length !== 1 ? 's' : ''}.
           </p>
         </div>
         <button

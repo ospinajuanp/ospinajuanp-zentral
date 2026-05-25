@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 import dbConnect from '@/lib/db/mongoose';
 import { ModuleSubscription } from '@/lib/models/module-subscription';
@@ -29,12 +30,12 @@ export default async function DashboardPage() {
         <div className="mt-8 rounded-md border border-slate-800 bg-slate-900 p-8 text-center">
           <p className="text-slate-400">
             Eres SuperAdmin.{' '}
-            <a
+            <Link
               href="/admin"
               className="font-medium text-white underline underline-offset-2"
             >
-              Ir al panel de administración
-            </a>
+              Ir al panel de administracion
+            </Link>
           </p>
         </div>
       ) : (
@@ -47,9 +48,10 @@ export default async function DashboardPage() {
               </p>
             ) : (
               subscriptions.map((sub) => (
-                <a
+                <Link
                   key={sub._id.toString()}
                   href={`/${sub.moduleKey}`}
+                  aria-label={`Ir al modulo ${sub.moduleKey}`}
                   className="rounded-md border border-slate-800 bg-slate-900 p-6 transition-shadow hover:shadow-indigo-500/10"
                 >
                   <h3 className="text-lg font-semibold text-white capitalize">
@@ -58,7 +60,10 @@ export default async function DashboardPage() {
                   <p className="mt-1 text-sm text-slate-400">
                     {sub.tier === 'free' ? 'Gratis' : 'Premium'}
                   </p>
-                </a>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {sub.usedQuota} / {sub.monthlyQuota} consultas
+                  </p>
+                </Link>
               ))
             )}
           </div>

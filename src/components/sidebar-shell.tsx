@@ -28,7 +28,7 @@ export function SidebarShell({ sidebar, children, bottomNav }: SidebarShellProps
   return (
     <div className="flex min-h-screen">
       {/* desktop sidebar */}
-        <aside className="hidden w-64 flex-col border-r border-slate-800 bg-slate-900 lg:flex lg:sticky lg:top-0 lg:h-screen">
+        <aside className="hidden w-64 flex-col border-r border-slate-800 bg-slate-900 lg:flex lg:sticky lg:top-0 lg:h-screen" aria-label="Barra lateral">
         {sidebar}
       </aside>
 
@@ -38,7 +38,7 @@ export function SidebarShell({ sidebar, children, bottomNav }: SidebarShellProps
       </main>
 
       {/* mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center border-t border-slate-800 bg-slate-900 px-2 pb-safe lg:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center border-t border-slate-800 bg-slate-900 px-2 pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Navegacion movil">
         {bottomNav.map((item) => {
           const isActive = item.exact
             ? pathname === item.href
@@ -58,6 +58,8 @@ export function SidebarShell({ sidebar, children, bottomNav }: SidebarShellProps
         })}
         <button
           onClick={() => setOpen(true)}
+          aria-label="Abrir menu de navegacion"
+          aria-expanded={open}
           className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors ${
             open ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'
           }`}
@@ -73,7 +75,14 @@ export function SidebarShell({ sidebar, children, bottomNav }: SidebarShellProps
       {open && (
         <div
           className="fixed inset-0 z-50 bg-black/60 lg:hidden"
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar menu"
           onClick={() => setOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') setOpen(false);
+            if (e.key === 'Escape') setOpen(false);
+          }}
         />
       )}
 
@@ -82,6 +91,9 @@ export function SidebarShell({ sidebar, children, bottomNav }: SidebarShellProps
         className={`fixed bottom-0 left-0 right-0 z-50 flex max-h-[70vh] flex-col rounded-t-xl border-t border-slate-700 bg-slate-900 transition-transform duration-200 lg:hidden ${
           open ? 'translate-y-0' : 'translate-y-full'
         }`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu de navegacion"
       >
         <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
           <span className="text-base font-bold tracking-tight text-white">Navegación</span>

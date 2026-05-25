@@ -8,7 +8,8 @@ import { ModuleSubscription } from '@/lib/models/module-subscription';
 import Link from 'next/link';
 
 export default async function AdminDashboard() {
-  const session = await getSession();
+  const _session = await getSession();
+  void _session;
 
   await dbConnect();
 
@@ -64,7 +65,7 @@ export default async function AdminDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-white">Panel de Administración</h1>
-        <p className="mt-1 text-sm text-slate-400">Bienvenido, {session?.sub ? 'SuperAdmin' : ''}</p>
+        <p className="mt-1 text-sm text-slate-400">Bienvenido, SuperAdmin</p>
       </div>
 
       {/* Billing / MRR — top priority */}

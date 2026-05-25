@@ -20,12 +20,29 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    const purchases = await WorkspacePurchase.find({
+    const purchases = (await WorkspacePurchase.find({
       workspace: auth.workspaceId,
     })
       .sort({ createdAt: -1 })
       .limit(20)
-      .lean();
+      .lean()).map((p) => {
+        const purchasedAt = new Date(p.purchasedAt);
+        const expiresAt = new Date(purchasedAt);
+        expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+        return {
+          _id: p._id.toString(),
+          plan: p.plan?.toString(),
+          planName: p.planName,
+          amount: p.amount,
+          currency: p.currency,
+          status: p.status,
+          modules: p.modules,
+          purchasedAt: purchasedAt.toISOString(),
+          expiresAt: expiresAt.toISOString(),
+          createdAt: p.createdAt,
+        };
+      });
 
     return NextResponse.json({ purchases });
   } catch (error) {

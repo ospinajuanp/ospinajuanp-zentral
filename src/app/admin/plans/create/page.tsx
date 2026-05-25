@@ -180,7 +180,7 @@ export default function CreatePlanPage() {
         <div className="rounded-md border border-slate-800 bg-slate-900 p-6">
           <h2 className="text-lg font-semibold text-white">Información</h2>
           <div className="mt-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-slate-400">Nombre</label>
                 <input id="name" type="text" required value={name} onChange={(e) => setName(e.target.value)}
@@ -194,7 +194,7 @@ export default function CreatePlanPage() {
                   placeholder="$12, A medida o vacío" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="monthlyPrice" className="block text-sm font-medium text-slate-400">Precio mensual (número)</label>
                 <input id="monthlyPrice" type="number" step="0.01" value={monthlyPrice} onChange={(e) => setMonthlyPrice(e.target.value)}
@@ -420,7 +420,7 @@ export default function CreatePlanPage() {
         {/* support & onboarding */}
         <div className="rounded-md border border-slate-800 bg-slate-900 p-6">
           <h2 className="text-lg font-semibold text-white">Soporte y Onboarding</h2>
-          <div className="mt-4 grid grid-cols-2 gap-4">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="support" className="block text-sm font-medium text-slate-400">Soporte</label>
               <select id="support" value={support} onChange={(e) => setSupport(e.target.value)}
@@ -452,7 +452,7 @@ export default function CreatePlanPage() {
         <div className="rounded-md border border-slate-800 bg-slate-900 p-6">
           <h2 className="text-lg font-semibold text-white">Configuración</h2>
           <div className="mt-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="cta" className="block text-sm font-medium text-slate-400">Texto del botón</label>
                 <input id="cta" type="text" value={cta} onChange={(e) => setCta(e.target.value)}
@@ -465,13 +465,12 @@ export default function CreatePlanPage() {
                   placeholder="/register o https://wa.me/..." />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="sortOrder" className="block text-sm font-medium text-slate-400">Orden</label>
                 <input id="sortOrder" type="number" value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))}
                   className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none" />
               </div>
-              <div></div>
             </div>
             <div className="flex items-center gap-3">
               <input id="highlighted" type="checkbox" checked={highlighted} onChange={(e) => setHighlighted(e.target.checked)}

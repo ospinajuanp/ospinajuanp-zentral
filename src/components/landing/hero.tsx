@@ -2,13 +2,13 @@ import Link from 'next/link';
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-[90vh] items-center justify-center bg-slate-950 px-6 pt-24">
+    <section id="main-content" aria-labelledby="hero-heading" className="relative flex min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] items-center justify-center bg-slate-950 px-6 pt-20 sm:pt-24">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950" />
 
       <div className="mx-auto max-w-4xl text-center">
-        <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl">
+        <h1 id="hero-heading" className="text-5xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl">
           Tu ecosistema de
-          <span className="text-indigo-400"> micro SaaS</span>
+          <span className="whitespace-nowrap text-indigo-400"> micro SaaS</span>
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-400">
@@ -31,26 +31,26 @@ export function Hero() {
           </Link>
         </div>
 
-        <div className="mt-16 flex items-center justify-center gap-8 text-sm text-slate-400">
-          <span className="flex items-center gap-2">
+        <ul className="mt-16 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-sm text-slate-400">
+          <li className="flex items-center gap-2">
             <svg className="h-4 w-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            Sin instalación
-          </span>
-          <span className="flex items-center gap-2">
+            Sin instalacion
+          </li>
+          <li className="flex items-center gap-2">
             <svg className="h-4 w-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            Pago por módulo
-          </span>
-          <span className="flex items-center gap-2">
+            Pago por modulo
+          </li>
+          <li className="flex items-center gap-2">
             <svg className="h-4 w-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
             Escalable
-          </span>
-        </div>
+          </li>
+        </ul>
       </div>
     </section>
   );

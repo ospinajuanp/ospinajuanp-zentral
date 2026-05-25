@@ -89,12 +89,13 @@ Contacto vía WhatsApp.
 | `support` | String | `ninguno` / `email` / `prioritario` / `canales` / `dedicado` |
 | `onboarding` | String | `ninguno` / `autoguiado` / `videos` / `documentacion` / `dedicado` |
 | `cta` | String | Texto del botón (dropdown con opciones + personalizado) |
-| `ctaLink` | String | Link del botón. Auto-generado: `/register?plan=ID` o `https://wa.me/NUMBER` |
+| `ctaLink` | String | Link del botón. Auto-generado: `/register?plan=ID` o `https://wa.me/NUMBER`. Si es externo (`http`), abre en nueva pestaña sin crear compra |
 | `highlighted` | Boolean | Se muestra como "Más popular" |
 | `isEnterprise` | Boolean | Plan a medida — borde punteado en landing, sin precio, CTA WhatsApp |
 | `whatsappNumber` | String | Número de WhatsApp (solo visible si isEnterprise) |
 | `sortOrder` | Number | Orden de aparición (auto-incremental al crear) |
 | `isActive` | Boolean | Visible en la landing |
+| `basedOn` | Plan? | Herencia de módulos de otro plan (opcional) |
 
 ---
 
@@ -113,7 +114,38 @@ Contacto vía WhatsApp.
 
 ---
 
-## Basado en (Herencia de Planes)
+## Sistema Multi-Plan
+
+Cada workspace soporta múltiples planes simultáneamente (`workspace.plans: Plan[]`).
+
+- **Free incluido siempre**: todo workspace tiene el plan Free como base
+- **Planes pagos acumulativos**: las cuotas de módulos se suman entre todas las compras activas
+- **WorkspacePurchase**: cada compra genera un registro con `modules[]` (moduleKey, quota, tier), `planName`, `amount`, `status`
+- **recalculateQuotas()**: función compartida (`src/lib/purchase/recalculate-quotas.ts`) que agrega cuotas de todas las compras activas + Free y sincroniza `ModuleSubscription`s
+
+### Reglas de Compra
+- Plan Free: máximo 1 compra por workspace (ya viene por defecto)
+- Planes pagos: compras múltiples permitidas — las cuotas se acumulan
+- Sin auto-renovación: mes a mes manual
+- CTA externo (`http`): abre `window.open()` en pestaña nueva sin crear compra
+- CTA interno: abre pasarela de pago simulada → formulario TC → `handlePurchase()` → crea `WorkspacePurchase` y recalcula cuotas
+
+### Pasarela de Pago (Simulada)
+- Free y Enterprise no aparecen en la grilla de compra (solo planes de pago)
+- Modal `role="dialog"` con formulario pre-llenado: nombre, apellido, telefono, tarjeta, expiracion, CVV
+- Banner "SIMULADO — No se realizaran cobros reales"
+- Flujo: formulario → "Procesando pago..." (2s) → exito / rechazo
+- Escape key + click overlay cierran el modal
+
+### Historial de Compras
+- Columnas: Plan | Estado (Activa/Desactivada/Expirada/Gratuita) | Periodo (DD/MM/YYYY — DD/MM/YYYY) | Monto | Accion
+- `expiresAt` = `purchasedAt + 1 mes`
+- Free: sin acciones, badge "Gratuita", cuota mensual automatica, vence "∞"
+- Desactivar: `PATCH cancelled` → `recalculateQuotas()`. Las cuotas dejan de aportar al workspace
+- Reactivar (dentro del periodo): `POST .../reactivate` → crea **nueva** compra con `paymentMethod: 'reactivated'`, mismo periodo que la original. La vieja queda como Desactivada en historial
+- Renovar (fuera del periodo): abre pasarela de pago → nueva compra con periodo `hoy → hoy + 1 mes`, la vieja queda en historial
+
+---
 
 Al crear un plan, se puede seleccionar "Basado en" otro plan existente. Esto:
 

@@ -31,8 +31,7 @@ export default function ModulesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Módulos</h1>
           <p className="mt-1 text-sm text-slate-400">
-            {modules.length} módulo{modules.length !== 1 ? 's' : ''} registrado
-            {modules.length !== 1 ? 's' : ''}.
+            {modules.length} módulo{modules.length !== 1 ? 's' : ''} registrado{modules.length !== 1 ? 's' : ''}.
           </p>
         </div>
         <Link

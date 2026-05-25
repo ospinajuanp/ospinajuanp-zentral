@@ -56,8 +56,7 @@ export default function PlansPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Planes</h1>
           <p className="mt-1 text-sm text-slate-400">
-            {plans.length} plan{plans.length !== 1 ? 'es' : ''} registrado
-            {plans.length !== 1 ? 's' : ''}.
+            {plans.length} plan{plans.length !== 1 ? 'es' : ''} registrado{plans.length !== 1 ? 's' : ''}.
           </p>
         </div>
         <Link

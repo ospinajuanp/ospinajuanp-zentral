@@ -30,14 +30,14 @@ export async function ModulesGrid() {
     }));
 
     return (
-      <section id="modulos" className="border-t border-slate-800 bg-slate-950 px-6 py-24">
+      <section id="modulos" aria-labelledby="modules-heading" className="border-t border-slate-800 bg-slate-950 px-6 py-24">
         <div className="mx-auto max-w-6xl">
           <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Módulos disponibles
+            <h2 id="modules-heading" className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Modulos disponibles
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-slate-400">
-              Cada módulo es independiente. Actívalos según las necesidades de tu negocio.
+              Cada modulo es independiente. Activalos segun las necesidades de tu negocio.
             </p>
           </div>
 
@@ -46,6 +46,17 @@ export async function ModulesGrid() {
       </section>
     );
   } catch {
-    return null;
+    return (
+      <section id="modulos" className="border-t border-slate-800 bg-slate-950 px-6 py-24">
+        <div className="mx-auto max-w-6xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Modulos disponibles
+          </h2>
+          <p className="mt-4 text-slate-400">
+            No se pudieron cargar los modulos en este momento. Intenta de nuevo mas tarde.
+          </p>
+        </div>
+      </section>
+    );
   }
 }

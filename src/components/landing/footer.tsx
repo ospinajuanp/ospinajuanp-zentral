@@ -4,22 +4,19 @@ export function Footer() {
   return (
     <footer className="border-t border-slate-800 bg-slate-900 px-6 py-12">
       <div className="mx-auto max-w-6xl">
-        <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-          <Link href="/" className="text-lg font-bold tracking-tight text-white">
-            Zentral
-          </Link>
+        <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
 
-          <nav className="flex gap-6 text-sm text-slate-400">
-            <Link href="#modulos" className="hover:text-white">
-              Módulos
+          <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-400" aria-label="Enlaces del sitio">
+            <Link href="/#modulos" className="hover:text-white">
+              Modulos
             </Link>
-            <Link href="#precios" className="hover:text-white">
+            <Link href="/#precios" className="hover:text-white">
               Precios
             </Link>
-            <Link href="#sobre-nosotros" className="hover:text-white">
+            <Link href="/#sobre-nosotros" className="hover:text-white">
               Sobre nosotros
             </Link>
-            <Link href="#contacto" className="hover:text-white">
+            <Link href="/#contacto" className="hover:text-white">
               Contacto
             </Link>
           </nav>
