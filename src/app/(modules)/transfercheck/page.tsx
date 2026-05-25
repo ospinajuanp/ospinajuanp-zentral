@@ -330,12 +330,16 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
   const [totalPages, setTotalPages] = useState(1);
   const [reconciling, setReconciling] = useState<string | null>(null);
   const [manualForm, setManualForm] = useState<{ logId: string; monto: string; referencia: string } | null>(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (statusFilter) params.set('status', statusFilter);
+      if (dateFrom) params.set('fechaDesde', dateFrom);
+      if (dateTo) params.set('fechaHasta', dateTo);
       params.set('page', String(page));
       params.set('limit', '20');
 
@@ -351,7 +355,7 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, page, onError]);
+  }, [statusFilter, page, dateFrom, dateTo, onError]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
@@ -393,7 +397,7 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
   return (
     <div>
       {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-4">
         {['', 'pending_email', 'matched', 'manual_error'].map((s) => (
           <button
             key={s}
@@ -407,6 +411,40 @@ function LogsTab({ onError }: { onError: (msg: string) => void }) {
             {s === '' ? 'Todos' : statusLabels[s] || s}
           </button>
         ))}
+      </div>
+
+      {/* Date filter */}
+      <div className="flex flex-wrap items-end gap-2 mb-6">
+        <div>
+          <label htmlFor="log-date-from" className="block text-xs text-slate-500 mb-1">Desde</label>
+          <input
+            id="log-date-from"
+            type="date"
+            value={dateFrom}
+            max={dateTo || undefined}
+            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+            className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-hidden"
+          />
+        </div>
+        <div>
+          <label htmlFor="log-date-to" className="block text-xs text-slate-500 mb-1">Hasta</label>
+          <input
+            id="log-date-to"
+            type="date"
+            value={dateTo}
+            min={dateFrom || undefined}
+            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+            className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-hidden"
+          />
+        </div>
+        {(dateFrom || dateTo) && (
+          <button
+            onClick={() => { setDateFrom(''); setDateTo(''); setPage(1); }}
+            className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-300"
+          >
+            Limpiar fechas
+          </button>
+        )}
       </div>
 
       {loading ? (

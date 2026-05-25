@@ -14,6 +14,8 @@ export async function GET(req: NextRequest) {
     const status = url.searchParams.get('status') || undefined;
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '20')));
+    const fechaDesde = url.searchParams.get('fechaDesde') || undefined;
+    const fechaHasta = url.searchParams.get('fechaHasta') || undefined;
 
     const workspaceId = auth.role === 'superadmin'
       ? url.searchParams.get('workspaceId') || undefined
@@ -27,6 +29,13 @@ export async function GET(req: NextRequest) {
 
     const filter: Record<string, unknown> = { workspace: workspaceId };
     if (status) filter.status = status;
+
+    if (fechaDesde || fechaHasta) {
+      const dateFilter: Record<string, Date> = {};
+      if (fechaDesde) dateFilter.$gte = new Date(fechaDesde + 'T00:00:00.000Z');
+      if (fechaHasta) dateFilter.$lte = new Date(fechaHasta + 'T23:59:59.999Z');
+      filter.createdAt = dateFilter;
+    }
 
     const [logs, total] = await Promise.all([
       TransferCheckLog.find(filter)
