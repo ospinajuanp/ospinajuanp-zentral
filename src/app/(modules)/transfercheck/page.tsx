@@ -178,7 +178,14 @@ function UploadTab({ onProcessed }: { onProcessed: () => void }) {
       }
 
       setResult(data.log);
-      toast.success('Comprobante procesado exitosamente.');
+      const logStatus = data.log?.status as string;
+      if (logStatus === 'matched') {
+        toast.success('Comprobante conciliado exitosamente.');
+      } else if (logStatus === 'pending_email') {
+        toast.info('Comprobante procesado. Pendiente de conciliacion.');
+      } else {
+        toast.info('Comprobante procesado. Sin coincidencia en Gmail.');
+      }
       onProcessed();
     } catch {
       toast.error('No se pudo procesar. Revisa tu conexión a internet.');
@@ -359,7 +366,18 @@ function SyncTab({ onProcessed }: { onProcessed: () => void }) {
       setSyncResult({ processed: data.processed, results: data.results });
       if (data.processed > 0) {
         onProcessed();
-        toast.success(`${data.processed} comprobante${data.processed !== 1 ? 's' : ''} verificado${data.processed !== 1 ? 's' : ''}.`);
+        const matched = data.results.filter((r: SyncItemResult) => r.newStatus === 'matched').length;
+        const pending = data.results.filter((r: SyncItemResult) => r.newStatus === 'pending_email').length;
+        const errors = data.results.filter((r: SyncItemResult) => r.newStatus === 'manual_error').length;
+        const parts: string[] = [];
+        if (matched > 0) parts.push(`${matched} conciliado${matched !== 1 ? 's' : ''}`);
+        if (pending > 0) parts.push(`${pending} pendiente${pending !== 1 ? 's' : ''}`);
+        if (errors > 0) parts.push(`${errors} sin coincidencia`);
+        if (parts.length === 1 && matched === data.processed) {
+          toast.success(`${data.processed} comprobante${data.processed !== 1 ? 's' : ''} conciliado${data.processed !== 1 ? 's' : ''}.`);
+        } else {
+          toast.info(`${data.processed} verificado${data.processed !== 1 ? 's' : ''}: ${parts.join(', ')}.`);
+        }
       } else {
         toast.info('No se encontraron comprobantes pendientes.');
       }
@@ -516,6 +534,7 @@ function LogsTab({ isAdmin }: { isAdmin: boolean }) {
       });
 
       if (res.ok) {
+        toast.success('Comprobante conciliado manualmente.');
         setManualForm(null);
         fetchLogs();
       } else {
