@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToastContext } from '@/contexts/toast-context';
 
 const DEBUG = false;
@@ -308,10 +308,13 @@ function ResultCard({
   onDebug: (logId: string) => void;
   onDismiss: () => void;
 }) {
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 20000);
+    const timer = setTimeout(() => onDismissRef.current(), 20000);
     return () => clearTimeout(timer);
-  }, [onDismiss]);
+  }, []);
 
   return (
     <div className="rounded-md border border-slate-800 bg-slate-900 p-4 sm:p-6">
