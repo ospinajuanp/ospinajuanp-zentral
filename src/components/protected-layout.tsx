@@ -6,7 +6,7 @@ import SessionTimeout from '@/components/session-timeout';
 import LogoutButton from '@/components/logout-button';
 import { NavLink } from '@/components/nav-link';
 import { SidebarShell } from '@/components/sidebar-shell';
-import { HomeIcon, UsersIcon, GearIcon, PriceIcon } from '@/components/icons';
+import { HomeIcon, UsersIcon, GearIcon, PriceIcon, ProfileIcon } from '@/components/icons';
 import type { ReactNode } from 'react';
 
 interface ProtectedLayoutProps {
@@ -58,6 +58,9 @@ export default async function ProtectedLayout({
       { label: 'Workspace', href: '/workspace', icon: <GearIcon /> },
     );
   }
+  if (role === 'operador') {
+    bottomNav.push({ label: 'Perfil', href: '/profile', icon: <ProfileIcon /> });
+  }
 
   return (
     <SessionTimeout>
@@ -80,6 +83,10 @@ export default async function ProtectedLayout({
                   <NavLink href="/workspace/plan">Planes</NavLink>
                   <NavLink href="/workspace" exact>Workspace</NavLink>
                 </>
+              )}
+
+              {role === 'operador' && (
+                <NavLink href="/profile">Perfil</NavLink>
               )}
 
               {modules.length > 0 && (

@@ -49,6 +49,14 @@ export function GearIcon() {
   );
 }
 
+export function ProfileIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  );
+}
+
 export function Spinner({ className = '' }: { className?: string }) {
   return (
     <div className={`inline-block h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent ${className}`} />
