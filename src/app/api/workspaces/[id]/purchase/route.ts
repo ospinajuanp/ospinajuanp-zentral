@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 import dbConnect from '@/lib/db/mongoose';
 import { Workspace } from '@/lib/models/workspace';
 import { Plan } from '@/lib/models/plan';
@@ -12,6 +13,9 @@ export async function POST(req: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    const check = await checkFeatureEnabled(req, 'simulatedPurchaseEnabled');
+    if (check) return check;
 
     if (auth.role !== 'admin') {
       return NextResponse.json({ error: 'Solo administradores pueden comprar planes' }, { status: 403 });

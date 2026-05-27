@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { extractTransferData } from '@/lib/modules/transfercheck/extractor';
 import { createTransferCheckLog, processPendingMatch, checkQuota, consumeQuota } from '@/lib/modules/transfercheck/matcher';
 import { TransferCheckLog } from '@/lib/models/transfercheck-log';
@@ -12,6 +13,9 @@ export async function POST(req: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    const check = await checkFeatureEnabled(req, 'transferCheckEnabled');
+    if (check) return check;
 
     const workspaceId = auth.workspaceId;
     if (!workspaceId) {

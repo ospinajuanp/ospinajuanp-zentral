@@ -7,6 +7,7 @@ import { ModuleSubscription } from '@/lib/models/module-subscription';
 import { Plan } from '@/lib/models/plan';
 void Plan; // registered for populate('plans')
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 export async function GET(
   _request: NextRequest,
@@ -16,6 +17,9 @@ export async function GET(
   if (!auth || auth.role !== 'superadmin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(_request, 'workspacesEnabled');
+  if (check) return check;
 
   await dbConnect();
   const { id } = await params;
@@ -39,6 +43,9 @@ export async function PUT(
   if (!auth || auth.role !== 'superadmin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(request, 'workspacesEnabled');
+  if (check) return check;
 
   await dbConnect();
   const { id } = await params;
@@ -93,6 +100,9 @@ export async function DELETE(
   if (!auth || auth.role !== 'superadmin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(_request, 'workspacesEnabled');
+  if (check) return check;
 
   await dbConnect();
   const { id } = await params;

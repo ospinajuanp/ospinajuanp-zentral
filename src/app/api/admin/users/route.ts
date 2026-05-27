@@ -3,12 +3,16 @@ import type { NextRequest } from 'next/server';
 import dbConnect from '@/lib/db/mongoose';
 import { User } from '@/lib/models/user';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 export async function GET(request: NextRequest) {
   const auth = await getApiAuth(request);
   if (!auth || auth.role !== 'superadmin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(request, 'usersEnabled');
+  if (check) return check;
 
   await dbConnect();
 

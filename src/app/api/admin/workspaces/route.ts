@@ -3,12 +3,16 @@ import type { NextRequest } from 'next/server';
 import dbConnect from '@/lib/db/mongoose';
 import { Workspace } from '@/lib/models/workspace';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 export async function GET(request: NextRequest) {
   const auth = await getApiAuth(request);
   if (!auth || auth.role !== 'superadmin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(request, 'workspacesEnabled');
+  if (check) return check;
 
   await dbConnect();
 
@@ -45,6 +49,9 @@ export async function POST(request: NextRequest) {
   if (!auth || auth.role !== 'superadmin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(request, 'workspacesEnabled');
+  if (check) return check;
 
   const { name, slug, owner, isActive } = await request.json();
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { disconnectGmail } from '@/lib/models/workspace-settings';
 
 export async function POST(req: NextRequest) {
@@ -8,6 +9,9 @@ export async function POST(req: NextRequest) {
     if (!auth || !auth.workspaceId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    const check = await checkFeatureEnabled(req, 'gmailOAuthEnabled');
+    if (check) return check;
 
     await disconnectGmail(auth.workspaceId);
 

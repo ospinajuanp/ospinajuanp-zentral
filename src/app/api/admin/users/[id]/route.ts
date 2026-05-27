@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db/mongoose';
 import { User } from '@/lib/models/user';
 import { Workspace } from '@/lib/models/workspace';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { hashPassword } from '@/lib/auth';
 
 export async function GET(
@@ -14,6 +15,9 @@ export async function GET(
   if (!auth || auth.role !== 'superadmin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(_request, 'usersEnabled');
+  if (check) return check;
 
   await dbConnect();
   const { id } = await params;
@@ -34,6 +38,9 @@ export async function PUT(
   if (!auth || auth.role !== 'superadmin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(request, 'usersEnabled');
+  if (check) return check;
 
   await dbConnect();
   const { id } = await params;
@@ -71,6 +78,9 @@ export async function DELETE(
   if (!auth || auth.role !== 'superadmin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(_request, 'usersEnabled');
+  if (check) return check;
 
   await dbConnect();
   const { id } = await params;

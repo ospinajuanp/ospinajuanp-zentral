@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth';
 import dbConnect from '@/lib/db/mongoose';
 import { ModuleSubscription } from '@/lib/models/module-subscription';
+import { getAppSettings } from '@/lib/models/app-settings';
 import Link from 'next/link';
 import SessionTimeout from '@/components/session-timeout';
 import LogoutButton from '@/components/logout-button';
@@ -32,6 +33,13 @@ export default async function ProtectedLayout({
   }
 
   const { role, workspaceId } = session!;
+
+  const settings = await getAppSettings();
+  if (!settings.moduleAccessEnabled && role !== 'superadmin') {
+    const { redirect } = await import('next/navigation');
+    redirect('/dashboard');
+  }
+
   const isAdmin = role === 'admin';
 
   let modules: { moduleKey: string; tier: string }[] = [];

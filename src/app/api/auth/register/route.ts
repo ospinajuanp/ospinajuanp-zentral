@@ -9,6 +9,8 @@ import { recalculateQuotas } from '@/lib/purchase/recalculate-quotas';
 import { hashPassword, signVerificationToken } from '@/lib/auth';
 import { sendVerificationEmail } from '@/lib/email/resend';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
+import { getAppSettings } from '@/lib/models/app-settings';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -28,6 +30,9 @@ export async function POST(request: NextRequest) {
       }
     );
   }
+
+  const featureCheck = await checkFeatureEnabled(request, 'registrationEnabled');
+  if (featureCheck) return featureCheck;
 
   const { name, email, password, companyName, planId } = await request.json();
 
@@ -107,13 +112,16 @@ export async function POST(request: NextRequest) {
     plans: planIds,
   });
 
+  const settings = await getAppSettings();
+  const emailVerificationRequired = settings.emailVerificationRequired;
+
   const user = await User.create({
     name,
     email: email.toLowerCase(),
     passwordHash,
     role: 'admin',
     workspace: workspace._id,
-    isActive: false,
+    isActive: !emailVerificationRequired,
   });
 
   workspace.owner = user._id;
@@ -146,20 +154,23 @@ export async function POST(request: NextRequest) {
 
   await recalculateQuotas(workspace._id.toString());
 
-  const verificationToken = await signVerificationToken({
-    email: user.email,
-    purpose: 'email-verification',
-  });
+  if (emailVerificationRequired) {
+    const verificationToken = await signVerificationToken({
+      email: user.email,
+      purpose: 'email-verification',
+    });
 
-  try {
-    await sendVerificationEmail(user.email, verificationToken);
-  } catch {
-    // Email send failure is non-blocking — user can request a new link later
+    try {
+      await sendVerificationEmail(user.email, verificationToken);
+    } catch {
+      // Email send failure is non-blocking — user can request a new link later
+    }
   }
 
   return NextResponse.json({
-    message:
-      'Cuenta creada. Revisa tu bandeja de entrada para verificar tu correo electrónico.',
+    message: emailVerificationRequired
+      ? 'Cuenta creada. Revisa tu bandeja de entrada para verificar tu correo electrónico.'
+      : 'Cuenta creada exitosamente.',
     planName: selectedPlan?.name ?? null,
     isPayReady: true,
   });

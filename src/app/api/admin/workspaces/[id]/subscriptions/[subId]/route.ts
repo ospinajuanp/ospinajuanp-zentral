@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db/mongoose';
 import { ModuleSubscription } from '@/lib/models/module-subscription';
 import { WorkspacePurchase } from '@/lib/models/workspace-purchase';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string; subId: string }> }) {
   try {
@@ -10,6 +11,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!auth || auth.role !== 'superadmin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
+
+    const check = await checkFeatureEnabled(req, 'workspacesEnabled');
+    if (check) return check;
 
     const { id, subId } = await params;
     const body = await req.json();
@@ -45,6 +49,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!auth || auth.role !== 'superadmin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
+
+    const check = await checkFeatureEnabled(req, 'workspacesEnabled');
+    if (check) return check;
 
     const { id, subId } = await params;
     await dbConnect();

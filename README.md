@@ -75,6 +75,7 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 - **Pagina de perfil**: cambio de nombre y contrasena, visible solo para rol `operador` en sidebar
 - **ErrorBoundary + Toast system**: manejo de errores centralizado, notificaciones contextuales
 - **Modulo `visible`**: campo booleano que controla visibilidad en landing y creacion de planes
+- **Feature Toggles**: 19 toggles globales desde `/admin/settings` (auth, funcionalidades, CRUD, acceso admin/operador, mantenimiento). Cache in-memory con TTL de 10s, superadmin siempre exento de `loginEnabled`, `maintenanceMode`, `moduleAccessEnabled`
 
 ### Webhook de Pago / isPayReady
 - `Workspace.isPayReady`: flag booleano
@@ -84,7 +85,8 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 - **Dashboard Superadmin**: 12 cards en 3 secciones (Facturacion, Workspaces+Usuarios, Modulos+Suscripciones) + accesos rapidos. `countDocuments` para rendimiento. Metricas nuevas: suscripciones enterprise, suscripciones plan. Cards con iconos, bordes de color, animacion fade-up.
 - **Paginacion en todas las listas**: `PaginationBar` + `usePaginatedData<T>()` + `<DataTable>` reusable con selector 5/10/20/50/100
 - **Admin**: dashboard, usuarios CRUD, workspace settings, perfil de usuario
-- **Superadmin**: workspaces, users, modulos, planes CRUD, gestion de suscripciones
+- **Superadmin**: workspaces, users, modulos, planes CRUD, gestion de suscripciones, configuracion global de feature toggles
+- **Mantenimiento**: `maintenanceMode` bloquea todo el sitio, solo superadmin accede. `MaintenanceGuard` en layout raiz. Pagina `/maintenance` con mensaje configurable.
 
 ### UI/UX
 - Responsive: sidebar desktop sticky + bottom nav mobile + bottom sheet "Mas"
@@ -128,6 +130,8 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `/admin/plans/[id]` | superadmin | Editar plan |
 | `/admin/users` | superadmin | Lista global de usuarios |
 | `/admin/users/[id]` | superadmin | Detalle de usuario |
+| `/admin/settings` | superadmin | Configuracion global de feature toggles |
+| `/maintenance` | Publico | Pagina de mantenimiento (si `maintenanceMode` activo) |
 | `/users` | admin | Lista de usuarios del workspace (paginado) |
 | `/users/create` | admin | Crear usuario |
 | `/users/[id]` | admin | Editar usuario |
@@ -149,7 +153,8 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `/api/auth/verify-email` | POST | Público | Verificar email |
 | `/api/auth/session` | GET | — | Estado de sesión |
 | `/api/admin/stats` | GET | superadmin | Stats del dashboard |
-| `/api/admin/modules` | GET/POST | superadmin | Listar/Crear módulo |
+| `/api/admin/settings` | GET/PATCH | superadmin | Feature toggles globales |
+| `/api/admin/modules` | GET/POST | superadmin | Listar/Crear modulo |
 | `/api/admin/modules/[id]` | GET/PUT/DELETE | superadmin | CRUD módulo |
 | `/api/admin/plans` | GET/POST | superadmin | Listar/Crear plan |
 | `/api/admin/plans/[id]` | GET/PUT/DELETE | superadmin | CRUD plan |

@@ -4,12 +4,16 @@ import dbConnect from '@/lib/db/mongoose';
 import { User } from '@/lib/models/user';
 import { getApiAuth } from '@/lib/auth/api';
 import { hashPassword } from '@/lib/auth';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 export async function GET(request: NextRequest) {
   const auth = await getApiAuth(request);
   if (!auth || auth.role !== 'admin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(request, 'adminUsersEnabled');
+  if (check) return check;
 
   await dbConnect();
 
@@ -37,6 +41,9 @@ export async function POST(request: NextRequest) {
   if (!auth || auth.role !== 'admin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(request, 'adminUsersEnabled');
+  if (check) return check;
 
   const { name, email, password, role } = await request.json();
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 import dbConnect from '@/lib/db/mongoose';
 import { TransferCheckLog } from '@/lib/models/transfercheck-log';
 import { debugSearchTransferEmails } from '@/lib/modules/transfercheck/gmail-service';
@@ -10,6 +11,9 @@ export async function POST(req: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    const check = await checkFeatureEnabled(req, 'debugEndpointsEnabled');
+    if (check) return check;
 
     const workspaceId = auth.workspaceId;
     if (!workspaceId) {

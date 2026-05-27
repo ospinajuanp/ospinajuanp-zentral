@@ -5,6 +5,7 @@ import { User } from '@/lib/models/user';
 import { signResetToken } from '@/lib/auth';
 import { sendResetPasswordEmail } from '@/lib/email/resend';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 export async function POST(request: NextRequest) {
   const rateLimit = await checkRateLimit(request, 'forgotPassword');
@@ -14,6 +15,9 @@ export async function POST(request: NextRequest) {
       { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter), 'X-RateLimit-Limit': '25', 'X-RateLimit-Remaining': '0', 'Cache-Control': 'no-store, max-age=0, must-revalidate' } }
     );
   }
+
+  const featureCheck = await checkFeatureEnabled(request, 'passwordResetEnabled');
+  if (featureCheck) return featureCheck;
 
   const { email } = await request.json();
 

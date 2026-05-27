@@ -5,6 +5,8 @@ import { User } from '@/lib/models/user';
 import { Workspace } from '@/lib/models/workspace';
 import { verifyPassword, signJwt } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
+import { getAppSettings } from '@/lib/models/app-settings';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -24,6 +26,9 @@ export async function POST(request: NextRequest) {
       }
     );
   }
+
+  const featureCheck = await checkFeatureEnabled(request, 'loginEnabled');
+  if (featureCheck) return featureCheck;
 
   const { email, password } = await request.json();
 
@@ -62,10 +67,13 @@ export async function POST(request: NextRequest) {
   }
 
   if (!user.isActive) {
-    return NextResponse.json(
-      { error: 'Por favor, verifica tu correo electrónico antes de iniciar sesión.' },
-      { status: 403 }
-    );
+    const settings = await getAppSettings();
+    if (settings.emailVerificationRequired) {
+      return NextResponse.json(
+        { error: 'Por favor, verifica tu correo electrónico antes de iniciar sesión.' },
+        { status: 403 }
+      );
+    }
   }
 
   // For admin/operador roles, verify workspace is active

@@ -1,10 +1,17 @@
 import { Resend } from 'resend';
+import { getAppSettings } from '@/lib/models/app-settings';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM = 'Zentral <onboarding@resend.dev>';
 
 export async function sendResetPasswordEmail(email: string, token: string) {
+  const settings = await getAppSettings();
+  if (!settings.transactionalEmailsEnabled) {
+    console.log('[EMAIL DISABLED] sendResetPasswordEmail', { email, token });
+    return;
+  }
+
   const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
 
   const { error } = await resend.emails.send({
@@ -33,6 +40,12 @@ export async function sendResetPasswordEmail(email: string, token: string) {
 }
 
 export async function sendVerificationEmail(email: string, token: string) {
+  const settings = await getAppSettings();
+  if (!settings.transactionalEmailsEnabled) {
+    console.log('[EMAIL DISABLED] sendVerificationEmail', { email, token });
+    return;
+  }
+
   const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify-email?token=${token}`;
 
   const { error } = await resend.emails.send({

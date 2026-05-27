@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db/mongoose';
 import { User } from '@/lib/models/user';
 import { getApiAuth } from '@/lib/auth/api';
 import { hashPassword } from '@/lib/auth';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 async function getOwnedUser(workspaceId: string | null, userId: string) {
   if (!workspaceId) return null;
@@ -19,6 +20,9 @@ export async function GET(
   if (!auth || auth.role !== 'admin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(_request, 'adminUsersEnabled');
+  if (check) return check;
 
   const { id } = await params;
   const user = await getOwnedUser(auth.workspaceId, id);
@@ -37,6 +41,9 @@ export async function PUT(
   if (!auth || auth.role !== 'admin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(request, 'adminUsersEnabled');
+  if (check) return check;
 
   const { id } = await params;
   const user = await getOwnedUser(auth.workspaceId, id);
@@ -76,6 +83,9 @@ export async function DELETE(
   if (!auth || auth.role !== 'admin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
+
+  const check = await checkFeatureEnabled(_request, 'adminUsersEnabled');
+  if (check) return check;
 
   const { id } = await params;
 

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db/mongoose';
 import { Plan } from '@/lib/models/plan';
 import { Workspace } from '@/lib/models/workspace';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,6 +11,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!auth || auth.role !== 'superadmin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
+
+    const check = await checkFeatureEnabled(req, 'plansEnabled');
+    if (check) return check;
 
     const { id } = await params;
     await dbConnect();
@@ -32,6 +36,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!auth || auth.role !== 'superadmin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
+
+    const check = await checkFeatureEnabled(req, 'plansEnabled');
+    if (check) return check;
 
     const { id } = await params;
     const body = await req.json();
@@ -76,6 +83,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!auth || auth.role !== 'superadmin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
+
+    const check = await checkFeatureEnabled(req, 'plansEnabled');
+    if (check) return check;
 
     const { id } = await params;
     await dbConnect();

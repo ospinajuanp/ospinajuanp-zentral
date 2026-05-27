@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { getAuthUrl } from '@/lib/modules/transfercheck/gmail-service';
 
 export async function GET(req: NextRequest) {
@@ -8,6 +9,9 @@ export async function GET(req: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    const check = await checkFeatureEnabled(req, 'gmailOAuthEnabled');
+    if (check) return check;
 
     const state = encodeURIComponent(JSON.stringify({
       workspaceId: auth.workspaceId,

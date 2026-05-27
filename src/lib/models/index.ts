@@ -12,3 +12,6 @@ export type { IModule } from './module';
 
 export { Plan } from './plan';
 export type { IPlan } from './plan';
+
+export { AppSettings, getAppSettings, clearSettingsCache } from './app-settings';
+export type { IAppSettings } from './app-settings';

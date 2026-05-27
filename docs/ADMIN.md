@@ -88,3 +88,48 @@ Links directos a: Workspaces, Modulos, Planes, Usuarios.
 
 ### Detalle (`/admin/users/[id]`)
 - Informacion, cambio de rol, estado
+
+---
+
+## Configuracion Global (`/admin/settings`)
+
+19 feature toggles agrupados en 5 secciones. Solo accesible para superadmin.
+
+### Auth
+| Toggle | Default | Efecto |
+|--------|---------|--------|
+| Registro | ON | Bloquea `POST /api/auth/register` |
+| Login | ON | Bloquea `POST /api/auth/login` (superadmin siempre exento) |
+| Verificacion de email | ON | Si OFF: usuarios se crean activos, login no requiere verificacion |
+| Recuperacion de contrasena | ON | Bloquea forgot/reset password |
+| Emails transaccionales | ON | Si OFF: no envia emails, loguea en consola en dev |
+
+### Funcionalidades
+| Toggle | Default | Efecto |
+|--------|---------|--------|
+| Compra simulada | ON | Bloquea pasarela de pago |
+| TransferCheck | ON | Bloquea process-image, sync-email, debug-search |
+| Gmail OAuth | ON | Bloquea connect/callback/disconnect |
+| API publica de planes | ON | Bloquea GET /api/plans |
+| Endpoints de debug | OFF | debug-search devuelve 404 (no 403, no revela que existe) |
+
+### Superadmin CRUD
+| Toggle | Default | Efecto |
+|--------|---------|--------|
+| Workspaces | ON | Bloquea CRUD de workspaces |
+| Modulos | ON | Bloquea CRUD de modulos |
+| Planes | ON | Bloquea CRUD de planes |
+| Usuarios | ON | Bloquea CRUD de usuarios globales |
+
+### Admin / Operador
+| Toggle | Default | Efecto |
+|--------|---------|--------|
+| Acceso a modulos | ON | Si OFF: redirect a `/dashboard` (superadmin exento) |
+| Gestion de usuarios | ON | Bloquea `/api/users/*` para admin |
+| Gestion de planes | ON | Bloquea purchase API para admin |
+
+### Mantenimiento
+| Toggle | Default | Efecto |
+|--------|---------|--------|
+| Modo mantenimiento | OFF | Bloquea todo el sitio. Solo superadmin navega. APIs publicas accesibles. |
+| Mensaje | configurable | Se muestra en `/maintenance` |

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db/mongoose';
 import { Plan } from '@/lib/models/plan';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,6 +10,9 @@ export async function GET(req: NextRequest) {
     if (!auth || auth.role !== 'superadmin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
+
+    const check = await checkFeatureEnabled(req, 'plansEnabled');
+    if (check) return check;
 
     await dbConnect();
 
@@ -44,6 +48,9 @@ export async function POST(req: NextRequest) {
     if (!auth || auth.role !== 'superadmin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
+
+    const check = await checkFeatureEnabled(req, 'plansEnabled');
+    if (check) return check;
 
     const body = await req.json();
     const { name, price, monthlyPrice, description, includedModules, maxUsers, extraFeatures, support, onboarding, cta, ctaLink, highlighted, isEnterprise, whatsappNumber, sortOrder, isActive } = body;

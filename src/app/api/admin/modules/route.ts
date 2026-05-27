@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db/mongoose';
 import { Module } from '@/lib/models/module';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,6 +10,9 @@ export async function GET(req: NextRequest) {
     if (!auth || auth.role !== 'superadmin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
+
+    const check = await checkFeatureEnabled(req, 'modulesEnabled');
+    if (check) return check;
 
     await dbConnect();
 
@@ -47,6 +51,9 @@ export async function POST(req: NextRequest) {
     if (!auth || auth.role !== 'superadmin') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
+
+    const check = await checkFeatureEnabled(req, 'modulesEnabled');
+    if (check) return check;
 
     const body = await req.json();
     const { key, name, description, tier, status, defaultQuota, visible, icon } = body;

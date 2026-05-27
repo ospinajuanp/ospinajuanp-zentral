@@ -2,7 +2,7 @@
 
 > Analisis completo del proyecto generado el 2026-05-25. Ultima actualizacion: 2026-05-27.
 > **No comitear sin revision.** Se usa como hoja de ruta para siguientes iteraciones.
-> Total: **131 items** (20 completados ✓, 111 pendientes)
+> Total: **131 items** (25 completados ✓, 106 pendientes)
 
 ---
 
@@ -177,9 +177,10 @@
 
 | ID | Feature | Descripcion |
 |----|---------|-------------|
+| N-H0 ✓ | Feature toggles globales | 19 toggles en MongoDB (auth, features, CRUD, admin/operador, mantenimiento). Cache 10s, guard `checkFeatureEnabled()`, exencion superadmin. UI `/admin/settings`. Checks en 30+ rutas. |
 | N-H1 | Integracion de pagos real (Stripe/Wompi) | Reemplazar `paymentMethod: 'simulated'` con Stripe Checkout. Webhook para confirmacion |
 | N-H2 | Audit logging | Modelo `AuditLog` con userId, action, entity, changes, timestamp, IP |
-| N-H3 | Dashboard del workspace con analytics | Graficos de uso por modulo, tendencias, actividad de usuarios, resumen de billing |
+| N-H3 ✓ | Dashboard del workspace con analytics | Graficos de uso por modulo, tendencias, actividad de usuarios, resumen de billing |
 | N-H4 | Webhooks | Permitir a workspace owners configurar webhooks para eventos (transfer matched, etc.) |
 
 ### Medio
@@ -221,6 +222,11 @@ Implementado (esta sesion ✓):
 18. ~~Enterprise en historial de compras: sin acciones, badge ambar, periodo real~~ ✓
 19. ~~Gmail OAuth2 scope: `gmail.readonly` (solo lectura de correo)~~ ✓
 20. ~~DELETE enterprise: borra ModuleSubscription + WorkspacePurchase~~ ✓
+21. ~~Feature toggles: modelo AppSettings (19 toggles, cache 10s)~~ ✓
+22. ~~API `/admin/settings` GET/PATCH + UI con toggle switches~~ ✓
+23. ~~Guard `checkFeatureEnabled()` con exenciones superadmin (login, maintenance, moduleAccess)~~ ✓
+24. ~~Checks integrados en 30+ rutas (auth, features, admin CRUD, admin/operador)~~ ✓
+25. ~~Maintenance mode: `MaintenanceGuard` en layout raiz, pagina `/maintenance`~~ ✓
 
 Pendiente:
 1. **F-H5**: Search/filter en listas admin

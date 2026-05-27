@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuth } from '@/lib/auth/api';
 import dbConnect from '@/lib/db/mongoose';
 import { WorkspacePurchase } from '@/lib/models/workspace-purchase';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,6 +18,9 @@ export async function GET(req: NextRequest) {
     if (!auth.workspaceId) {
       return NextResponse.json({ error: 'Sin workspace asignado' }, { status: 403 });
     }
+
+    const check = await checkFeatureEnabled(req, 'adminPlansEnabled');
+    if (check) return check;
 
     await dbConnect();
 

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTokensFromCode } from '@/lib/modules/transfercheck/gmail-service';
 import { setGmailTokens } from '@/lib/models/workspace-settings';
+import { getAppSettings } from '@/lib/models/app-settings';
 
 export async function GET(req: NextRequest) {
   try {
+    const settings = await getAppSettings();
+    if (!settings.gmailOAuthEnabled) {
+      return NextResponse.redirect(new URL('/dashboard?error=Funcionalidad+Gmail+deshabilitada', req.url));
+    }
+
     const code = req.nextUrl.searchParams.get('code');
     const stateParam = req.nextUrl.searchParams.get('state');
 

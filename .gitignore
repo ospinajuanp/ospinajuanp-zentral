@@ -37,6 +37,7 @@ yarn-error.log*
 # project notes with credentials
 docs/adicional.md
 docs/.seed-credentials.md
+docs/.feature-toggles.md
 gemi.md
 project-context.english.md
 project-context.espanol.md

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiAuth } from '@/lib/auth/api';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 import dbConnect from '@/lib/db/mongoose';
 import { Plan } from '@/lib/models/plan';
 
@@ -9,6 +10,9 @@ export async function GET(req: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    const check = await checkFeatureEnabled(req, 'publicPlansApiEnabled');
+    if (check) return check;
 
     await dbConnect();
 

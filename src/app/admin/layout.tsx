@@ -10,7 +10,7 @@ import { HomeIcon, BuildingIcon, ModuleIcon, PriceIcon, UsersIcon } from '@/comp
 const bottomNav = [
   { label: 'Dashboard', href: '/admin', icon: <HomeIcon />, exact: true },
   { label: 'Workspaces', href: '/admin/workspaces', icon: <BuildingIcon /> },
-  { label: 'Módulos', href: '/admin/modules', icon: <ModuleIcon /> },
+  { label: 'Modulos', href: '/admin/modules', icon: <ModuleIcon /> },
   { label: 'Planes', href: '/admin/plans', icon: <PriceIcon /> },
   { label: 'Usuarios', href: '/admin/users', icon: <UsersIcon /> },
 ];
@@ -45,9 +45,12 @@ export default async function AdminLayout({
             <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
               <NavLink href="/admin" exact>Dashboard</NavLink>
               <NavLink href="/admin/workspaces">Workspaces</NavLink>
-              <NavLink href="/admin/modules">Módulos</NavLink>
+              <NavLink href="/admin/modules">Modulos</NavLink>
               <NavLink href="/admin/plans">Planes</NavLink>
               <NavLink href="/admin/users">Usuarios</NavLink>
+              <div className="pt-3 mt-3 border-t border-slate-800">
+                <NavLink href="/admin/settings">Configuracion</NavLink>
+              </div>
             </nav>
 
             <div className="border-t border-slate-800 px-3 py-4 space-y-1">

@@ -5,6 +5,7 @@ import { User } from '@/lib/models/user';
 import { verifyResetToken } from '@/lib/auth';
 import { hashPassword } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
+import { checkFeatureEnabled } from '@/lib/settings/guard';
 
 export async function POST(request: NextRequest) {
   const rateLimit = await checkRateLimit(request, 'resetPassword');
@@ -30,6 +31,9 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  const featureCheck = await checkFeatureEnabled(request, 'passwordResetEnabled');
+  if (featureCheck) return featureCheck;
 
   let payload;
   try {
