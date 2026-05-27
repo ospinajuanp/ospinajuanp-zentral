@@ -18,110 +18,47 @@ export async function GET(req: NextRequest) {
     await dbConnect();
 
     const [
-      allModules,
+      wTotal, wActive, wPayReady, wPending,
+      mActive,
+      uTotal, uActive,
+      sActive, sPlan, sEnterprise,
+      payReadyWorkspaces,
       allPlans,
-      allWorkspaces,
-      allUsers,
-      allSubscriptions,
     ] = await Promise.all([
-      Module.find().lean(),
-      Plan.find().lean(),
-      Workspace.find().lean(),
-      User.find().lean(),
-      ModuleSubscription.find().lean(),
+      Workspace.countDocuments(),
+      Workspace.countDocuments({ isActive: true }),
+      Workspace.countDocuments({ isPayReady: true }),
+      Workspace.countDocuments({ isPayReady: false, isActive: true }),
+      Module.countDocuments({ status: 'active' }),
+      User.countDocuments(),
+      User.countDocuments({ isActive: true }),
+      ModuleSubscription.countDocuments({ status: 'active' }),
+      ModuleSubscription.countDocuments({ status: 'active', tier: { $ne: 'enterprise' } }),
+      ModuleSubscription.countDocuments({ status: 'active', tier: 'enterprise' }),
+      Workspace.find({ isActive: true, isPayReady: true }, 'plans').lean(),
+      Plan.find({ isActive: true }, 'monthlyPrice').lean(),
     ]);
 
-    // Module stats
-    const totalModules = allModules.length;
-    const activeModules = allModules.filter((m) => m.status === 'active').length;
-    const inactiveModules = allModules.filter((m) => m.status === 'inactive').length;
-    const comingSoonModules = allModules.filter((m) => m.status === 'coming_soon').length;
-    const freeModules = allModules.filter((m) => m.tier === 'free').length;
-    const premiumModules = allModules.filter((m) => m.tier === 'premium').length;
+    const paidPlanIds = new Map(allPlans.filter((p) => p.monthlyPrice && p.monthlyPrice > 0).map((p) => [String(p._id), p.monthlyPrice]));
 
-    // Plan stats
-    const activePlans = allPlans.filter((p) => p.isActive).length;
-    const enterprisePlans = allPlans.filter((p) => p.isEnterprise).length;
-    const highlightedPlans = allPlans.filter((p) => p.highlighted).length;
-
-    // Workspace stats
-    const totalWorkspaces = allWorkspaces.length;
-    const activeWorkspaces = allWorkspaces.filter((w) => w.isActive).length;
-    const inactiveWorkspaces = allWorkspaces.filter((w) => !w.isActive).length;
-    const payReadyWorkspaces = allWorkspaces.filter((w) => w.isPayReady).length;
-    const pendingPaymentWorkspaces = allWorkspaces.filter((w) => !w.isPayReady).length;
-
-    // User stats
-    const totalUsers = allUsers.length;
-    const activeUsers = allUsers.filter((u) => u.isActive).length;
-    const inactiveUsers = allUsers.filter((u) => !u.isActive).length;
-    const superadmins = allUsers.filter((u) => u.role === 'superadmin').length;
-    const admins = allUsers.filter((u) => u.role === 'admin').length;
-    const operadores = allUsers.filter((u) => u.role === 'operador' || u.role === 'hijo').length;
-
-    // Subscription stats
-    const activeSubscriptions = allSubscriptions.filter((s) => s.status === 'active').length;
-    const inactiveSubscriptions = allSubscriptions.filter((s) => s.status === 'inactive').length;
-    const freeTierSubs = allSubscriptions.filter((s) => s.tier === 'free').length;
-    const premiumTierSubs = allSubscriptions.filter((s) => s.tier === 'premium').length;
-
-    // Billing
     let mrr = 0;
-    for (const ws of allWorkspaces) {
-      if (!ws.isActive || !ws.isPayReady) continue;
+    for (const ws of payReadyWorkspaces) {
       if (!ws.plans || ws.plans.length === 0) continue;
       for (const planId of ws.plans) {
-        const plan = allPlans.find((p) => String(p._id) === String(planId));
-        if (plan && plan.monthlyPrice) {
-          mrr += plan.monthlyPrice;
-        }
+        const price = paidPlanIds.get(String(planId));
+        if (price) mrr += price;
       }
     }
 
     return NextResponse.json({
-      modules: {
-        total: totalModules,
-        active: activeModules,
-        inactive: inactiveModules,
-        comingSoon: comingSoonModules,
-        free: freeModules,
-        premium: premiumModules,
-      },
-      plans: {
-        total: allPlans.length,
-        active: activePlans,
-        enterprise: enterprisePlans,
-        highlighted: highlightedPlans,
-      },
-      workspaces: {
-        total: totalWorkspaces,
-        active: activeWorkspaces,
-        inactive: inactiveWorkspaces,
-        payReady: payReadyWorkspaces,
-        pendingPayment: pendingPaymentWorkspaces,
-      },
-      users: {
-        total: totalUsers,
-        active: activeUsers,
-        inactive: inactiveUsers,
-        superadmins,
-        admins,
-        operadores,
-      },
-      subscriptions: {
-        total: allSubscriptions.length,
-        active: activeSubscriptions,
-        inactive: inactiveSubscriptions,
-        free: freeTierSubs,
-        premium: premiumTierSubs,
-      },
-      billing: {
-        mrr,
-        paidSubscriptions: premiumTierSubs,
-        freeSubscriptions: freeTierSubs,
-      },
+      billing: { mrr, payReady: wPayReady, pending: wPending, enterpriseSubs: sEnterprise },
+      workspaces: { active: wActive, total: wTotal },
+      users: { active: uActive, total: uTotal },
+      modules: { active: mActive },
+      subscriptions: { active: sActive, plan: sPlan, enterprise: sEnterprise },
     });
-  } catch {
+  } catch (err) {
+    console.error('[stats] Error:', err);
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
   }
 }

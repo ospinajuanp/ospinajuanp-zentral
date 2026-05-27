@@ -2,7 +2,7 @@
 
 > Analisis completo del proyecto generado el 2026-05-25. Ultima actualizacion: 2026-05-27.
 > **No comitear sin revision.** Se usa como hoja de ruta para siguientes iteraciones.
-> Total: **131 items** (12 completados ✓, 119 pendientes)
+> Total: **131 items** (13 completados ✓, 118 pendientes)
 
 ---
 
@@ -13,7 +13,7 @@
 | ID | Issue | Solucion |
 |----|-------|----------|
 | B-C1 ✓ | Plan DELETE checkea campo `plan` en vez de `plans` — nunca bloquea borrados | Cambiar a `Workspace.countDocuments({ plans: id })` |
-| B-C2 | Stats (admin page + API) cargan 5 colecciones enteras en memoria. Crash a escala | Reemplazar con aggregation pipeline de MongoDB. Extraer logica a `src/lib/services/admin-stats.ts` |
+| B-C2 ✓ | Stats (admin page + API) cargan 5 colecciones enteras en memoria. Crash a escala | Reemplazar con `countDocuments` + filtros. Solo cargar workspaces payReady + planes para MRR |
 | B-C3 | `recalculateQuotas()` hace N+1 queries en loop | Usar `bulkWrite` con upsert |
 | B-C4 | `processPendingMatches` procesa logs secuencialmente. 50 logs = minutos | `Promise.allSettled()` con concurrency limit (p-limit, 5 concurrentes) |
 | B-C5 | `protected-layout` consulta subscriptions en cada pagina. Mismo dato, cada navegacion | `React.cache()` wrapper o mover a nivel de layout raiz |
@@ -211,13 +211,15 @@ Implementado (esta sesion ✓):
 8. ~~F-C4: Perfil de usuario (cambio de password, nombre)~~ ✓
 9. ~~F-H3, F-H4: `<DataTable>` + `usePaginatedData`~~ ✓
 
+10. ~~B-C2: Stats cargan 5 colecciones → countDocuments~~ ✓
+
 Pendiente:
 1. **F-H5**: Search/filter en listas admin
 2. **B-C3**: N+1 en recalculateQuotas → bulkWrite
 3. **B-C5**: protected-layout re-fetch → React.cache()
-4. **B-C2**: Stats cargan 5 colecciones enteras → aggregation pipeline
-5. **F-C3**: Wrapper de fetch centralizado (`useApi()` o apiClient)
-6. **B-C4**: processPendingMatches secuencial → Promise.allSettled
+4. **F-C3**: Wrapper de fetch centralizado (`useApi()` o apiClient)
+5. **B-C4**: processPendingMatches secuencial → Promise.allSettled
+6. **B-H3**: register/route.ts queries secuenciales → Promise.all()
 7. **B-H3**: register/route.ts queries secuenciales → Promise.all()
 
 ---

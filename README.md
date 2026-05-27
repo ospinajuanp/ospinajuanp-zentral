@@ -57,25 +57,30 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
   - ctaLink autogenerado: `/register?plan=ID` o `https://wa.me/NUMBER`
 - **Sistema multi-plan**: workspace.plans[] soporta multiples compras simultaneas
   - Free siempre incluido (max 1), planes pagos acumulativos
-  - `recalculateQuotas()` agrega cuotas de todas las compras activas
+  - `recalculateQuotas()` agrega cuotas de todas las compras activas (excluye enterprise)
 - **Pasarela de pago simulada**: modal con formulario TC pre-llenado, procesamiento simulado
   - Estados: idle → gateway → processing → success/rejected
   - Solo planes de pago visibles (Free y Enterprise ocultos)
-- **Historial de compras**: Plan | Estado | Periodo | Monto | Accion (DD/MM/YYYY)
-  - Desactivar: `PATCH cancelled` → quita cuotas del workspace
-  - Reactivar (dentro del periodo): `PATCH active` sobre el mismo registro, sin duplicar
-  - Renovar (expirado): abre pasarela de pago → nueva compra
-- **WorkspacePurchase**: `paymentMethod: 'simulated' | 'reactivated'`
+- **Suscripciones Enterprise (manuales)**: superadmin asigna modulos con tier `enterprise`, cuota personalizada y auto-renovacion desde el panel de workspace
+  - Crean `ModuleSubscription` (enterprise) + `WorkspacePurchase` (manual) independientes
+  - Coexisten con suscripciones de plan — cuotas se suman para consumo
+  - Visibles en el historial de compras sin acciones (badge "Enterprise", periodo real)
+  - `consumeQuota` consume oldest-first (plan antes que enterprise)
+- **Historial de compras**: Plan | Estado | Periodo | Monto | Accion
+  - Desactivar: `PATCH cancelled` → `recalculateQuotas()`
+  - Reactivar: `PATCH active` sobre mismo registro
+  - Renovar: abre pasarela de pago
+  - Enterprise: sin acciones, badge "Enterprise" (ambar)
+- **WorkspacePurchase**: `paymentMethod: 'simulated' | 'manual'`
 
 ### Webhook de Pago / isPayReady
 - `Workspace.isPayReady`: flag booleano
 - Superadmin togglea desde el panel de workspace → activa/desactiva suscripciones
 
 ### Paneles de Administracion
-- **Dashboard Superadmin**: stats de Facturacion, Workspaces, Modulos, Usuarios + Suscripciones
-- **Paginacion en todas las listas**: PaginationBar reusable con selector 5/10/20/50/100
-  - Admin users, admin workspaces, admin modules, admin plans, workspace users, purchase history
-- **Admin**: dashboard, usuarios CRUD, workspace settings
+- **Dashboard Superadmin**: 12 cards en 3 secciones (Facturacion, Workspaces+Usuarios, Modulos+Suscripciones) + accesos rapidos. `countDocuments` para rendimiento. Metricas nuevas: suscripciones enterprise, suscripciones plan. Cards con iconos, bordes de color, animacion fade-up.
+- **Paginacion en todas las listas**: `PaginationBar` + `usePaginatedData<T>()` + `<DataTable>` reusable con selector 5/10/20/50/100
+- **Admin**: dashboard, usuarios CRUD, workspace settings, perfil de usuario
 - **Superadmin**: workspaces, users, modulos, planes CRUD, gestion de suscripciones
 
 ### UI/UX
@@ -254,13 +259,16 @@ pnpm run seed    # Poblar base de datos
 ### ModuleSubscription
 | Campo | Tipo | Detalle |
 |---|---|---|
-| workspace | ref → Workspace | Índice |
+| workspace | ref → Workspace | Indice |
 | moduleKey | String | ej. "transfercheck" |
-| tier | enum | free \| premium |
+| tier | enum | free \| premium \| enterprise |
 | status | enum | active \| inactive \| suspended |
-| monthlyQuota | Number | Límite mensual |
+| autoRenew | Boolean | Renovacion automatica mensual |
+| monthlyQuota | Number | Limite mensual |
 | usedQuota | Number | Consultas consumidas |
 | quotaResetAt | Date | Fecha de reseteo |
+
+> **Indice unico**: `{ workspace, moduleKey, tier }` — permite multiples suscripciones del mismo modulo con diferentes tiers (ej: `transfercheck:free` del plan + `transfercheck:enterprise` manual).
 
 ### Plan
 | Campo | Tipo | Detalle |
@@ -285,14 +293,14 @@ pnpm run seed    # Poblar base de datos
 ### WorkspacePurchase
 | Campo | Tipo | Detalle |
 |---|---|---|
-| workspace | ref → Workspace | Índice |
-| plan | ref → Plan | Plan comprado |
+| workspace | ref → Workspace | Indice |
+| plan | ref → Plan or null | Plan comprado (null = manual) |
 | planName | String | Nombre del plan |
 | amount | Number | Monto pagado |
 | currency | String | COP |
 | status | enum | active \| expired \| cancelled |
-| paymentMethod | String | simulated |
-| modules | Array | [{ moduleKey, quota, tier }] |
+| paymentMethod | String | simulated \| manual |
+| modules | Array | [{ moduleKey, quota, tier, autoRenew }] |
 | purchasedAt | Date | Fecha de compra |
 
 ---
