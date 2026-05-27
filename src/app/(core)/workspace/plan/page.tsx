@@ -600,7 +600,7 @@ export default function WorkspacePlanPage() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
                         <p className="text-slate-300">
-                          {fmt(purchasedDate)} — {isEnterprise ? '—' : isFree ? '∞' : fmt(expiresDate)}
+                          {fmt(purchasedDate)} — {isFree ? '∞' : fmt(expiresDate)}
                         </p>
                         <p
                           className={`text-xs ${
