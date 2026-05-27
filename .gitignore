@@ -1,6 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# ─── DEPENDENCIAS ─────────────────────────────────────────────────────────────
 /node_modules
 /.pnp
 .pnp.*
@@ -10,31 +8,33 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
+# ─── COMPILACIÓN Y PRODUCCIÓN (NEXT.JS) ───────────────────────────────────────
 /.next/
 /out/
-
-# production
 /build
+dist/
+*.tsbuildinfo
+next-env.d.ts
 
-# misc
+# ─── ENTORNOS DE DESARROLLO (IDEs & OS JUNK) ──────────────────────────────────
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 .DS_Store
-*.pem
+Thumbs.db
+desktop.ini
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
+# ─── ARCHIVOS DE CONFIGURACIÓN Y SECRETOS ─────────────────────────────────────
 .env*
 !.env.example
+*.pem
+*.key
 
-# project notes with credentials
+# ─── PRIVADO: CREDENCIALES, SEED Y CONTEXTOS DE CONEXIÓN ──────────────────────
 docs/adicional.md
 docs/.seed-credentials.md
 docs/.feature-toggles.md
@@ -42,9 +42,17 @@ gemi.md
 project-context.english.md
 project-context.espanol.md
 
-# vercel
-.vercel
+# ─── LOGS Y DEBUGGING ─────────────────────────────────────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+logs/
+*.log
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# ─── PRUEBAS Y COBERTURA ──────────────────────────────────────────────────────
+/coverage
+.nyc_output
+
+# ─── PLATAFORMAS DE DESPLIEGUE (VERCEL / CLOUD) ───────────────────────────────
+.vercel

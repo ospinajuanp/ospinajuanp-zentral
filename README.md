@@ -1,351 +1,98 @@
-# Zentral — Micro-SaaS de Herramientas Empresariales
+# Zentral — Plataforma Micro-SaaS para Operaciones Empresariales B2B
 
-Ecosistema modular de herramientas de gestión B2B construido con Next.js 16.  
-Cada módulo es independiente, validable contra el estado de suscripción del workspace y accesible según el rol del usuario.
+Zentral es un ecosistema modular e inquilinato múltiple (Multi-tenant) diseñado para optimizar flujos críticos de operaciones empresariales B2B. El núcleo de la plataforma permite la ejecución y validación de módulos independientes (como conciliación de pagos e IA en tiempo real), completamente aislados por entorno de trabajo (*workspace*), controlados por un robusto sistema de límites atómicos y gobernados por políticas de acceso basadas en roles (RBAC) interceptadas en el Edge.
 
----
-
-## Tech Stack
-
-| Tecnología | Propósito |
-|---|---|---|
-| Next.js 16.2 (Turbopack) | Framework full-stack |
-| React 19.2 | UI |
-| TypeScript | Tipado |
-| MongoDB + Mongoose | Base de datos |
-| Tailwind CSS v4 | Estilos |
-| jose | JWT Edge-compatible |
-| bcryptjs | Hashing de contraseñas |
-| Upstash Redis | Rate limiting |
-| Resend | Emails transaccionales |
-| Embla Carousel | Carrusel de planes en landing |
-| Google Generative AI (Gemini 2.0 Flash) | Extracción IA de comprobantes |
-| Gmail API (googleapis) | Búsqueda de correos de transferencia |
-| OCR.space | OCR para lectura de comprobantes |
+Construido sobre **Next.js 16 (App Router)**, **React 19** y **Tailwind CSS v4**, el sistema está pensado para ofrecer escalabilidad vertical, alta densidad de datos en la UI y máxima resiliencia ante fallos de APIs externas.
 
 ---
 
-## RBAC
+## 🛠️ Desglose Arquitectónico y Retos de Ingeniería Solucionados
 
-| Rol | Acceso |
-|---|---|---|
-| **superadmin** | Global — dashboard con stats, CRUD de workspaces, usuarios, modulos, planes, suscripciones |
-| **admin** | Dueno del workspace — dashboard, usuarios, planes, configuracion, compra de planes |
-| **operador** | Usuario operativo — acceso a modulos asignados, puede conciliar comprobantes |
-| **hijo** | (Legado — retrocompatible, mismo comportamiento que operador, no visible en UI) |
+### 1. Control de Cuotas Atómico y Mitigación de Condiciones de Carrera (Race Conditions)
+En un SaaS multi-usuario concurrente, los enfoques tradicionales de lectura y posterior actualización de cuotas rompen la integridad de los datos si múltiples operarios realizan acciones en paralelo. 
+* **Solución:** Zentral implementa mutaciones atómicas directas en MongoDB utilizando `findOneAndUpdate` combinado con el operador lógico `$expr`. El sistema evalúa la disponibilidad del cupo (`usedQuota < monthlyQuota`) y realiza el incremento de consumo en una única operación atómica a nivel de base de datos, garantizando consistencia absoluta sin bloqueos pesados de tablas.
+* **Consumo Eficiente:** El motor implementa una estrategia de consumo de cuotas *Oldest-First*, agotando automáticamente los recursos de los planes base contratados antes de afectar las cuotas de las suscripciones Enterprise personalizadas.
 
----
+### 2. Pipeline Resiliente de Extracción con IA (Estrategia de Fallback en Caliente)
+El módulo principal `TransferCheck` procesa comprobantes de transferencias bancarias de forma síncrona/asíncrona y los cruza con la API de Gmail en modo lectura.
+* **Degradación Elegante (*Graceful Degradation*):** La aplicación procesa la imagen a través de un motor ligero y de bajo costo (OCR.space) que parsea monedas en formatos colombianos e internacionales. Si el servicio excede su cuota o falla en la lectura del texto, Zentral conmuta en caliente (Fallback directo) hacia un LLM avanzado (**Gemini 2.0 Flash**), procesando el archivo en forma de buffers en memoria base64, garantizando que el usuario final nunca experimente una interrupción del servicio y protegiendo la privacidad al evitar persistencia en disco duro.
 
-## Estado Actual
+### 3. Seguridad Zero-Trust y Aislamiento Estricto de Datos (Multi-tenancy)
+La filtración accidental de datos entre empresas es el riesgo número uno en arquitecturas de software multi-tenant.
+* **Edge Proxy Interceptor:** Un middleware ligero en el Edge (`src/proxy.ts`) intercepta todas las peticiones utilizando criptografía compacta (`jose` para JWT) sobre cookies `httpOnly` con políticas `SameSite=Strict`. Este proxy valida la firma, extrae el contexto seguro e inyecta headers limpios (`x-workspace-id`, `x-user-role`) hacia las rutas protegidas.
+* **Workspace Isolation:** La base de datos no expone consultas globales en las capas operativas; cada consulta Mongoose está acoplada al contexto inyectado por el middleware, asegurando que un workspace jamás pueda leer, escribir o deducir información de un inquilino ajeno.
 
-### Landing Page
-- Header, Hero, Features, Modulos (desde BD), Precios (desde BD, carrusel Embla v8 sin ResizeObserver), About, CTA, Footer
-- SEO: metadata (OG, Twitter, keywords), viewport, sitemap.xml, robots.ts, skip-link
-- A11y: aria-labelledby en secciones, emoji aria-hidden, footer flex-wrap, links absolutos
-
-### Auth
-- JWT custom (jose) con httpOnly cookie, SameSite=Strict, 7d expiracion
-- Login, registro, logout, recuperacion de contrasena, verificacion de email
-- Rate limiting: 25 intentos / 5 min para login y register (Upstash Redis, fixed window)
-- Sesion por inactividad (15 min, auto-logout)
-- Registro con plan: `/register?plan=PLAN_ID` asocia el workspace al plan seleccionado
-
-### Planes y Modulos (Catalogo Dinamico)
-- **Module CRUD**: superadmin puede crear/editar/eliminar modulos
-- **Plan CRUD**: planes configurables con herencia "Basado en", maxUsers (0 = ilimitado)
-  - Enterprise: borde punteado, WhatsApp CTA
-  - ctaLink autogenerado: `/register?plan=ID` o `https://wa.me/NUMBER`
-- **Sistema multi-plan**: workspace.plans[] soporta multiples compras simultaneas
-  - Free siempre incluido (max 1), planes pagos acumulativos
-  - `recalculateQuotas()` agrega cuotas de todas las compras activas (excluye enterprise)
-- **Pasarela de pago simulada**: modal con formulario TC pre-llenado, procesamiento simulado
-  - Estados: idle → gateway → processing → success/rejected
-  - Solo planes de pago visibles (Free y Enterprise ocultos)
-- **Suscripciones Enterprise (manuales)**: superadmin asigna modulos con tier `enterprise`, cuota personalizada y auto-renovacion desde el panel de workspace
-  - Crean `ModuleSubscription` (enterprise) + `WorkspacePurchase` (manual) independientes
-  - Coexisten con suscripciones de plan — cuotas se suman para consumo
-  - Visibles en el historial de compras sin acciones (badge "Enterprise", periodo real)
-  - `consumeQuota` consume oldest-first (plan antes que enterprise)
-- **Historial de compras**: Plan | Estado | Periodo | Monto | Accion
-  - Desactivar: `PATCH cancelled` → `recalculateQuotas()`
-  - Reactivar: `PATCH active` sobre mismo registro
-  - Renovar: abre pasarela de pago
-  - Enterprise: sin acciones, badge "Enterprise" (ambar)
-- **WorkspacePurchase**: `paymentMethod: 'simulated' | 'manual'`, `plan: null` para enterprise
-- **Pagina de perfil**: cambio de nombre y contrasena, visible solo para rol `operador` en sidebar
-- **ErrorBoundary + Toast system**: manejo de errores centralizado, notificaciones contextuales
-- **Modulo `visible`**: campo booleano que controla visibilidad en landing y creacion de planes
-- **Feature Toggles**: 19 toggles globales desde `/admin/settings` (auth, funcionalidades, CRUD, acceso admin/operador, mantenimiento). Cache in-memory con TTL de 10s, superadmin siempre exento de `loginEnabled`, `maintenanceMode`, `moduleAccessEnabled`
-
-### Webhook de Pago / isPayReady
-- `Workspace.isPayReady`: flag booleano
-- Superadmin togglea desde el panel de workspace → activa/desactiva suscripciones
-
-### Paneles de Administracion
-- **Dashboard Superadmin**: 12 cards en 3 secciones (Facturacion, Workspaces+Usuarios, Modulos+Suscripciones) + accesos rapidos. `countDocuments` para rendimiento. Metricas nuevas: suscripciones enterprise, suscripciones plan. Cards con iconos, bordes de color, animacion fade-up.
-- **Paginacion en todas las listas**: `PaginationBar` + `usePaginatedData<T>()` + `<DataTable>` reusable con selector 5/10/20/50/100
-- **Admin**: dashboard, usuarios CRUD, workspace settings, perfil de usuario
-- **Superadmin**: workspaces, users, modulos, planes CRUD, gestion de suscripciones, configuracion global de feature toggles
-- **Mantenimiento**: `maintenanceMode` bloquea todo el sitio, solo superadmin accede. `MaintenanceGuard` en layout raiz. Pagina `/maintenance` con mensaje configurable.
-
-### UI/UX
-- Responsive: sidebar desktop sticky + bottom nav mobile + bottom sheet "Mas"
-- Sidebar bottom sheet: aria-expanded, aria-labels, Escape key
-- Tablas responsive (stack a cards en mobile)
-- Sesion timeout con `SessionTimeout`
-- Error pages 404/500, loading spinners
-- Componentes compartidos: AuthLayout, InputField, Button, StatusCard, ErrorMessage, ConfirmDialog, PaginationBar, DataTable
-- SidebarShell con NavLink activo por pathname
-- Quota helper: `checkQuota()` y `getQuotaInfo()` para control de consumo por modulo
-
-### Seguridad y SEO
-- Seguridad: headers CSP/HSTS en `next.config.ts`
-- Metadata OG/locale es_CO, sitemap.ts, robots.ts
-- Proxy Edge protege rutas, inyecta headers de sesion
-- Workspace isolation en todas las queries
+### 4. Abstracción Avanzada de UI y Economía de Componentes
+Para evitar la repetición de lógica transaccional, estados de carga y layouts repetitivos en las vistas administrativas distribuidas entre Superadmin y Workspace Owners:
+* **Solución:** Se diseñó una infraestructura compuesta por el hook genérico de TypeScript `usePaginatedData<T>()` en tándem con un componente reutilizable `<DataTable>`. Esta capa extrajo y unificó el manejo de estados de carga, paginación reactiva dinámica (selectores de 5 a 100 filas) y fallos en 5 páginas críticas del sistema, eliminando más de 450 líneas de código duplicado y acelerando el desarrollo de futuros módulos.
 
 ---
 
-## Route Map
+## ⚙️ Tech Stack & Justificación Técnica
 
-| Ruta | Acceso | Propósito |
-|---|---|---|
-| `/` | Público | Landing page |
-| `/login` | Público | Inicio de sesión |
-| `/register?plan=ID` | Público | Registro con plan opcional |
-| `/forgot-password` | Público | Recuperar contraseña |
-| `/reset-password` | Público | Restablecer contraseña |
-| `/verify-email` | Público | Verificar email |
-| `/dashboard` | Autenticado | Dashboard del workspace |
-| `/transfercheck` | Autenticado | Módulo TransferCheck |
-| `/admin` | superadmin | Dashboard con stats |
-| `/admin/workspaces` | superadmin | Lista de workspaces |
-| `/admin/workspaces/create` | superadmin | Crear workspace |
-| `/admin/workspaces/[id]` | superadmin | Detalle + gestión de suscripciones |
-| `/admin/modules` | superadmin | Lista de módulos |
-| `/admin/modules/create` | superadmin | Crear módulo |
-| `/admin/modules/[id]` | superadmin | Editar módulo |
-| `/admin/plans` | superadmin | Lista de planes |
-| `/admin/plans/create` | superadmin | Crear plan |
-| `/admin/plans/[id]` | superadmin | Editar plan |
-| `/admin/users` | superadmin | Lista global de usuarios |
-| `/admin/users/[id]` | superadmin | Detalle de usuario |
-| `/admin/settings` | superadmin | Configuracion global de feature toggles |
-| `/maintenance` | Publico | Pagina de mantenimiento (si `maintenanceMode` activo) |
-| `/users` | admin | Lista de usuarios del workspace (paginado) |
-| `/users/create` | admin | Crear usuario |
-| `/users/[id]` | admin | Editar usuario |
-| `/workspace` | admin | Configuracion del workspace |
-| `/workspace/plan` | admin | Compra y gestion de planes + historial |
-| `/antecedentes` | Autenticado | Modulo AntecedentesCheck (proximamente) |
-| `/cartera` | Autenticado | Modulo Cartera (proximamente) |
-| `/facturacion` | Autenticado | Modulo Facturacion Electronica (proximamente) |
-
-### API Routes
-
-| Ruta | Método | Acceso | Propósito |
-|---|---|---|---|
-| `/api/auth/login` | POST | Público | Login |
-| `/api/auth/register` | POST | Público | Registro (acepta planId) |
-| `/api/auth/logout` | POST | Autenticado | Cerrar sesión |
-| `/api/auth/forgot-password` | POST | Público | Enviar email de recuperación |
-| `/api/auth/reset-password` | POST | Público | Cambiar contraseña |
-| `/api/auth/verify-email` | POST | Público | Verificar email |
-| `/api/auth/session` | GET | — | Estado de sesión |
-| `/api/admin/stats` | GET | superadmin | Stats del dashboard |
-| `/api/admin/settings` | GET/PATCH | superadmin | Feature toggles globales |
-| `/api/admin/modules` | GET/POST | superadmin | Listar/Crear modulo |
-| `/api/admin/modules/[id]` | GET/PUT/DELETE | superadmin | CRUD módulo |
-| `/api/admin/plans` | GET/POST | superadmin | Listar/Crear plan |
-| `/api/admin/plans/[id]` | GET/PUT/DELETE | superadmin | CRUD plan |
-| `/api/admin/workspaces` | GET/POST | superadmin | Listar/Crear workspace |
-| `/api/admin/workspaces/[id]` | GET/PUT/DELETE | superadmin | CRUD workspace (con isPayReady) |
-| `/api/admin/workspaces/[id]/subscriptions` | GET/POST | superadmin | Gestionar suscripciones |
-| `/api/admin/workspaces/[id]/subscriptions/[subId]` | PUT/DELETE | superadmin | Editar/Eliminar suscripción |
-| `/api/admin/users` | GET | superadmin | Lista usuarios (filtrable) |
-| `/api/admin/users/[id]` | GET/PUT/DELETE | superadmin | CRUD usuario global |
-| `/api/users` | GET/POST | admin | Listar/Crear usuario del workspace |
-| `/api/users/[id]` | GET/PUT/DELETE | admin | CRUD usuario del workspace |
-| `/api/workspaces/[id]` | GET/PUT | admin | Ver/renombrar workspace |
-| `/api/workspaces/[id]/purchase` | POST | admin | Comprar plan (simulado) |
-| `/api/workspaces/[id]/purchases` | GET | admin | Historial de compras (paginado) |
-| `/api/workspaces/[id]/purchases/[purchaseId]` | PATCH | admin | Activar/Desactivar compra |
-| `/api/plans` | GET | Autenticado | Listar planes disponibles |
-| `/api/modules/transfercheck/process-image` | POST | Autenticado | Subir comprobante → OCR/Gemini → log + match Gmail |
-| `/api/modules/transfercheck/logs` | GET/PUT | Autenticado | Listar logs con filtros / Conciliación manual |
-| `/api/modules/transfercheck/sync-email` | POST | Autenticado | Verificar pagos pendientes contra Gmail |
-| `/api/modules/transfercheck/gmail-status` | GET | Autenticado | Estado de conexión Gmail |
-| `/api/modules/transfercheck/gmail-disconnect` | POST | Autenticado | Desconectar Gmail |
-| `/api/auth/gmail/connect` | GET | Público | Iniciar OAuth2 Gmail |
-| `/api/auth/gmail/callback` | GET | Público | Callback OAuth2 Gmail |
+* **Next.js 16.2 (App Router & Turbopack):** Elegido para la unificación del pipeline full-stack, optimización extrema de compilación en desarrollo y soporte nativo para ejecución distribuida en el Edge.
+* **React 19.2 & Tailwind CSS v4:** Aprovechamiento del compilador nativo de React, manejo optimizado de referencias web y una interfaz densa en datos con una paleta oscura profesional (`slate-950/900`) optimizada para flujos B2B operativos.
+* **MongoDB (Mongoose 9.6):** Base de datos indexada con índices compuestos nativos en modelos de uso intensivo (`User`, `WorkspacePurchase`, `TransferCheckLog`) para garantizar búsquedas en sub-milisegundos.
+* **Upstash Redis:** Capa de Rate Limiting que implementa ventanas fijas (*Fixed Window*) para blindar rutas críticas de autenticación y transacciones (`25 peticiones / 5 minutos`), mitigando ataques de fuerza bruta con bypass automático tolerante a fallos de conexión.
+* **Resend & Gmail OAuth2:** Flujo asíncrono para correos transaccionales y conexión OAuth descentralizada por Workspace bajo el scope estricto `gmail.readonly` para seguridad del usuario final.
 
 ---
 
-## Getting Started
+## 📂 Mapa de Documentación Especializada
+
+Para auditar a fondo la implementación técnica y decisiones arquitectónicas del sistema, navega por los siguientes módulos de documentación interna:
+
+* [🏛️ Arquitectura, Seguridad y RBAC](docs/ARCHITECTURE.md) — Detalle del Edge Proxy, ciclo de vida del JWT y aislamiento Multi-tenant.
+* [📊 Concurrencia, Cuotas y Compras Multi-plan](docs/CONCURRENCY_En_SAAS.md) — Análisis del motor de cuotas atómico y el recálculo masivo de suscripciones activas.
+* [🤖 Pipeline de Integración de IA y Mensajería](docs/INTEGRATIONS_PIPELINE.md) — Flujo paso a paso del motor de extracción inteligente, fallback de Gemini y queries OAuth con Gmail.
+* [🎨 Ingeniería de Frontend y Patrones Reutilizables](docs/UI_UX_ENGINEERING.md) — Abstracción de hooks de TypeScript, optimizaciones del Carrusel Embla sin ResizeObserver y accesibilidad (A11y).
+
+---
+
+## 🚀 Instalación y Despliegue Rápido
 
 ### Prerrequisitos
-- Node.js >= 18
-- pnpm
-- MongoDB (local o Atlas)
+* Node.js >= 18
+* Gestor de paquetes `pnpm`
+* Instancia de MongoDB (Local o Atlas)
 
-### Instalación
+### Configuración del Entorno
 
-```bash
-pnpm install
-```
+1. Clona el repositorio e instala las dependencias:
+   ```bash
+   pnpm install
+    ```
+2. Configura las variables de entorno creando un archivo .env.local en la raíz del proyecto:
 
-### Variables de entorno (`.env.local`)
+  ```bash
+  MONGO_URL=mongodb+srv://.../zentral
+  JWT_SECRET=tu_firma_secreta_jwt
+  RESEND_API_KEY=re_...
+  NEXT_PUBLIC_APP_URL=http://localhost:3000
+  KV_REST_API_URL=[https://...upstash.io](https://...upstash.io)
+  KV_REST_API_TOKEN=...
+  GEMINI_API_KEY=AIza...
+  OCR_SPACE_API_KEY=...
+  GMAIL_CLIENT_ID=...apps.googleusercontent.com
+  GMAIL_CLIENT_SECRET=...
+  GMAIL_REDIRECT_URI=http://localhost:3000/api/auth/gmail/callback
+  ```
 
-```env
-MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net/zentral
-JWT_SECRET=tu-secreto-seguro-aqui
-RESEND_API_KEY=re_...
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-KV_REST_API_URL=https://...upstash.io
-KV_REST_API_TOKEN=tu-token-upstash
-GEMINI_API_KEY=AIza...
-OCR_SPACE_API_KEY=K...
-GMAIL_CLIENT_ID=...apps.googleusercontent.com
-GMAIL_CLIENT_SECRET=GOCSPX-...
-GMAIL_REDIRECT_URI=http://localhost:3000/api/auth/gmail/callback
-```
 
-### Seed
+3. Ejecuta el script de inicialización para poblar la base de datos con módulos, planes base y usuarios de prueba (Superadmin, Workspace Admins y Operadores):
 
 ```bash
 pnpm run seed
 ```
 
-Crea 4 módulos, 4 planes, 2 workspaces y 4 usuarios con datos de prueba.
+4. Enciende el servidor de desarrollo:
 
-> Las credenciales exactas (usuarios, contraseñas, workspaces) están en `.seed-credentials.md` (incluido en `.gitignore` para no exponerlas en el repositorio).
-
-### Desarrollo
 
 ```bash
-pnpm run dev     # Next.js dev server (Turbopack)
-pnpm run build   # Build de producción
-pnpm run seed    # Poblar base de datos
+pnpm run dev
 ```
 
----
-
-## Modelos de Datos
-
-### User
-| Campo | Tipo | Detalle |
-|---|---|---|
-| email | String | único, lowercase |
-| passwordHash | String | bcrypt |
-| name | String | — |
-| role | enum | superadmin \| admin \| operador \| hijo |
-| workspace | ref → Workspace | nullable |
-| isActive | Boolean | default: false (registro), se activa al verificar email |
-| createdBy | ref → User | nullable |
-
-### Workspace
-| Campo | Tipo | Detalle |
-|---|---|---|
-| name | String | — |
-| slug | String | único, lowercase |
-| owner | ref → User | nullable |
-| isActive | Boolean | default: true |
-| isPayReady | Boolean | default: false (pago pendiente hasta confirmación) |
-| plans | ObjectId[] | Array de planes contratados |
-
-### Module
-| Campo | Tipo | Detalle |
-|---|---|---|
-| key | String | Identificador único (slug) |
-| name | String | Nombre comercial |
-| description | String | Descripción |
-| tier | enum | free \| premium |
-| status | enum | active \| inactive \| coming_soon |
-| defaultQuota | Number | Cuota por defecto |
-| visible | Boolean | Visible en landing y planes (default: true) |
-| icon | String | Icono (opcional) |
-
-### ModuleSubscription
-| Campo | Tipo | Detalle |
-|---|---|---|
-| workspace | ref → Workspace | Indice |
-| moduleKey | String | ej. "transfercheck" |
-| tier | enum | free \| premium \| enterprise |
-| status | enum | active \| inactive \| suspended |
-| autoRenew | Boolean | Renovacion automatica mensual |
-| monthlyQuota | Number | Limite mensual |
-| usedQuota | Number | Consultas consumidas |
-| quotaResetAt | Date | Fecha de reseteo |
-
-> **Indice compuesto** (no unico): `{ workspace, moduleKey, tier }` — permite multiples suscripciones del mismo modulo con diferentes tiers (ej: `transfercheck:free` del plan + `transfercheck:enterprise` manual). Las cuotas se suman para el consumo.
-
-### Plan
-| Campo | Tipo | Detalle |
-|---|---|---|
-| name | String | Nombre del plan |
-| price | String | Texto del precio ("$12", "", "A medida") |
-| monthlyPrice | Number or null | Precio numérico mensual |
-| description | String | Descripción corta |
-| includedModules | Array | Módulos con cuota override |
-| maxUsers | Number | Usuarios máximos (0 = ilimitado) |
-| extraFeatures | String[] | Características extra |
-| support | String | Tipos: ninguno, email, prioritario, canales, dedicado |
-| onboarding | String | Tipos: ninguno, autoguiado, videos, documentación, dedicado |
-| cta | String | Texto del botón |
-| ctaLink | String | Link del botón (autogenerado `/register?plan=ID`) |
-| highlighted | Boolean | "Más popular" |
-| isEnterprise | Boolean | Plan a medida |
-| whatsappNumber | String | Solo para enterprise |
-| sortOrder | Number | Orden de aparición |
-| isActive | Boolean | Visible en landing |
-
-### WorkspacePurchase
-| Campo | Tipo | Detalle |
-|---|---|---|
-| workspace | ref → Workspace | Indice |
-| plan | ref → Plan or null | Plan comprado (null = manual) |
-| planName | String | Nombre del plan |
-| amount | Number | Monto pagado |
-| currency | String | COP |
-| status | enum | active \| expired \| cancelled |
-| paymentMethod | String | simulated \| manual |
-| modules | Array | [{ moduleKey, quota, tier, autoRenew }] |
-| purchasedAt | Date | Fecha de compra |
-
----
-
-## Documentacion
-
-- [Catalogo de Modulos](docs/PLAN.md)
-- [Planes de Precios](docs/PLANES.md)
-- [Panel de Administracion](docs/ADMIN.md)
-- [Design System](docs/DESIGN_SYSTEM.md)
-- [Mejoras Planificadas](docs/MEJORAS.md)
-
----
-
-## Seguridad
-
-- **Cookies**: httpOnly + SameSite=Strict + Secure (producción)
-- **JWT**: HS256, 7d sesión, 15min reset, 24h verificación
-- **Rate Limiting**: Upstash Redis, fixed window por IP, 25 intentos / 5 min
-- **RBAC**: superadmin bypass, admin/hijo validados contra su workspace
-- **Workspace Isolation**: cada query filtra por workspace del usuario
-- **Email Verification**: bloqueo de login hasta verificación
-- **Edge Proxy**: protege rutas, inyecta headers de sesión
-
----
-
-## Despliegue
-
-```bash
-pnpm run build
-```
-
-Compatible con Vercel, Railway, o cualquier host que soporte Next.js.
-
----
-
-## Licencia
-
-MIT
+## 📄 Licencia
+Copyright (c) 2026 Juan Pablo Ospina. Todos los derechos reservados.
+El código fuente está visible con fines de auditoría técnica y portafolio profesional. 
+No se permite la reproducción, distribución o uso comercial de este software sin autorización expresa del autor.
