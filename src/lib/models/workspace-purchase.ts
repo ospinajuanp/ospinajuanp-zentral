@@ -76,6 +76,7 @@ const workspacePurchaseSchema = new Schema<IWorkspacePurchase>(
 );
 
 workspacePurchaseSchema.index({ workspace: 1, createdAt: -1 });
+workspacePurchaseSchema.index({ workspace: 1, status: 1 });
 
 export const WorkspacePurchase =
   mongoose.models.WorkspacePurchase ??

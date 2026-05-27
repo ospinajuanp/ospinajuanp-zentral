@@ -107,7 +107,7 @@ export async function seed() {
     role: 'superadmin',
     isActive: true,
   });
-  console.log('[seed] SuperAdmin: admin@zentral.dev / admin123');
+  console.log('[seed] SuperAdmin created');
 
   // ──── Modules ────
   for (const mod of defaultModules) {
@@ -186,7 +186,7 @@ export async function seed() {
   await createPurchase(ws1._id, freePlan!);
   await createPurchase(ws1._id, premiumPlan!);
   await recalculateQuotas(ws1._id);
-  console.log('[seed] Workspace: Demo Corp → admin@demo-corp.com / demo123 (Free + Premium, $12/mes)');
+  console.log('[seed] Workspace: Demo Corp (Free + Premium, $12/mes)');
 
   // ──── Workspace 2: Plus Corp (Free + Premium Plus) ────
   const ws2 = await Workspace.create({
@@ -213,7 +213,7 @@ export async function seed() {
   await createPurchase(ws2._id, freePlan!);
   await createPurchase(ws2._id, plusPlan!);
   await recalculateQuotas(ws2._id);
-  console.log('[seed] Workspace: Plus Corp → admin@plus-corp.com / plus123 (Free + Premium Plus, $24/mes)');
+  console.log('[seed] Workspace: Plus Corp (Free + Premium Plus, $24/mes)');
 
   // ──── Operador in Plus Corp ────
   await User.create({
@@ -225,7 +225,7 @@ export async function seed() {
     isActive: true,
     createdBy: admin2._id,
   });
-  console.log('[seed] Operador: operador@plus-corp.com / operador123 (Plus Corp)');
+  console.log('[seed] Operador created (Plus Corp)');
 
   console.log('[seed] Complete ✓');
 }

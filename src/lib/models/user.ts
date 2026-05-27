@@ -65,4 +65,6 @@ userSchema.set('toJSON', {
   },
 });
 
+userSchema.index({ workspace: 1, createdAt: -1 });
+
 export const User = mongoose.models.User ?? mongoose.model<IUser>('User', userSchema);

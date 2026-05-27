@@ -1,8 +1,8 @@
 # Mejoras Planificadas — Zentral
 
-> Analisis completo del proyecto generado el 2026-05-25.
+> Analisis completo del proyecto generado el 2026-05-25. Ultima actualizacion: 2026-05-27.
 > **No comitear sin revision.** Se usa como hoja de ruta para siguientes iteraciones.
-> Total: **131 items** (CRITICAL: 20, HIGH: 46, MEDIUM: 50, LOW: 13, MISSING: 2)
+> Total: **131 items** (9 completados ✓, 122 pendientes)
 
 ---
 
@@ -12,7 +12,7 @@
 
 | ID | Issue | Solucion |
 |----|-------|----------|
-| B-C1 | Plan DELETE checkea campo `plan` en vez de `plans` — nunca bloquea borrados | Cambiar a `Workspace.countDocuments({ plans: id })` |
+| B-C1 ✓ | Plan DELETE checkea campo `plan` en vez de `plans` — nunca bloquea borrados | Cambiar a `Workspace.countDocuments({ plans: id })` |
 | B-C2 | Stats (admin page + API) cargan 5 colecciones enteras en memoria. Crash a escala | Reemplazar con aggregation pipeline de MongoDB. Extraer logica a `src/lib/services/admin-stats.ts` |
 | B-C3 | `recalculateQuotas()` hace N+1 queries en loop | Usar `bulkWrite` con upsert |
 | B-C4 | `processPendingMatches` procesa logs secuencialmente. 50 logs = minutos | `Promise.allSettled()` con concurrency limit (p-limit, 5 concurrentes) |
@@ -22,7 +22,7 @@
 
 | ID | Issue | Solucion |
 |----|-------|----------|
-| B-H1 | Faltan indices compuestos en todos los modelos (User, Workspace, Plan, Module, ModuleSubscription) | Agregar indices: `{workspace, role}`, `{isActive, sortOrder}`, `{tier, status}`, etc. |
+| B-H1 ✓ | Faltan indices compuestos en todos los modelos (User, Workspace, Plan, Module, ModuleSubscription) | Agregar indices: `{workspace, createdAt}`, `{isActive, sortOrder}`, etc. |
 | B-H2 | Varias queries `.findOne()` sin `.lean()` — overhead de Mongoose | Agregar `.lean()` en queries de solo lectura |
 | B-H3 | `register/route.ts` hace 3 queries de Plan secuenciales | `Promise.all()` |
 | B-H4 | `admin/workspaces/[id]` y `workspaces/[id]` hacen users + subs secuencial | `Promise.all()` |
@@ -52,11 +52,11 @@
 
 | ID | Issue | Riesgo | Solucion |
 |----|-------|--------|----------|
-| S-C1 | `passwordHash` se expone en respuestas de API de usuarios (GET, POST, PUT) | Filtracion de hashes bcrypt | `select: false` en schema, o `toJSON.transform` |
+| S-C1 ✓ | `passwordHash` se expone en respuestas de API de usuarios (GET, POST, PUT) | Filtracion de hashes bcrypt | `select: false` en schema, o `toJSON.transform` |
 | S-C2 | `.env.local` contiene credenciales reales de produccion (MongoDB, JWT, Resend, Upstash, Gemini, Gmail OAuth) | Compromiso total del sistema | Rotar TODAS las credenciales. Usar secrets manager |
 | S-C3 | `ENCRYPTION_KEY` deriva del JWT_SECRET con fallback hardcodeado `'default-key-change-me'` | Encriptacion debil de tokens Gmail | Key dedicada de 32 bytes, sin fallback |
-| S-C4 | `debug-search` no verifica que el log pertenezca al workspace del usuario | Cross-workspace data access | Validar `log.workspace === auth.workspaceId` |
-| S-C5 | `logs` PUT tiene logica de autorizacion invertida (superadmin usa `auth.workspaceId` que puede ser null) | Operaciones cross-workspace | Corregir: `if (role !== 'superadmin' && log.workspace !== auth.workspaceId) → 403` |
+| S-C4 ✓ | `debug-search` no verifica que el log pertenezca al workspace del usuario | Cross-workspace data access | Validar `log.workspace === auth.workspaceId` |
+| S-C5 ✓ | `logs` PUT tiene logica de autorizacion invertida (superadmin usa `auth.workspaceId` que puede ser null) | Operaciones cross-workspace | Corregir: `if (role !== 'superadmin' && log.workspace !== auth.workspaceId) → 403` |
 
 ### Alto
 
@@ -64,7 +64,7 @@
 |----|-------|--------|----------|
 | S-H1 | Sin rate limiting en endpoints no-auth (solo 5 endpoints protegidos) | Brute-force, DoS, agotamiento de cuotas AI/OCR | Extender `CONFIGS` en rate-limit.ts. Minimo: purchase, process-image, sync-email, admin CRUD |
 | S-H2 | Sin validacion de tamano en upload de imagenes (process-image) | DoS, consumo de memoria | Max 10MB, validar dimensiones |
-| S-H3 | Race condition en checkQuota/consumeQuota — dos requests concurrentes pueden exceder cuota | Bypass de limite mensual | Operacion atomica: `findOneAndUpdate` con `$expr: { $gt: ['$monthlyQuota', '$usedQuota'] }` |
+| S-H3 ✓ | Race condition en checkQuota/consumeQuota — dos requests concurrentes pueden exceder cuota | Bypass de limite mensual | Operacion atomica: `findOneAndUpdate` con `$expr: { $gt: ['$monthlyQuota', '$usedQuota'] }` |
 | S-H4 | Race condition en recalculateQuotas — compras concurrentes pueden perder cuotas | Inconsistencia de datos | Transacciones MongoDB o `$addToSet` atomico |
 | S-H5 | Sin audit logging para operaciones criticas (crear/borrar usuarios, compras, cambios de rol) | Imposibilidad de auditoria | Modelo `AuditLog`, loggear en cada ruta admin |
 | S-H6 | Sin estrategia de backup de BD | Perdida de datos | Configurar backups automaticos en MongoDB Atlas |
@@ -108,8 +108,8 @@
 
 | ID | Issue | Solucion |
 |----|-------|----------|
-| F-C1 | Sin ErrorBoundary en ningun client component. Crash = pantalla blanca | Crear `<ErrorBoundary>` wrapper |
-| F-C2 | Sin sistema de notificaciones (toasts). Errores son divs inline que no se auto-dismiss | `<ToastProvider>` + `useToast()` hook |
+| F-C1 ✓ | Sin ErrorBoundary en ningun client component. Crash = pantalla blanca | Crear `<ErrorBoundary>` wrapper |
+| F-C2 ✓ | Sin sistema de notificaciones (toasts). Errores son divs inline que no se auto-dismiss | `<ToastProvider>` + `useToast()` hook |
 | F-C3 | Sin wrapper de fetch centralizado. Cada pagina repite try/catch/error manualmente | `useApi()` hook o `apiClient` con manejo de 401/500/network |
 | F-C4 | Sin perfil de usuario (cambio de password, nombre). Solo admin edita usuarios | Pagina `/profile` con cambio de password y datos personales |
 | F-C5 | Antecedentes, Cartera, Facturacion son stubs sin UI funcional | Implementar UI: formularios de consulta, listados, operaciones CRUD |
@@ -127,7 +127,7 @@
 | F-H7 | Sin focus trap en modales. Tabbing sale del modal al fondo | Implementar focus trapping (dialog role + tab loop) |
 | F-H8 | Sin breadcrumbs. Navegacion profunda desorienta | Componente `<Breadcrumbs>` auto-generado de pathname |
 | F-H9 | Sin React Context para auth/session. Cada pagina re-fetcha `/api/auth/session` | `AuthProvider` + `useAuth()` hook |
-| F-H10 | Sin cache invalidation consistente. Mutaciones no refrescan datos stale | `router.refresh()` o revalidate tras cada mutacion |
+| F-H10 ✓ | Sin cache invalidation consistente. Mutaciones no refrescan datos stale | `router.refresh()` o revalidate tras cada mutacion |
 | F-H11 | Admin stats sin refresh. Usuario debe recargar la pagina | Boton "Refresh" o polling cada 60s |
 | F-H12 | Sin export de datos en listas admin (excepto transfercheck consolidated) | Boton "Exportar CSV/Excel" en cada lista |
 
@@ -200,16 +200,26 @@
 
 ## Prioridad Recomendada para Siguiente Iteracion
 
-1. **S-C1**: `passwordHash` expuesto en APIs — fix inmediato de seguridad
-2. **S-C4, S-C5**: Bugs de autorizacion en transfercheck — cross-workspace data access
-3. **B-C1**: Plan DELETE checkea campo incorrecto — los planes no se pueden proteger
-4. **F-C1, F-C2**: ErrorBoundary + Toast system — base para todo el frontend
-5. **F-H4**: `usePaginatedData` hook — elimina ~150 lineas duplicadas por pagina
-6. **B-C3**: N+1 en recalculateQuotas → bulkWrite
-7. **S-H3**: Race condition en cuotas → operacion atomica
-8. **F-H10**: Cache invalidation consistente → `router.refresh()` post-mutacion
-9. **B-C5**: protected-layout re-fetch → React.cache()
-10. **B-H1**: Indices MongoDB en todos los modelos
+Implementado (esta sesion ✓):
+1. ~~S-C1: `passwordHash` expuesto en APIs~~ ✓
+2. ~~S-C4, S-C5: Bugs de autorizacion en transfercheck~~ ✓
+3. ~~B-C1: Plan DELETE checkea campo incorrecto~~ ✓
+4. ~~F-C1, F-C2: ErrorBoundary + Toast system~~ ✓
+5. ~~S-H3: Race condition en cuotas~~ ✓
+6. ~~F-H10: Cache invalidation~~ ✓
+7. ~~B-H1: Indices MongoDB~~ ✓
+
+Pendiente:
+1. **F-C4**: Perfil de usuario (cambio de password, nombre, datos personales)
+2. **F-H4**: `usePaginatedData` hook — elimina ~150 lineas duplicadas por pagina
+3. **F-H3**: Componente `<DataTable>` — elimina duplicacion de 8+ tablas
+4. **B-C3**: N+1 en recalculateQuotas → bulkWrite
+5. **B-C5**: protected-layout re-fetch → React.cache()
+6. **B-C2**: Stats cargan 5 colecciones enteras → aggregation pipeline
+7. **F-C3**: Wrapper de fetch centralizado (`useApi()` o apiClient)
+8. **F-H5**: Search/filter en listas admin
+9. **B-C4**: processPendingMatches secuencial → Promise.allSettled
+10. **B-H3**: register/route.ts queries secuenciales → Promise.all()
 
 ---
 

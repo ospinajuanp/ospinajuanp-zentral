@@ -112,5 +112,9 @@ const planSchema = new Schema<IPlan>(
   { timestamps: true }
 );
 
+planSchema.index({ isActive: 1, sortOrder: 1 });
+planSchema.index({ monthlyPrice: 1, isActive: 1 });
+planSchema.index({ 'includedModules.module': 1 });
+
 export const Plan =
   mongoose.models.Plan ?? mongoose.model<IPlan>('Plan', planSchema);

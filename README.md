@@ -62,9 +62,9 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
   - Estados: idle → gateway → processing → success/rejected
   - Solo planes de pago visibles (Free y Enterprise ocultos)
 - **Historial de compras**: Plan | Estado | Periodo | Monto | Accion (DD/MM/YYYY)
-  - Desactivar: quita cuotas del workspace
-  - Reactivar (dentro del periodo): nueva compra sin pago, trazabilidad completa
-  - Renovar (expirado): abre pasarela de pago
+  - Desactivar: `PATCH cancelled` → quita cuotas del workspace
+  - Reactivar (dentro del periodo): `PATCH active` sobre el mismo registro, sin duplicar
+  - Renovar (expirado): abre pasarela de pago → nueva compra
 - **WorkspacePurchase**: `paymentMethod: 'simulated' | 'reactivated'`
 
 ### Webhook de Pago / isPayReady
@@ -157,7 +157,6 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 | `/api/workspaces/[id]/purchase` | POST | admin | Comprar plan (simulado) |
 | `/api/workspaces/[id]/purchases` | GET | admin | Historial de compras (paginado) |
 | `/api/workspaces/[id]/purchases/[purchaseId]` | PATCH | admin | Activar/Desactivar compra |
-| `/api/workspaces/[id]/purchases/[purchaseId]/reactivate` | POST | admin | Reactivar compra (sin pago, nuevo registro) |
 | `/api/plans` | GET | Autenticado | Listar planes disponibles |
 | `/api/modules/transfercheck/process-image` | POST | Autenticado | Subir comprobante → OCR/Gemini → log + match Gmail |
 | `/api/modules/transfercheck/logs` | GET/PUT | Autenticado | Listar logs con filtros / Conciliación manual |

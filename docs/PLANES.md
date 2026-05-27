@@ -142,7 +142,7 @@ Cada workspace soporta múltiples planes simultáneamente (`workspace.plans: Pla
 - `expiresAt` = `purchasedAt + 1 mes`
 - Free: sin acciones, badge "Gratuita", cuota mensual automatica, vence "∞"
 - Desactivar: `PATCH cancelled` → `recalculateQuotas()`. Las cuotas dejan de aportar al workspace
-- Reactivar (dentro del periodo): `POST .../reactivate` → crea **nueva** compra con `paymentMethod: 'reactivated'`, mismo periodo que la original. La vieja queda como Desactivada en historial
+- Reactivar (dentro del periodo): `PATCH active` sobre el mismo registro (sin duplicados). Las cuotas vuelven a aportar al workspace
 - Renovar (fuera del periodo): abre pasarela de pago → nueva compra con periodo `hoy → hoy + 1 mes`, la vieja queda en historial
 
 ---

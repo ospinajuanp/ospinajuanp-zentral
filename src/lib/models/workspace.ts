@@ -47,5 +47,9 @@ const workspaceSchema = new Schema<IWorkspace>(
   { timestamps: true }
 );
 
+workspaceSchema.index({ isActive: 1, createdAt: -1 });
+workspaceSchema.index({ owner: 1 });
+workspaceSchema.index({ plans: 1 });
+
 export const Workspace =
   mongoose.models.Workspace ?? mongoose.model<IWorkspace>('Workspace', workspaceSchema);

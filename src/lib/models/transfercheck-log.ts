@@ -107,6 +107,7 @@ const transferCheckLogSchema = new Schema<ITransferCheckLog>(
 
 transferCheckLogSchema.index({ workspace: 1, status: 1 });
 transferCheckLogSchema.index({ status: 1, nextRetryAt: 1 });
+transferCheckLogSchema.index({ workspace: 1, createdAt: -1 });
 
 export const TransferCheckLog =
   mongoose.models.TransferCheckLog ??
