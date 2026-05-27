@@ -38,10 +38,16 @@ export default async function ProtectedLayout({
   if (role !== 'superadmin' && workspaceId) {
     try {
       await dbConnect();
-      modules = await ModuleSubscription.find(
+      const raw = await ModuleSubscription.find(
         { workspace: workspaceId, status: 'active' },
         'moduleKey tier'
       ).lean();
+      const seen = new Set<string>();
+      modules = raw.filter((m) => {
+        if (seen.has(m.moduleKey)) return false;
+        seen.add(m.moduleKey);
+        return true;
+      });
     } catch {
       // non-blocking — modules sidebar is optional
     }

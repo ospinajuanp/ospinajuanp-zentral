@@ -77,7 +77,7 @@ export async function consumeQuota(
   }).lean();
 
   const sorted = [...subs].sort(
-    (a, b) => (b.monthlyQuota - b.usedQuota) - (a.monthlyQuota - a.usedQuota)
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
 
   let totalRemaining = 0;

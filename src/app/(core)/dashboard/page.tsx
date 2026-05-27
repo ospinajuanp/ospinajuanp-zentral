@@ -15,13 +15,36 @@ export default async function DashboardPage() {
 
   await dbConnect();
 
-  const subscriptions =
+  const rawSubs =
     session.role === 'superadmin'
       ? []
       : await ModuleSubscription.find({
           workspace: session.workspaceId,
           status: 'active',
-        });
+        }).lean();
+
+  const aggregated = new Map<
+    string,
+    { moduleKey: string; monthlyQuota: number; usedQuota: number; tiers: string[] }
+  >();
+
+  for (const sub of rawSubs) {
+    const existing = aggregated.get(sub.moduleKey);
+    if (existing) {
+      existing.monthlyQuota += sub.monthlyQuota;
+      existing.usedQuota += sub.usedQuota;
+      if (!existing.tiers.includes(sub.tier)) existing.tiers.push(sub.tier);
+    } else {
+      aggregated.set(sub.moduleKey, {
+        moduleKey: sub.moduleKey,
+        monthlyQuota: sub.monthlyQuota,
+        usedQuota: sub.usedQuota,
+        tiers: [sub.tier],
+      });
+    }
+  }
+
+  const subscriptions = [...aggregated.values()];
 
   return (
     <div>
@@ -42,31 +65,35 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="mt-8">
-          <h2 className="text-lg font-semibold text-white">Módulos activos</h2>
+          <h2 className="text-lg font-semibold text-white">Modulos activos</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {subscriptions.length === 0 ? (
               <p className="col-span-full text-sm text-slate-500">
-                No hay módulos activos en este workspace.
+                No hay modulos activos en este workspace.
               </p>
             ) : (
-              subscriptions.map((sub) => (
-                <Link
-                  key={sub._id.toString()}
-                  href={`/${sub.moduleKey}`}
-                  aria-label={`Ir al modulo ${sub.moduleKey}`}
-                  className="rounded-md border border-slate-800 bg-slate-900 p-6 transition-shadow hover:shadow-indigo-500/10"
-                >
-                  <h3 className="text-lg font-semibold text-white capitalize">
-                    {sub.moduleKey}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-400">
-                    {sub.tier === 'free' ? 'Gratis' : 'Premium'}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {sub.usedQuota} / {sub.monthlyQuota} consultas
-                  </p>
-                </Link>
-              ))
+              subscriptions.map((sub) => {
+                const tierLabel = sub.tiers.length === 1
+                  ? sub.tiers[0] === 'free' ? 'Gratis' : sub.tiers[0] === 'enterprise' ? 'Enterprise' : 'Premium'
+                  : sub.tiers.map((t) => t === 'free' ? 'Gratis' : t === 'enterprise' ? 'Enterprise' : 'Premium').join(' + ');
+
+                return (
+                  <Link
+                    key={sub.moduleKey}
+                    href={`/${sub.moduleKey}`}
+                    aria-label={`Ir al modulo ${sub.moduleKey}`}
+                    className="rounded-md border border-slate-800 bg-slate-900 p-6 transition-shadow hover:shadow-indigo-500/10"
+                  >
+                    <h3 className="text-lg font-semibold text-white capitalize">
+                      {sub.moduleKey}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-400">{tierLabel}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {sub.usedQuota} / {sub.monthlyQuota} consultas
+                    </p>
+                  </Link>
+                );
+              })
             )}
           </div>
         </div>

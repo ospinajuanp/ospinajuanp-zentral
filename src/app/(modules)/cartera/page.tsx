@@ -10,28 +10,37 @@ export default async function CarteraPage() {
     redirect('/login');
   }
 
-  let subscription = null;
+  let subs = null;
 
   if (session.role !== 'superadmin') {
     await dbConnect();
 
-    subscription = await ModuleSubscription.findOne({
+    subs = await ModuleSubscription.find({
       workspace: session.workspaceId,
       moduleKey: 'cartera',
       status: 'active',
-    });
+    }).lean();
 
-    if (!subscription) {
+    if (!subs.length) {
       redirect('/dashboard');
     }
   }
 
-  const quota = subscription ? {
-    used: subscription.usedQuota,
-    total: subscription.monthlyQuota,
-    remaining: subscription.monthlyQuota <= 0 ? -1 : subscription.monthlyQuota - subscription.usedQuota,
-    unlimited: subscription.monthlyQuota <= 0,
-  } : null;
+  let quota = null;
+  if (subs) {
+    let used = 0;
+    let total = 0;
+    for (const s of subs) {
+      used += s.usedQuota ?? 0;
+      total += s.monthlyQuota ?? 0;
+    }
+    quota = {
+      used,
+      total,
+      remaining: total <= 0 ? -1 : total - used,
+      unlimited: total <= 0,
+    };
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
@@ -39,7 +48,7 @@ export default async function CarteraPage() {
         Cartera
       </h1>
       <p className="mt-2 text-slate-400">
-        Gestión de cuentas de cobros, seguimiento de pagos y reconciliación.
+        Gestion de cuentas de cobros, seguimiento de pagos y reconciliacion.
       </p>
 
       {quota && (
