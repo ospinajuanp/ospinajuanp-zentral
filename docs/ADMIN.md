@@ -59,11 +59,13 @@ Links directos a: Workspaces, Modulos, Planes, Usuarios.
 ## Gestion de Modulos
 
 ### Lista (`/admin/modules`)
-- Muestra todos los modulos con key, nombre, tier, estado, cuota default
+- Muestra todos los modulos con key, nombre, tier, estado, visible, cuota default
 - **Paginacion**: selector de 5/10/20/50/100
+- Columna "Visible": badge Si/No que controla aparicion en landing y seleccion en planes
 
 ### Crear (`/admin/modules/create`)
 - Key, nombre, descripcion, tier (free/premium), estado, cuota default
+- Checkbox "Visible en landing y planes" (default: true)
 
 ---
 

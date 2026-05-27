@@ -47,23 +47,27 @@ El helper `checkQuota(workspaceId, moduleKey, increment)` verifica si hay cupo d
 
 ## Modelo de Datos
 
-### Module (catálogo maestro)
-| Campo | Tipo | Descripción |
+### Module (catalogo maestro)
+| Campo | Tipo | Descripcion |
 |---|---|---|
-| `key` | String | Identificador único (slug) |
+| `key` | String | Identificador unico (slug) |
 | `name` | String | Nombre comercial |
-| `description` | String | Descripción corta |
+| `description` | String | Descripcion corta |
 | `tier` | enum | `free` / `premium` |
 | `status` | enum | `active` / `inactive` / `coming_soon` |
 | `defaultQuota` | Number | Cuota por defecto al asignar a un workspace |
+| `visible` | Boolean | Visible en landing y creacion de planes (default: true) |
 
-### ModuleSubscription (workspace → módulo)
-| Campo | Tipo | Descripción |
+### ModuleSubscription (workspace → modulo)
+| Campo | Tipo | Descripcion |
 |---|---|---|
 | `workspace` | ref → Workspace | Workspace propietario |
-| `moduleKey` | String | Key del módulo |
-| `tier` | enum | `free` / `premium` |
+| `moduleKey` | String | Key del modulo |
+| `tier` | enum | `free` / `premium` / `enterprise` |
 | `status` | enum | `active` / `inactive` / `suspended` |
-| `monthlyQuota` | Number | Límite mensual del workspace para este módulo |
-| `usedQuota` | Number | Consultas consumidas en el período actual |
-| `quotaResetAt` | Date | Fecha del próximo reseteo de cuota |
+| `autoRenew` | Boolean | Renovacion automatica mensual |
+| `monthlyQuota` | Number | Limite mensual del workspace para este modulo |
+| `usedQuota` | Number | Consultas consumidas en el periodo actual |
+| `quotaResetAt` | Date | Fecha del proximo reseteo de cuota |
+
+> **Indice** (compuesto, no unico): `{ workspace, moduleKey, tier }` — permite multiples suscripciones del mismo modulo con diferentes tiers.

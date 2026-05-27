@@ -2,7 +2,7 @@
 
 > Analisis completo del proyecto generado el 2026-05-25. Ultima actualizacion: 2026-05-27.
 > **No comitear sin revision.** Se usa como hoja de ruta para siguientes iteraciones.
-> Total: **131 items** (13 completados ✓, 118 pendientes)
+> Total: **131 items** (20 completados ✓, 111 pendientes)
 
 ---
 
@@ -68,7 +68,7 @@
 | S-H4 | Race condition en recalculateQuotas — compras concurrentes pueden perder cuotas | Inconsistencia de datos | Transacciones MongoDB o `$addToSet` atomico |
 | S-H5 | Sin audit logging para operaciones criticas (crear/borrar usuarios, compras, cambios de rol) | Imposibilidad de auditoria | Modelo `AuditLog`, loggear en cada ruta admin |
 | S-H6 | Sin estrategia de backup de BD | Perdida de datos | Configurar backups automaticos en MongoDB Atlas |
-| S-H7 | Seed imprime credenciales en consola (`admin@zentral.dev / admin123`) | Filtracion en logs | Remover de output, solo loggear email |
+| S-H7 ✓ | Seed imprime credenciales en consola (`admin@zentral.dev / admin123`) | Filtracion en logs | Remover de output, solo loggear email |
 | S-H8 | Catch blocks vacios en extractor (OCR/AI) y registro (email) | Fallos silenciosos sin alerta | `console.error` como minimo, alertas para fallos repetidos |
 
 ### Medio
@@ -210,8 +210,17 @@ Implementado (esta sesion ✓):
 7. ~~B-H1: Indices MongoDB~~ ✓
 8. ~~F-C4: Perfil de usuario (cambio de password, nombre)~~ ✓
 9. ~~F-H3, F-H4: `<DataTable>` + `usePaginatedData`~~ ✓
-
 10. ~~B-C2: Stats cargan 5 colecciones → countDocuments~~ ✓
+11. ~~S-H7: Seed imprimia credenciales en consola~~ ✓
+12. ~~N-H3: Dashboard workspace owner redisenado (header, resumen, barras, actividad)~~ ✓
+13. ~~Modulo `visible`: campo booleano — controla visibilidad en landing y plan creation~~ ✓
+14. ~~Suscripciones enterprise coexistiendo con planes — indice no unico, recalculateQuotas protege enterprise~~ ✓
+15. ~~consumeQuota oldest-first, pagos manuales enterprise, unificacion visual de modulos~~ ✓
+16. ~~Dashboard superadmin redisenado: 12 cards, countDocuments, metricas enterprise~~ ✓
+17. ~~WorkspacePurchase: `plan: null` + `paymentMethod: 'manual'` para enterprise~~ ✓
+18. ~~Enterprise en historial de compras: sin acciones, badge ambar, periodo real~~ ✓
+19. ~~Gmail OAuth2 scope: `gmail.readonly` (solo lectura de correo)~~ ✓
+20. ~~DELETE enterprise: borra ModuleSubscription + WorkspacePurchase~~ ✓
 
 Pendiente:
 1. **F-H5**: Search/filter en listas admin
@@ -220,7 +229,6 @@ Pendiente:
 4. **F-C3**: Wrapper de fetch centralizado (`useApi()` o apiClient)
 5. **B-C4**: processPendingMatches secuencial → Promise.allSettled
 6. **B-H3**: register/route.ts queries secuenciales → Promise.all()
-7. **B-H3**: register/route.ts queries secuenciales → Promise.all()
 
 ---
 

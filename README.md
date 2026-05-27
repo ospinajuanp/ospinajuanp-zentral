@@ -71,7 +71,10 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
   - Reactivar: `PATCH active` sobre mismo registro
   - Renovar: abre pasarela de pago
   - Enterprise: sin acciones, badge "Enterprise" (ambar)
-- **WorkspacePurchase**: `paymentMethod: 'simulated' | 'manual'`
+- **WorkspacePurchase**: `paymentMethod: 'simulated' | 'manual'`, `plan: null` para enterprise
+- **Pagina de perfil**: cambio de nombre y contrasena, visible solo para rol `operador` en sidebar
+- **ErrorBoundary + Toast system**: manejo de errores centralizado, notificaciones contextuales
+- **Modulo `visible`**: campo booleano que controla visibilidad en landing y creacion de planes
 
 ### Webhook de Pago / isPayReady
 - `Workspace.isPayReady`: flag booleano
@@ -269,7 +272,7 @@ pnpm run seed    # Poblar base de datos
 | usedQuota | Number | Consultas consumidas |
 | quotaResetAt | Date | Fecha de reseteo |
 
-> **Indice unico**: `{ workspace, moduleKey, tier }` — permite multiples suscripciones del mismo modulo con diferentes tiers (ej: `transfercheck:free` del plan + `transfercheck:enterprise` manual).
+> **Indice compuesto** (no unico): `{ workspace, moduleKey, tier }` — permite multiples suscripciones del mismo modulo con diferentes tiers (ej: `transfercheck:free` del plan + `transfercheck:enterprise` manual). Las cuotas se suman para el consumo.
 
 ### Plan
 | Campo | Tipo | Detalle |
