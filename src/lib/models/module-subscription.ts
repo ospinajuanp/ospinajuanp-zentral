@@ -6,6 +6,7 @@ export interface IModuleSubscription extends Document {
   moduleKey: string;
   tier: ModuleTier;
   status: ModuleStatus;
+  autoRenew: boolean;
   activatedAt?: Date;
   expiresAt?: Date | null;
   price?: number | null;
@@ -35,13 +36,17 @@ const moduleSubscriptionSchema = new Schema<IModuleSubscription>(
     },
     tier: {
       type: String,
-      enum: ['free', 'premium'],
+      enum: ['free', 'premium', 'enterprise'],
       default: 'free',
     },
     status: {
       type: String,
       enum: ['active', 'inactive', 'suspended'],
       default: 'active',
+    },
+    autoRenew: {
+      type: Boolean,
+      default: false,
     },
     activatedAt: {
       type: Date,

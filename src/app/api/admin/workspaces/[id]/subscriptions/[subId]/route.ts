@@ -12,7 +12,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id, subId } = await params;
     const body = await req.json();
-    const { tier, status, monthlyQuota } = body;
+    const { tier, status, monthlyQuota, autoRenew } = body;
 
     await dbConnect();
 
@@ -20,6 +20,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (tier !== undefined) update.tier = tier;
     if (status !== undefined) update.status = status;
     if (monthlyQuota !== undefined) update.monthlyQuota = monthlyQuota;
+    if (autoRenew !== undefined) update.autoRenew = autoRenew;
 
     const sub = await ModuleSubscription.findOneAndUpdate(
       { _id: subId, workspace: id },
@@ -28,7 +29,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     );
 
     if (!sub) {
-      return NextResponse.json({ error: 'Suscripción no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: 'Suscripcion no encontrada' }, { status: 404 });
     }
 
     return NextResponse.json({ subscription: sub });
@@ -50,10 +51,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const sub = await ModuleSubscription.findOneAndDelete({ _id: subId, workspace: id });
 
     if (!sub) {
-      return NextResponse.json({ error: 'Suscripción no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: 'Suscripcion no encontrada' }, { status: 404 });
     }
 
-    return NextResponse.json({ message: 'Suscripción eliminada' });
+    return NextResponse.json({ message: 'Suscripcion eliminada' });
   } catch {
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
   }

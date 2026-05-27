@@ -36,6 +36,7 @@ interface PurchaseData {
   amount: number;
   currency: string;
   status: string;
+  paymentMethod: string;
   purchasedAt: string;
   expiresAt: string;
   modules: { moduleKey: string; quota: number; tier: string }[];
@@ -547,7 +548,8 @@ export default function WorkspacePlanPage() {
                   const isActive = p.status === 'active';
                   const isCancelled = p.status === 'cancelled';
                   const isExpired = p.status === 'expired';
-                  const isFree = p.amount === 0;
+                  const isFree = p.amount === 0 && p.paymentMethod !== 'manual';
+                  const isEnterprise = p.paymentMethod === 'manual';
                   const purchasedDate = new Date(p.purchasedAt);
                   const expiresDate = new Date(p.expiresAt);
                   const now = new Date();
@@ -562,7 +564,9 @@ export default function WorkspacePlanPage() {
                     `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 
                   let periodInfo = '';
-                  if (isFree) {
+                  if (isEnterprise) {
+                    periodInfo = 'Cuota personalizada';
+                  } else if (isFree) {
                     periodInfo = 'Cuota mensual automatica';
                   } else if (isActive && diffDays > 0) {
                     periodInfo = `Quedan ${diffDays} dia${diffDays !== 1 ? 's' : ''}`;
@@ -580,41 +584,45 @@ export default function WorkspacePlanPage() {
                       <td className="whitespace-nowrap px-4 py-3">
                         <span
                           className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            isFree
-                              ? 'bg-sky-500/10 text-sky-400'
-                              : isActive
-                                ? 'bg-emerald-500/10 text-emerald-400'
-                                : isCancelled
-                                  ? 'bg-rose-500/10 text-rose-400'
-                                  : 'bg-amber-500/10 text-amber-400'
+                            isEnterprise
+                              ? 'bg-amber-500/10 text-amber-400'
+                              : isFree
+                                ? 'bg-sky-500/10 text-sky-400'
+                                : isActive
+                                  ? 'bg-emerald-500/10 text-emerald-400'
+                                  : isCancelled
+                                    ? 'bg-rose-500/10 text-rose-400'
+                                    : 'bg-amber-500/10 text-amber-400'
                           }`}
                         >
-                          {isFree ? 'Gratuita' : isActive ? 'Activa' : isCancelled ? 'Desactivada' : 'Expirada'}
+                          {isEnterprise ? 'Enterprise' : isFree ? 'Gratuita' : isActive ? 'Activa' : isCancelled ? 'Desactivada' : 'Expirada'}
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
                         <p className="text-slate-300">
-                          {fmt(purchasedDate)} — {isFree ? '∞' : fmt(expiresDate)}
+                          {fmt(purchasedDate)} — {isEnterprise ? '—' : isFree ? '∞' : fmt(expiresDate)}
                         </p>
                         <p
                           className={`text-xs ${
-                            isFree
-                              ? 'text-sky-400'
-                              : isActive
-                                ? 'text-emerald-500'
-                                : isCancelled
-                                  ? 'text-rose-400'
-                                  : 'text-amber-400'
+                            isEnterprise
+                              ? 'text-amber-400'
+                              : isFree
+                                ? 'text-sky-400'
+                                : isActive
+                                  ? 'text-emerald-500'
+                                  : isCancelled
+                                    ? 'text-rose-400'
+                                    : 'text-amber-400'
                           }`}
                         >
                           {periodInfo}
                         </p>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-slate-300">
-                        {isFree ? 'Gratis' : `${p.amount.toLocaleString('es-CO')} ${p.currency}`}
+                        {isEnterprise ? 'Personalizado' : isFree ? 'Gratis' : `${p.amount.toLocaleString('es-CO')} ${p.currency}`}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
-                        {isFree || isExpired ? (
+                        {isFree || isExpired || isEnterprise ? (
                           <span className="text-xs text-slate-500">—</span>
                         ) : isActive ? (
                           <button

@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
         amount: p.amount,
         currency: p.currency,
         status: p.status,
+        paymentMethod: p.paymentMethod ?? 'simulated',
         modules: p.modules,
         purchasedAt: purchasedAt.toISOString(),
         expiresAt: expiresAt.toISOString(),

@@ -1,6 +1,6 @@
 export type Role = 'superadmin' | 'admin' | 'operador' | 'hijo';
 
-export type ModuleTier = 'free' | 'premium';
+export type ModuleTier = 'free' | 'premium' | 'enterprise';
 
 export type ModuleStatus = 'active' | 'inactive' | 'suspended';
 

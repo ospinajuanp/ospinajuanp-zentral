@@ -8,7 +8,7 @@ export interface IPurchasedModule {
 
 export interface IWorkspacePurchase extends Document {
   workspace: mongoose.Types.ObjectId;
-  plan: mongoose.Types.ObjectId;
+  plan: mongoose.Types.ObjectId | null;
   planName: string;
   amount: number;
   currency: string;
@@ -40,7 +40,7 @@ const workspacePurchaseSchema = new Schema<IWorkspacePurchase>(
     plan: {
       type: Schema.Types.ObjectId,
       ref: 'Plan',
-      required: true,
+      default: null,
     },
     planName: {
       type: String,

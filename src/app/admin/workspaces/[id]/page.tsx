@@ -30,6 +30,7 @@ interface SubSummary {
   status: string;
   monthlyQuota: number;
   usedQuota: number;
+  autoRenew?: boolean;
 }
 
 interface ModuleOption {
@@ -38,6 +39,18 @@ interface ModuleOption {
   name: string;
   defaultQuota: number;
 }
+
+const TIER_LABELS: Record<string, string> = {
+  free: 'Gratis',
+  premium: 'Premium',
+  enterprise: 'Enterprise',
+};
+
+const TIER_CLASSES: Record<string, string> = {
+  free: 'bg-emerald-500/10 text-emerald-500',
+  premium: 'bg-indigo-500/10 text-indigo-400',
+  enterprise: 'bg-amber-500/10 text-amber-400',
+};
 
 export default function WorkspaceDetailPage() {
   const router = useRouter();
@@ -59,24 +72,23 @@ export default function WorkspaceDetailPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // add module state
   const [availableModules, setAvailableModules] = useState<ModuleOption[]>([]);
   const [showAddModule, setShowAddModule] = useState(false);
   const [selectedModuleKey, setSelectedModuleKey] = useState('');
-  const [addModuleTier, setAddModuleTier] = useState<'free' | 'premium'>('free');
+  const [addModuleTier, setAddModuleTier] = useState('enterprise');
   const [addModuleQuota, setAddModuleQuota] = useState(100);
+  const [addModuleAutoRenew, setAddModuleAutoRenew] = useState(false);
   const [addingModule, setAddingModule] = useState(false);
   const [addModuleError, setAddModuleError] = useState('');
 
-  // remove subscription state
   const [removeSubId, setRemoveSubId] = useState<string | null>(null);
   const [removingModule, setRemovingModule] = useState(false);
 
-  // edit subscription state
   const [editSubId, setEditSubId] = useState<string | null>(null);
   const [editSubQuota, setEditSubQuota] = useState(0);
-  const [editSubTier, setEditSubTier] = useState<'free' | 'premium'>('free');
+  const [editSubTier, setEditSubTier] = useState('free');
   const [editSubStatus, setEditSubStatus] = useState('active');
+  const [editSubAutoRenew, setEditSubAutoRenew] = useState(false);
   const [savingSub, setSavingSub] = useState(false);
 
   useEffect(() => {
@@ -105,17 +117,26 @@ export default function WorkspaceDetailPage() {
       .then((data) => {
         if (data.items) setAvailableModules(data.items);
       })
-      .catch((err) => { console.error(err); toast.error('Error de conexión'); });
+      .catch((err) => { console.error(err); toast.error('Error de conexion'); });
   }, []);
 
   useEffect(() => {
     if (selectedModuleKey) {
       const mod = availableModules.find((m) => m.key === selectedModuleKey);
       if (mod) {
-        setAddModuleQuota(mod.defaultQuota);
+        const existing = subscriptions.find((s) => s.moduleKey === mod.key);
+        if (existing) {
+          setAddModuleQuota(existing.monthlyQuota);
+          setAddModuleTier(existing.tier);
+          setAddModuleAutoRenew(existing.autoRenew ?? false);
+        } else {
+          setAddModuleQuota(mod.defaultQuota);
+          setAddModuleTier('enterprise');
+          setAddModuleAutoRenew(false);
+        }
       }
     }
-  }, [selectedModuleKey, availableModules]);
+  }, [selectedModuleKey, availableModules, subscriptions]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -137,7 +158,7 @@ export default function WorkspaceDetailPage() {
 
       toast.success('Workspace actualizado correctamente');
     } catch {
-      toast.error('Error de conexión');
+      toast.error('Error de conexion');
     } finally {
       setSaving(false);
     }
@@ -155,7 +176,7 @@ export default function WorkspaceDetailPage() {
         setDeleteConfirm(false);
       }
     } catch {
-      toast.error('Error de conexión');
+      toast.error('Error de conexion');
       setDeleteConfirm(false);
     } finally {
       setDeleting(false);
@@ -175,22 +196,32 @@ export default function WorkspaceDetailPage() {
           moduleKey: selectedModuleKey,
           tier: addModuleTier,
           monthlyQuota: addModuleQuota,
+          autoRenew: addModuleAutoRenew,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setAddModuleError(data.error ?? 'Error al agregar módulo');
+        setAddModuleError(data.error ?? 'Error al agregar modulo');
         return;
       }
 
-      setSubscriptions((prev) => [...prev, data.subscription]);
+      setSubscriptions((prev) => {
+        const idx = prev.findIndex((s) => s.moduleKey === data.subscription.moduleKey);
+        if (idx >= 0) {
+          const copy = [...prev];
+          copy[idx] = data.subscription;
+          return copy;
+        }
+        return [...prev, data.subscription];
+      });
       setShowAddModule(false);
       setSelectedModuleKey('');
-      setAddModuleTier('free');
+      setAddModuleTier('enterprise');
+      setAddModuleAutoRenew(false);
     } catch {
-      setAddModuleError('Error de conexión');
+      setAddModuleError('Error de conexion');
     } finally {
       setAddingModule(false);
     }
@@ -207,10 +238,10 @@ export default function WorkspaceDetailPage() {
         setSubscriptions((prev) => prev.filter((s) => s._id !== subId));
       } else {
         const data = await res.json();
-        toast.error(data.error ?? 'Error al eliminar módulo');
+        toast.error(data.error ?? 'Error al eliminar modulo');
       }
     } catch {
-      toast.error('Error de conexión');
+      toast.error('Error de conexion');
     } finally {
       setRemovingModule(false);
       setRemoveSubId(null);
@@ -220,8 +251,9 @@ export default function WorkspaceDetailPage() {
   function startEditSub(sub: SubSummary) {
     setEditSubId(sub._id);
     setEditSubQuota(sub.monthlyQuota);
-    setEditSubTier(sub.tier as 'free' | 'premium');
+    setEditSubTier(sub.tier);
     setEditSubStatus(sub.status);
+    setEditSubAutoRenew(sub.autoRenew ?? false);
   }
 
   async function handleSaveSub() {
@@ -236,13 +268,14 @@ export default function WorkspaceDetailPage() {
           tier: editSubTier,
           status: editSubStatus,
           monthlyQuota: Number(editSubQuota),
+          autoRenew: editSubAutoRenew,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error ?? 'Error al actualizar suscripción');
+        toast.error(data.error ?? 'Error al actualizar suscripcion');
         return;
       }
 
@@ -250,16 +283,13 @@ export default function WorkspaceDetailPage() {
         prev.map((s) => (s._id === editSubId ? { ...s, ...data.subscription } : s))
       );
       setEditSubId(null);
-      toast.success('Suscripción actualizada');
+      toast.success('Suscripcion actualizada');
     } catch {
-      toast.error('Error de conexión');
+      toast.error('Error de conexion');
     } finally {
       setSavingSub(false);
     }
   }
-
-  const subscribedKeys = subscriptions.map((s) => s.moduleKey);
-  const unsubscribedModules = availableModules.filter((m) => !subscribedKeys.includes(m.key));
 
   if (loading) {
     return (
@@ -282,14 +312,14 @@ export default function WorkspaceDetailPage() {
   return (
     <div>
       <Link href="/admin/workspaces" className="text-sm text-slate-400 hover:text-slate-300">
-        ← Volver a Workspaces
+        &larr; Volver a Workspaces
       </Link>
 
       <h1 className="mt-4 text-2xl font-bold tracking-tight text-white">Editar workspace</h1>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <form onSubmit={handleSubmit} className="rounded-md border border-slate-800 bg-slate-900 p-6">
-          <h2 className="text-lg font-semibold text-white">Información</h2>
+          <h2 className="text-lg font-semibold text-white">Informacion</h2>
 
           <div className="mt-4 space-y-4">
             <div>
@@ -304,7 +334,7 @@ export default function WorkspaceDetailPage() {
                 onChange={(e) => setName(e.target.value)}
                 className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
               />
-            </div>
+                </div>
 
             <div>
               <label htmlFor="slug" className="block text-sm font-medium text-slate-400">
@@ -361,14 +391,14 @@ export default function WorkspaceDetailPage() {
 
             {!isPayReady && (
               <div className="rounded-md border border-amber-800/50 bg-amber-500/5 px-4 py-3 text-xs text-amber-400">
-                Este workspace tiene módulos en estado &ldquo;inactivo&rdquo; esperando confirmación de pago.
-                Al marcar &ldquo;Pago confirmado&rdquo; se activarán todos los módulos automáticamente.
+                Este workspace tiene modulos en estado &ldquo;inactivo&rdquo; esperando confirmacion de pago.
+                Al marcar &ldquo;Pago confirmado&rdquo; se activaran todos los modulos automaticamente.
               </div>
             )}
           </div>
 
           <Button type="submit" loading={saving} className="mt-6">
-            {saving ? 'Guardando…' : 'Guardar cambios'}
+            {saving ? 'Guardando...' : 'Guardar cambios'}
           </Button>
         </form>
 
@@ -396,36 +426,129 @@ export default function WorkspaceDetailPage() {
         <div className="rounded-md border border-slate-800 bg-slate-900 p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white">
-              Módulos ({subscriptions.length})
+              Modulos ({subscriptions.length})
             </h2>
             <button
               onClick={() => setShowAddModule(true)}
-              disabled={unsubscribedModules.length === 0}
-              className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
             >
               + Agregar
             </button>
           </div>
 
+          {showAddModule && (
+            <div className="mt-4 rounded-md border border-slate-700 bg-slate-950 p-4">
+              <h3 className="text-sm font-medium text-white">Agregar modulo</h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Si el modulo ya existe, se actualizaran sus valores.
+              </p>
+              {addModuleError && <p className="mt-1 text-xs text-rose-400">{addModuleError}</p>}
+
+              <div className="mt-3 space-y-3">
+                <div>
+                  <label className="block text-xs text-slate-500">Modulo</label>
+                  <select
+                    value={selectedModuleKey}
+                    onChange={(e) => setSelectedModuleKey(e.target.value)}
+                    className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
+                  >
+                    <option value="">Seleccionar...</option>
+                    {availableModules.map((m) => {
+                      const alreadySubscribed = subscriptions.some((s) => s.moduleKey === m.key);
+                      return (
+                        <option key={m.key} value={m.key}>
+                          {m.name} ({m.key}){alreadySubscribed ? ' *' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {selectedModuleKey && subscriptions.some((s) => s.moduleKey === selectedModuleKey) && (
+                  <div className="rounded-md border border-indigo-800/50 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-300">
+                    Este modulo ya esta suscrito. Los valores actuales se cargaron en el formulario.
+                    Al guardar, se actualizara la suscripcion existente.
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs text-slate-500">Tier</label>
+                  <select
+                    value={addModuleTier}
+                    onChange={(e) => setAddModuleTier(e.target.value)}
+                    className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
+                  >
+                    <option value="free">Free</option>
+                    <option value="premium">Premium</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-slate-500">Cuota mensual</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={addModuleQuota}
+                    onChange={(e) => setAddModuleQuota(Number(e.target.value))}
+                    className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={addModuleAutoRenew}
+                      onChange={(e) => setAddModuleAutoRenew(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500"
+                    />
+                    Auto-renovacion mensual
+                  </label>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Si se activa, la cuota se renovara automaticamente cada mes. Si no, es manual.
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAddModule}
+                    disabled={!selectedModuleKey || addingModule}
+                    className="rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {addingModule ? 'Agregando...' : 'Agregar'}
+                  </button>
+                  <button
+                    onClick={() => { setShowAddModule(false); setAddModuleError(''); }}
+                    className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:text-white"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <ul className="mt-4 space-y-3">
             {subscriptions.length === 0 ? (
-              <p className="text-sm text-slate-500">Sin módulos asignados.</p>
+              <p className="text-sm text-slate-500">Sin modulos asignados.</p>
             ) : (
               subscriptions.map((sub) => (
                 <li key={sub._id} className="rounded-md border border-slate-800 bg-slate-950 p-3">
                   {editSubId === sub._id ? (
                     <div className="space-y-3">
                       <p className="text-sm font-medium text-white">{sub.moduleKey}</p>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-xs text-slate-500">Tier</label>
                           <select
                             value={editSubTier}
-                            onChange={(e) => setEditSubTier(e.target.value as 'free' | 'premium')}
+                            onChange={(e) => setEditSubTier(e.target.value)}
                             className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-white"
                           >
                             <option value="free">Free</option>
                             <option value="premium">Premium</option>
+                            <option value="enterprise">Enterprise</option>
                           </select>
                         </div>
                         <div>
@@ -440,7 +563,7 @@ export default function WorkspaceDetailPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-500">Cuota</label>
+                          <label className="block text-xs text-slate-500">Cuota mensual</label>
                           <input
                             type="number"
                             min={0}
@@ -449,6 +572,17 @@ export default function WorkspaceDetailPage() {
                             className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-white"
                           />
                         </div>
+                        <div className="flex items-end">
+                          <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editSubAutoRenew}
+                              onChange={(e) => setEditSubAutoRenew(e.target.checked)}
+                              className="h-3.5 w-3.5 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500"
+                            />
+                            Auto-renovacion
+                          </label>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -456,7 +590,7 @@ export default function WorkspaceDetailPage() {
                           disabled={savingSub}
                           className="rounded bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
                         >
-                          {savingSub ? 'Guardando…' : 'Guardar'}
+                          {savingSub ? 'Guardando...' : 'Guardar'}
                         </button>
                         <button
                           onClick={() => setEditSubId(null)}
@@ -471,12 +605,8 @@ export default function WorkspaceDetailPage() {
                       <div className="flex-1">
                         <p className="text-sm font-medium text-white">{sub.moduleKey}</p>
                         <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
-                          <span className={`rounded-full px-2 py-0.5 font-medium ${
-                            sub.tier === 'free'
-                              ? 'bg-emerald-500/10 text-emerald-500'
-                              : 'bg-indigo-500/10 text-indigo-400'
-                          }`}>
-                            {sub.tier === 'free' ? 'Gratis' : 'Premium'}
+                          <span className={`rounded-full px-2 py-0.5 font-medium ${TIER_CLASSES[sub.tier] ?? 'bg-slate-800 text-slate-400'}`}>
+                            {TIER_LABELS[sub.tier] ?? sub.tier}
                           </span>
                           <span className={`rounded-full px-2 py-0.5 font-medium ${
                             sub.status === 'active'
@@ -488,6 +618,11 @@ export default function WorkspaceDetailPage() {
                           <span className="text-slate-500">
                             {sub.usedQuota}/{sub.monthlyQuota} consultas
                           </span>
+                          {sub.autoRenew && (
+                            <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-400">
+                              Auto-renovable
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -511,73 +646,10 @@ export default function WorkspaceDetailPage() {
             )}
           </ul>
 
-          {showAddModule && (
-            <div className="mt-4 rounded-md border border-slate-700 bg-slate-950 p-4">
-              <h3 className="text-sm font-medium text-white">Agregar módulo</h3>
-              {addModuleError && <p className="mt-1 text-xs text-rose-400">{addModuleError}</p>}
-
-              <div className="mt-3 space-y-3">
-                <div>
-                  <label className="block text-xs text-slate-500">Módulo</label>
-                  <select
-                    value={selectedModuleKey}
-                    onChange={(e) => setSelectedModuleKey(e.target.value)}
-                    className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
-                  >
-                    <option value="">Seleccionar…</option>
-                    {unsubscribedModules.map((m) => (
-                      <option key={m.key} value={m.key}>{m.name} ({m.key})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-slate-500">Tier</label>
-                    <select
-                      value={addModuleTier}
-                      onChange={(e) => setAddModuleTier(e.target.value as 'free' | 'premium')}
-                      className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
-                    >
-                      <option value="free">Free</option>
-                      <option value="premium">Premium</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-500">Cuota mensual</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={addModuleQuota}
-                      onChange={(e) => setAddModuleQuota(Number(e.target.value))}
-                      className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleAddModule}
-                    disabled={!selectedModuleKey || addingModule}
-                    className="rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-                  >
-                    {addingModule ? 'Agregando…' : 'Agregar'}
-                  </button>
-                  <button
-                    onClick={() => { setShowAddModule(false); setAddModuleError(''); }}
-                    className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:text-white"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
           <ConfirmDialog
             open={removeSubId !== null}
-            title="Quitar módulo"
-            message="¿Estás seguro de quitar este módulo del workspace? Los datos de uso se conservan."
+            title="Quitar modulo"
+            message="Estas seguro de quitar este modulo del workspace? Los datos de uso se conservan."
             itemName={subscriptions.find((s) => s._id === removeSubId)?.moduleKey ?? ''}
             loading={removingModule}
             confirmLabel="Quitar"
@@ -590,7 +662,7 @@ export default function WorkspaceDetailPage() {
       <div className="mt-6 rounded-md border border-slate-800 bg-slate-900 p-6">
         <h2 className="text-lg font-semibold text-white">Zona de peligro</h2>
         <p className="mt-2 text-sm text-slate-400">
-          Eliminar este workspace desvinculará a todos sus usuarios y eliminará las suscripciones de módulos.
+          Eliminar este workspace desvinculara a todos sus usuarios y eliminara las suscripciones de modulos.
         </p>
 
         <button
@@ -603,7 +675,7 @@ export default function WorkspaceDetailPage() {
         <ConfirmDialog
           open={deleteConfirm}
           title="Eliminar workspace"
-          message="¿Estás seguro de eliminar este workspace? Se desvincularán todos los usuarios y se eliminarán las suscripciones de módulos."
+          message="Estas seguro de eliminar este workspace? Se desvincularan todos los usuarios y se eliminaran las suscripciones de modulos."
           itemName={workspace.name}
           loading={deleting}
           onConfirm={handleDelete}
