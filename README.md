@@ -84,7 +84,7 @@ Cada módulo es independiente, validable contra el estado de suscripción del wo
 - Tablas responsive (stack a cards en mobile)
 - Sesion timeout con `SessionTimeout`
 - Error pages 404/500, loading spinners
-- Componentes compartidos: AuthLayout, InputField, Button, StatusCard, ErrorMessage, ConfirmDialog, PaginationBar
+- Componentes compartidos: AuthLayout, InputField, Button, StatusCard, ErrorMessage, ConfirmDialog, PaginationBar, DataTable
 - SidebarShell con NavLink activo por pathname
 - Quota helper: `checkQuota()` y `getQuotaInfo()` para control de consumo por modulo
 

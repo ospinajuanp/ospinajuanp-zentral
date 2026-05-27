@@ -2,7 +2,7 @@
 
 > Analisis completo del proyecto generado el 2026-05-25. Ultima actualizacion: 2026-05-27.
 > **No comitear sin revision.** Se usa como hoja de ruta para siguientes iteraciones.
-> Total: **131 items** (9 completados ✓, 122 pendientes)
+> Total: **131 items** (12 completados ✓, 119 pendientes)
 
 ---
 
@@ -111,7 +111,7 @@
 | F-C1 ✓ | Sin ErrorBoundary en ningun client component. Crash = pantalla blanca | Crear `<ErrorBoundary>` wrapper |
 | F-C2 ✓ | Sin sistema de notificaciones (toasts). Errores son divs inline que no se auto-dismiss | `<ToastProvider>` + `useToast()` hook |
 | F-C3 | Sin wrapper de fetch centralizado. Cada pagina repite try/catch/error manualmente | `useApi()` hook o `apiClient` con manejo de 401/500/network |
-| F-C4 | Sin perfil de usuario (cambio de password, nombre). Solo admin edita usuarios | Pagina `/profile` con cambio de password y datos personales |
+| F-C4 ✓ | Sin perfil de usuario (cambio de password, nombre). Solo admin edita usuarios | Pagina `/profile` con cambio de password y datos personales |
 | F-C5 | Antecedentes, Cartera, Facturacion son stubs sin UI funcional | Implementar UI: formularios de consulta, listados, operaciones CRUD |
 
 ### Alto
@@ -120,8 +120,8 @@
 |----|-------|----------|
 | F-H1 | `SidebarShell`, `PricingCards`, `ModulesGridCards` sin `React.memo` — re-renders innecesarios | `React.memo()` en componentes pesados |
 | F-H2 | `ProtectedLayout` recalcula `bottomNav` en cada render sin `useMemo` | `useMemo` para arrays derivados |
-| F-H3 | Duplicacion masiva de codigo de tablas responsive (8+ paginas) | Componente `<DataTable>` con column config |
-| F-H4 | Patron de paginacion repetido en 8+ paginas (useState page/limit/load/changePage) | Hook `usePaginatedData<T>(endpoint)` |
+| F-H3 ✓ | Duplicacion masiva de codigo de tablas responsive (8+ paginas) | Componente `<DataTable>` con column config |
+| F-H4 ✓ | Patron de paginacion repetido en 8+ paginas (useState page/limit/load/changePage) | Hook `usePaginatedData<T>(endpoint)` |
 | F-H5 | Sin search/filter en listas admin (usuarios, workspaces) | Search bar + filtros por rol/estado, server-side via query params |
 | F-H6 | Modales no cierran con Escape consistentemente | `onKeyDown` handler en todos los modales |
 | F-H7 | Sin focus trap en modales. Tabbing sale del modal al fondo | Implementar focus trapping (dialog role + tab loop) |
@@ -208,18 +208,17 @@ Implementado (esta sesion ✓):
 5. ~~S-H3: Race condition en cuotas~~ ✓
 6. ~~F-H10: Cache invalidation~~ ✓
 7. ~~B-H1: Indices MongoDB~~ ✓
+8. ~~F-C4: Perfil de usuario (cambio de password, nombre)~~ ✓
+9. ~~F-H3, F-H4: `<DataTable>` + `usePaginatedData`~~ ✓
 
 Pendiente:
-1. **F-C4**: Perfil de usuario (cambio de password, nombre, datos personales)
-2. **F-H4**: `usePaginatedData` hook — elimina ~150 lineas duplicadas por pagina
-3. **F-H3**: Componente `<DataTable>` — elimina duplicacion de 8+ tablas
-4. **B-C3**: N+1 en recalculateQuotas → bulkWrite
-5. **B-C5**: protected-layout re-fetch → React.cache()
-6. **B-C2**: Stats cargan 5 colecciones enteras → aggregation pipeline
-7. **F-C3**: Wrapper de fetch centralizado (`useApi()` o apiClient)
-8. **F-H5**: Search/filter en listas admin
-9. **B-C4**: processPendingMatches secuencial → Promise.allSettled
-10. **B-H3**: register/route.ts queries secuenciales → Promise.all()
+1. **F-H5**: Search/filter en listas admin
+2. **B-C3**: N+1 en recalculateQuotas → bulkWrite
+3. **B-C5**: protected-layout re-fetch → React.cache()
+4. **B-C2**: Stats cargan 5 colecciones enteras → aggregation pipeline
+5. **F-C3**: Wrapper de fetch centralizado (`useApi()` o apiClient)
+6. **B-C4**: processPendingMatches secuencial → Promise.allSettled
+7. **B-H3**: register/route.ts queries secuenciales → Promise.all()
 
 ---
 
