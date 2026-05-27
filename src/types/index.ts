@@ -23,5 +23,6 @@ export interface ModuleInfo {
   tier: ModuleTier;
   status: 'active' | 'inactive' | 'coming_soon';
   defaultQuota: number;
+  visible: boolean;
   icon?: string;
 }

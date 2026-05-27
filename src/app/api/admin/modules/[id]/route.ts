@@ -34,7 +34,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     const body = await req.json();
-    const { name, description, tier, status, defaultQuota, icon } = body;
+    const { name, description, tier, status, defaultQuota, visible, icon } = body;
 
     await dbConnect();
 
@@ -44,6 +44,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (tier !== undefined) update.tier = tier;
     if (status !== undefined) update.status = status;
     if (defaultQuota !== undefined) update.defaultQuota = defaultQuota;
+    if (visible !== undefined) update.visible = visible;
     if (icon !== undefined) update.icon = icon;
 
     const mod = await Module.findByIdAndUpdate(id, { $set: update }, { new: true, runValidators: true });

@@ -14,6 +14,7 @@ interface ModuleData {
   tier: ModuleTier;
   status: string;
   defaultQuota: number;
+  visible: boolean;
   icon?: string;
 }
 
@@ -34,6 +35,7 @@ export default function EditModulePage() {
   const [tier, setTier] = useState<ModuleTier>('free');
   const [status, setStatus] = useState('active');
   const [defaultQuota, setDefaultQuota] = useState(100);
+  const [visible, setVisible] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,7 @@ export default function EditModulePage() {
           setTier(m.tier);
           setStatus(m.status);
           setDefaultQuota(m.defaultQuota);
+          setVisible(m.visible ?? true);
         } else {
           setError('Módulo no encontrado');
         }
@@ -72,7 +75,7 @@ export default function EditModulePage() {
       const res = await fetch(`/api/admin/modules/${modId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, tier, status, defaultQuota: Number(defaultQuota) }),
+        body: JSON.stringify({ name, description, tier, status, defaultQuota: Number(defaultQuota), visible }),
       });
 
       const data = await res.json();
@@ -208,6 +211,22 @@ export default function EditModulePage() {
                   <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              id="visible"
+              type="checkbox"
+              checked={visible}
+              onChange={(e) => setVisible(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500"
+            />
+            <div>
+              <label htmlFor="visible" className="text-sm font-medium text-slate-400">
+                Visible en landing y planes
+              </label>
+              <p className="text-xs text-slate-500">Si se desactiva, el modulo no aparecera en la pagina publica ni al crear planes.</p>
             </div>
           </div>
 

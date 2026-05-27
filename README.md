@@ -254,6 +254,7 @@ pnpm run seed    # Poblar base de datos
 | tier | enum | free \| premium |
 | status | enum | active \| inactive \| coming_soon |
 | defaultQuota | Number | Cuota por defecto |
+| visible | Boolean | Visible en landing y planes (default: true) |
 | icon | String | Icono (opcional) |
 
 ### ModuleSubscription

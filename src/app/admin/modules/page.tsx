@@ -63,6 +63,18 @@ export default function ModulesPage() {
         </span>
       ),
     },
+    {
+      header: 'Visible',
+      render: (mod) => (
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+            mod.visible ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-800 text-slate-500'
+          }`}
+        >
+          {mod.visible ? 'Si' : 'No'}
+        </span>
+      ),
+    },
   ];
 
   return (

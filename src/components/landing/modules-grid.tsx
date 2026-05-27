@@ -9,7 +9,7 @@ const tierOrder: Record<string, number> = { free: 0, premium: 1 };
 export async function ModulesGrid() {
   try {
     await dbConnect();
-    const rawModules = await Module.find().sort({ key: 1 }).lean()
+    const rawModules = await Module.find({ visible: true }).sort({ key: 1 }).lean()
       .then((docs) => JSON.parse(JSON.stringify(docs)));
 
     rawModules.sort((a: Record<string, unknown>, b: Record<string, unknown>) => {

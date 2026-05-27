@@ -15,14 +15,18 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     const limit = Math.min(100, Math.max(5, parseInt(searchParams.get('limit') || '10')));
+    const filterVisible = searchParams.get('visible');
+
+    const filter: Record<string, unknown> = {};
+    if (filterVisible === 'true') filter.visible = true;
 
     const [modules, total] = await Promise.all([
-      Module.find()
+      Module.find(filter)
         .sort({ key: 1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
-      Module.countDocuments(),
+      Module.countDocuments(filter),
     ]);
 
     return NextResponse.json({
@@ -45,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { key, name, description, tier, status, defaultQuota, icon } = body;
+    const { key, name, description, tier, status, defaultQuota, visible, icon } = body;
 
     if (!key || !name) {
       return NextResponse.json({ error: 'key y name son requeridos' }, { status: 400 });
@@ -55,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     const existing = await Module.findOne({ key: key.toLowerCase() });
     if (existing) {
-      return NextResponse.json({ error: 'Ya existe un módulo con esa key' }, { status: 409 });
+      return NextResponse.json({ error: 'Ya existe un modulo con esa key' }, { status: 409 });
     }
 
     const mod = await Module.create({
@@ -65,6 +69,7 @@ export async function POST(req: NextRequest) {
       tier: tier ?? 'free',
       status: status ?? 'active',
       defaultQuota: defaultQuota ?? 100,
+      visible: visible ?? true,
       icon: icon ?? null,
     });
 

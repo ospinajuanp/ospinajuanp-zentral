@@ -20,6 +20,7 @@ export default function CreateModulePage() {
   const [tier, setTier] = useState<ModuleTier>('free');
   const [status, setStatus] = useState('active');
   const [defaultQuota, setDefaultQuota] = useState(100);
+  const [visible, setVisible] = useState(true);
   const toast = useToastContext();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -37,7 +38,7 @@ export default function CreateModulePage() {
       const res = await fetch('/api/admin/modules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, name, description, tier, status, defaultQuota: Number(defaultQuota) }),
+        body: JSON.stringify({ key, name, description, tier, status, defaultQuota: Number(defaultQuota), visible }),
       });
 
       const data = await res.json();
@@ -129,9 +130,25 @@ export default function CreateModulePage() {
                 <option value="free">Free</option>
                 <option value="premium">Premium</option>
               </select>
-            </div>
+          </div>
 
+          <div className="flex items-center gap-3">
+            <input
+              id="visible"
+              type="checkbox"
+              checked={visible}
+              onChange={(e) => setVisible(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500"
+            />
             <div>
+              <label htmlFor="visible" className="text-sm font-medium text-slate-400">
+                Visible en landing y planes
+              </label>
+              <p className="text-xs text-slate-500">Si se desactiva, el modulo no aparecera en la pagina publica ni al crear planes.</p>
+            </div>
+          </div>
+
+          <div>
               <label htmlFor="status" className="block text-sm font-medium text-slate-400">
                 Estado
               </label>

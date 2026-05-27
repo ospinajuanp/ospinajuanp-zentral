@@ -7,6 +7,7 @@ export interface IModule extends Document {
   tier: 'free' | 'premium';
   status: 'active' | 'inactive' | 'coming_soon';
   defaultQuota: number;
+  visible: boolean;
   icon?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +44,10 @@ const moduleSchema = new Schema<IModule>(
     defaultQuota: {
       type: Number,
       default: 100,
+    },
+    visible: {
+      type: Boolean,
+      default: true,
     },
     icon: {
       type: String,

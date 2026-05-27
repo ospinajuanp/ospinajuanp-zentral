@@ -62,10 +62,10 @@ const defaultPlanDefs: PlanSeed[] = [
 ];
 
 const defaultModules = [
-  { key: 'transfercheck', name: 'TransferCheck', description: 'Verificación y validación de transferencias bancarias.', tier: 'free' as const, status: 'active' as const, defaultQuota: 100 },
-  { key: 'antecedentes', name: 'AntecedentesCheck', description: 'Consulta de antecedentes judiciales, policiales y comerciales.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500 },
-  { key: 'facturacion', name: 'Facturación Electrónica', description: 'Gestión de facturación electrónica y seguimiento de pagos.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500 },
-  { key: 'cartera', name: 'Cartera', description: 'Gestión de cuentas de cobros, seguimiento de pagos y reconciliación.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500 },
+  { key: 'transfercheck', name: 'TransferCheck', description: 'Verificación y validación de transferencias bancarias.', tier: 'free' as const, status: 'active' as const, defaultQuota: 100, visible: true },
+  { key: 'antecedentes', name: 'AntecedentesCheck', description: 'Consulta de antecedentes judiciales, policiales y comerciales.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500, visible: false },
+  { key: 'facturacion', name: 'Facturación Electrónica', description: 'Gestión de facturación electrónica y seguimiento de pagos.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500, visible: false },
+  { key: 'cartera', name: 'Cartera', description: 'Gestión de cuentas de cobros, seguimiento de pagos y reconciliación.', tier: 'premium' as const, status: 'coming_soon' as const, defaultQuota: 500, visible: false },
 ];
 
 async function createPurchase(

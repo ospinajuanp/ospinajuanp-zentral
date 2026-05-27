@@ -60,7 +60,7 @@ export default function CreatePlanPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/admin/modules')
+    fetch('/api/admin/modules?visible=true')
       .then((res) => res.json())
       .then((data) => {
         if (data.items) setAvailableModules(data.items);
