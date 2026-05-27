@@ -93,7 +93,7 @@ const moduleSubscriptionSchema = new Schema<IModuleSubscription>(
   { timestamps: true }
 );
 
-moduleSubscriptionSchema.index({ workspace: 1, moduleKey: 1 }, { unique: true });
+moduleSubscriptionSchema.index({ workspace: 1, moduleKey: 1, tier: 1 }, { unique: true });
 
 export const ModuleSubscription =
   mongoose.models.ModuleSubscription ??

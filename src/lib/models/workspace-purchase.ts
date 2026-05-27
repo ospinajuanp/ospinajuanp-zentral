@@ -4,6 +4,7 @@ export interface IPurchasedModule {
   moduleKey: string;
   quota: number;
   tier: string;
+  autoRenew?: boolean;
 }
 
 export interface IWorkspacePurchase extends Document {

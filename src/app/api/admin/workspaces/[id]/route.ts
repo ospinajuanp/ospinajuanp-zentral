@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db/mongoose';
 import { Workspace } from '@/lib/models/workspace';
 import { User } from '@/lib/models/user';
 import { ModuleSubscription } from '@/lib/models/module-subscription';
+import { Plan } from '@/lib/models/plan';
+void Plan; // registered for populate('plans')
 import { getApiAuth } from '@/lib/auth/api';
 
 export async function GET(

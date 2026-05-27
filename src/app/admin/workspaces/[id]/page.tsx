@@ -75,7 +75,6 @@ export default function WorkspaceDetailPage() {
   const [availableModules, setAvailableModules] = useState<ModuleOption[]>([]);
   const [showAddModule, setShowAddModule] = useState(false);
   const [selectedModuleKey, setSelectedModuleKey] = useState('');
-  const [addModuleTier, setAddModuleTier] = useState('enterprise');
   const [addModuleQuota, setAddModuleQuota] = useState(100);
   const [addModuleAutoRenew, setAddModuleAutoRenew] = useState(false);
   const [addingModule, setAddingModule] = useState(false);
@@ -124,19 +123,11 @@ export default function WorkspaceDetailPage() {
     if (selectedModuleKey) {
       const mod = availableModules.find((m) => m.key === selectedModuleKey);
       if (mod) {
-        const existing = subscriptions.find((s) => s.moduleKey === mod.key);
-        if (existing) {
-          setAddModuleQuota(existing.monthlyQuota);
-          setAddModuleTier(existing.tier);
-          setAddModuleAutoRenew(existing.autoRenew ?? false);
-        } else {
-          setAddModuleQuota(mod.defaultQuota);
-          setAddModuleTier('enterprise');
-          setAddModuleAutoRenew(false);
-        }
+        setAddModuleQuota(mod.defaultQuota);
+        setAddModuleAutoRenew(false);
       }
     }
-  }, [selectedModuleKey, availableModules, subscriptions]);
+  }, [selectedModuleKey, availableModules]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -194,7 +185,6 @@ export default function WorkspaceDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           moduleKey: selectedModuleKey,
-          tier: addModuleTier,
           monthlyQuota: addModuleQuota,
           autoRenew: addModuleAutoRenew,
         }),
@@ -207,18 +197,14 @@ export default function WorkspaceDetailPage() {
         return;
       }
 
-      setSubscriptions((prev) => {
-        const idx = prev.findIndex((s) => s.moduleKey === data.subscription.moduleKey);
-        if (idx >= 0) {
-          const copy = [...prev];
-          copy[idx] = data.subscription;
-          return copy;
-        }
-        return [...prev, data.subscription];
-      });
+      const subsRes = await fetch(`/api/admin/workspaces/${wsId}/subscriptions`);
+      const subsData = await subsRes.json();
+      if (subsData.subscriptions) {
+        setSubscriptions(subsData.subscriptions);
+      }
+
       setShowAddModule(false);
       setSelectedModuleKey('');
-      setAddModuleTier('enterprise');
       setAddModuleAutoRenew(false);
     } catch {
       setAddModuleError('Error de conexion');
@@ -235,7 +221,11 @@ export default function WorkspaceDetailPage() {
       });
 
       if (res.ok) {
-        setSubscriptions((prev) => prev.filter((s) => s._id !== subId));
+        const subsRes = await fetch(`/api/admin/workspaces/${wsId}/subscriptions`);
+        const subsData = await subsRes.json();
+        if (subsData.subscriptions) {
+          setSubscriptions(subsData.subscriptions);
+        }
       } else {
         const data = await res.json();
         toast.error(data.error ?? 'Error al eliminar modulo');
@@ -440,7 +430,7 @@ export default function WorkspaceDetailPage() {
             <div className="mt-4 rounded-md border border-slate-700 bg-slate-950 p-4">
               <h3 className="text-sm font-medium text-white">Agregar modulo</h3>
               <p className="mt-1 text-xs text-slate-500">
-                Si el modulo ya existe, se actualizaran sus valores.
+                Asigna cuota manual Enterprise. Se acumula con la cuota de planes existentes.
               </p>
               {addModuleError && <p className="mt-1 text-xs text-rose-400">{addModuleError}</p>}
 
@@ -466,26 +456,12 @@ export default function WorkspaceDetailPage() {
 
                 {selectedModuleKey && subscriptions.some((s) => s.moduleKey === selectedModuleKey) && (
                   <div className="rounded-md border border-indigo-800/50 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-300">
-                    Este modulo ya esta suscrito. Los valores actuales se cargaron en el formulario.
-                    Al guardar, se actualizara la suscripcion existente.
+                    Este modulo ya tiene cuota asignada. La nueva cuota se sumara al total disponible.
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-xs text-slate-500">Tier</label>
-                  <select
-                    value={addModuleTier}
-                    onChange={(e) => setAddModuleTier(e.target.value)}
-                    className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white"
-                  >
-                    <option value="free">Free</option>
-                    <option value="premium">Premium</option>
-                    <option value="enterprise">Enterprise</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-slate-500">Cuota mensual</label>
+                  <label className="block text-xs text-slate-500">Cuota mensual adicional</label>
                   <input
                     type="number"
                     min={0}

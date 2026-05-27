@@ -13,8 +13,7 @@ export async function checkQuota(
 
   const now = new Date();
 
-  // Reset quota only if period has elapsed (or never set)
-  await ModuleSubscription.findOneAndUpdate(
+  await ModuleSubscription.updateMany(
     {
       workspace: workspaceId,
       moduleKey: 'transfercheck',
@@ -33,16 +32,24 @@ export async function checkQuota(
     }
   );
 
-  const sub = await ModuleSubscription.findOne({
+  const subs = await ModuleSubscription.find({
     workspace: workspaceId,
     moduleKey: 'transfercheck',
     status: 'active',
   }).lean();
 
-  if (!sub) return { allowed: false, remaining: 0 };
-  if (sub.monthlyQuota <= 0) return { allowed: true, remaining: -1 };
+  if (!subs.length) return { allowed: false, remaining: 0 };
 
-  const remaining = sub.monthlyQuota - sub.usedQuota;
+  let totalQuota = 0;
+  let totalUsed = 0;
+  for (const s of subs) {
+    totalQuota += s.monthlyQuota;
+    totalUsed += s.usedQuota;
+  }
+
+  if (totalQuota <= 0) return { allowed: true, remaining: -1 };
+
+  const remaining = totalQuota - totalUsed;
   return { allowed: remaining > 0, remaining: Math.max(0, remaining) };
 }
 
@@ -53,40 +60,51 @@ export async function consumeQuota(
   await dbConnect();
 
   if (count <= 0) {
-    const sub = await ModuleSubscription.findOne({
+    const subs = await ModuleSubscription.find({
       workspace: workspaceId,
       moduleKey: 'transfercheck',
       status: 'active',
     }).lean();
-    const rem = sub ? Math.max(0, sub.monthlyQuota - sub.usedQuota) : 0;
+    let rem = 0;
+    for (const s of subs) rem += Math.max(0, s.monthlyQuota - s.usedQuota);
     return { consumed: true, remaining: rem };
   }
 
-  const result = await ModuleSubscription.findOneAndUpdate(
-    {
-      workspace: workspaceId,
-      moduleKey: 'transfercheck',
-      status: 'active',
-      $expr: { $gte: [{ $subtract: ['$monthlyQuota', '$usedQuota'] }, count] },
-    },
-    { $inc: { usedQuota: count } },
-    { new: true, lean: true }
+  const subs = await ModuleSubscription.find({
+    workspace: workspaceId,
+    moduleKey: 'transfercheck',
+    status: 'active',
+  }).lean();
+
+  const sorted = [...subs].sort(
+    (a, b) => (b.monthlyQuota - b.usedQuota) - (a.monthlyQuota - a.usedQuota)
   );
 
-  if (!result) {
-    const sub = await ModuleSubscription.findOne({
-      workspace: workspaceId,
-      moduleKey: 'transfercheck',
-      status: 'active',
-    }).lean();
-    const rem = sub ? Math.max(0, sub.monthlyQuota - sub.usedQuota) : 0;
-    return { consumed: false, remaining: rem };
+  let totalRemaining = 0;
+
+  for (const s of sorted) {
+    const result = await ModuleSubscription.findOneAndUpdate(
+      {
+        _id: s._id,
+        $expr: { $gte: [{ $subtract: ['$monthlyQuota', '$usedQuota'] }, count] },
+      },
+      { $inc: { usedQuota: count } },
+      { new: true, lean: true }
+    );
+
+    if (result) {
+      for (const other of sorted) {
+        if (other._id.toString() === result._id.toString()) continue;
+        totalRemaining += Math.max(0, other.monthlyQuota - other.usedQuota);
+      }
+      totalRemaining += Math.max(0, result.monthlyQuota - result.usedQuota);
+      return { consumed: true, remaining: totalRemaining };
+    }
+
+    totalRemaining += Math.max(0, s.monthlyQuota - s.usedQuota);
   }
 
-  return {
-    consumed: true,
-    remaining: Math.max(0, result.monthlyQuota - result.usedQuota),
-  };
+  return { consumed: false, remaining: totalRemaining };
 }
 
 export async function processPendingMatch(logId: string, workspaceId: string): Promise<ITransferCheckLog | null> {

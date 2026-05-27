@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const { id } = await params;
     const body = await req.json();
-    const { moduleKey, tier, status, monthlyQuota, autoRenew } = body;
+    const { moduleKey, monthlyQuota, autoRenew } = body;
 
     if (!moduleKey) {
       return NextResponse.json({ error: 'moduleKey es requerido' }, { status: 400 });
@@ -47,61 +47,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const normalizedKey = moduleKey.toLowerCase();
     const quota = monthlyQuota ?? mod.defaultQuota;
-    const finalTier = tier ?? mod.tier;
 
-    const sub = await ModuleSubscription.findOneAndUpdate(
-      { workspace: id, moduleKey: normalizedKey },
-      {
-        $set: {
-          tier: finalTier,
-          status: status ?? 'active',
-          monthlyQuota: quota,
-          ...(autoRenew !== undefined ? { autoRenew } : {}),
-        },
-        $setOnInsert: {
-          usedQuota: 0,
-        },
-      },
-      { upsert: true, new: true, runValidators: true }
-    );
+    const sub = await ModuleSubscription.create({
+      workspace: id,
+      moduleKey: normalizedKey,
+      tier: 'enterprise',
+      status: 'active',
+      monthlyQuota: quota,
+      usedQuota: 0,
+      autoRenew: autoRenew ?? false,
+    });
 
-    if (finalTier === 'enterprise') {
-      const existing = await WorkspacePurchase.findOne({
-        workspace: id,
-        'modules.moduleKey': normalizedKey,
-        paymentMethod: 'manual',
-      });
-
-      if (existing) {
-        await WorkspacePurchase.updateOne(
-          { _id: existing._id },
-          {
-            $set: {
-              planName: `Enterprise (${mod.name})`,
-              amount: 0,
-              status: 'active',
-              'modules.$[mod].quota': quota,
-              'modules.$[mod].tier': 'enterprise',
-            },
-          },
-          { arrayFilters: [{ 'mod.moduleKey': normalizedKey }] }
-        );
-      } else {
-        await WorkspacePurchase.create({
-          workspace: id,
-          plan: null,
-          planName: `Enterprise (${mod.name})`,
-          amount: 0,
-          currency: 'COP',
-          status: 'active',
-          paymentMethod: 'manual',
-          modules: [{ moduleKey: normalizedKey, quota, tier: 'enterprise' }],
-        });
-      }
-    }
+    await WorkspacePurchase.create({
+      workspace: id,
+      plan: null,
+      planName: `Enterprise (${mod.name})`,
+      amount: 0,
+      currency: 'COP',
+      status: 'active',
+      paymentMethod: 'manual',
+      modules: [{ moduleKey: normalizedKey, quota, tier: 'enterprise', autoRenew: autoRenew ?? false }],
+      purchasedAt: new Date(),
+    });
 
     return NextResponse.json({ subscription: sub }, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error('[subscriptions] POST error:', err);
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
   }
 }
