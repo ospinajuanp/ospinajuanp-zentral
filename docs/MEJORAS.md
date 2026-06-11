@@ -66,7 +66,7 @@
 | S-H2 | Sin validacion de tamano en upload de imagenes (process-image) | DoS, consumo de memoria | Max 10MB, validar dimensiones |
 | S-H3 ✓ | Race condition en checkQuota/consumeQuota — dos requests concurrentes pueden exceder cuota | Bypass de limite mensual | Operacion atomica: `findOneAndUpdate` con `$expr: { $gt: ['$monthlyQuota', '$usedQuota'] }` |
 | S-H4 | Race condition en recalculateQuotas — compras concurrentes pueden perder cuotas | Inconsistencia de datos | Transacciones MongoDB o `$addToSet` atomico |
-| S-H5 | Sin audit logging para operaciones criticas (crear/borrar usuarios, compras, cambios de rol) | Imposibilidad de auditoria | Modelo `AuditLog`, loggear en cada ruta admin |
+| S-H5 ✓ | Audit logging para operaciones criticas | Modelo `AuditLog` con userId, action, entity, changes, timestamp, IP. UI en `/admin/audit-logs` |
 | S-H6 | Sin estrategia de backup de BD | Perdida de datos | Configurar backups automaticos en MongoDB Atlas |
 | S-H7 ✓ | Seed imprime credenciales en consola (`admin@zentral.dev / admin123`) | Filtracion en logs | Remover de output, solo loggear email |
 | S-H8 | Catch blocks vacios en extractor (OCR/AI) y registro (email) | Fallos silenciosos sin alerta | `console.error` como minimo, alertas para fallos repetidos |
@@ -179,7 +179,7 @@
 |----|---------|-------------|
 | N-H0 ✓ | Feature toggles globales | 19 toggles en MongoDB (auth, features, CRUD, admin/operador, mantenimiento). Cache 10s, guard `checkFeatureEnabled()`, exencion superadmin. UI `/admin/settings`. Checks en 30+ rutas. |
 | N-H1 | Integracion de pagos real (Stripe/Wompi) | Reemplazar `paymentMethod: 'simulated'` con Stripe Checkout. Webhook para confirmacion |
-| N-H2 | Audit logging | Modelo `AuditLog` con userId, action, entity, changes, timestamp, IP |
+| N-H2 ✓ | Audit logging | Modelo `AuditLog` con userId, action, entity, changes, timestamp, IP, UI en `/admin/audit-logs` |
 | N-H3 ✓ | Dashboard del workspace con analytics | Graficos de uso por modulo, tendencias, actividad de usuarios, resumen de billing |
 | N-H4 | Webhooks | Permitir a workspace owners configurar webhooks para eventos (transfer matched, etc.) |
 

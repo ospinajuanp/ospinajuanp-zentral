@@ -133,3 +133,48 @@ Links directos a: Workspaces, Modulos, Planes, Usuarios.
 |--------|---------|--------|
 | Modo mantenimiento | OFF | Bloquea todo el sitio. Solo superadmin navega. APIs publicas accesibles. |
 | Mensaje | configurable | Se muestra en `/maintenance` |
+
+---
+
+## Audit Logs (`/admin/audit-logs`)
+
+Registro de todas las operaciones CRUD realizadas desde el panel superadmin.
+
+### Campos registrados
+| Campo | Descripcion |
+|-------|-------------|
+| Fecha | Timestamp de la operacion |
+| Accion | create, update, delete, activate, deactivate |
+| Entidad | User, Workspace, Plan, Module, ModuleSubscription |
+| Usuario | Email y rol del usuario que realizo la accion |
+| Cambios | Campos modificados (antes/despues) |
+| IP | Direccion IP del cliente |
+| Metadata | Datos adicionales segun la operacion |
+
+### Filtros
+- Por entidad (Usuario, Workspace, Plan, Modulo)
+- Por accion (Crear, Actualizar, Eliminar, Activar, Desactivar)
+- Busqueda por email de usuario
+
+### APIs relacionadas
+- `GET /api/admin/audit-logs` - Lista de logs con paginacion y filtros
+
+---
+
+## Modelo de Datos
+
+### AuditLog
+| Campo | Tipo | Descripcion |
+|-------|------|-------------|
+| action | enum | create, update, delete, activate, deactivate, login, logout |
+| entity | enum | User, Workspace, Plan, Module, ModuleSubscription, AppSettings |
+| entityId | String | ID del objeto afectado |
+| userId | ObjectId | Usuario que realizo la accion |
+| userEmail | String | Email del usuario |
+| userRole | String | Rol del usuario |
+| workspaceId | ObjectId | Workspace asociado (null para superadmin) |
+| changes | Mixed | Campos modificados {old, new} |
+| metadata | Mixed | Datos adicionales |
+| ip | String | IP del cliente |
+| userAgent | String | User agent del navegador |
+| createdAt | Date | Timestamp |
