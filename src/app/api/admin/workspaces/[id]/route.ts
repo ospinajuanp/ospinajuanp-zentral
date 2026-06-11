@@ -8,6 +8,7 @@ import { Plan } from '@/lib/models/plan';
 void Plan; // registered for populate('plans')
 import { getApiAuth } from '@/lib/auth/api';
 import { checkFeatureEnabled } from '@/lib/settings/guard';
+import { createAuditLog, calculateChanges } from '@/lib/audit';
 
 export async function GET(
   _request: NextRequest,
@@ -77,6 +78,24 @@ export async function PUT(
 
   await workspace.save();
 
+  const changes = calculateChanges(
+    { name: workspace.name, slug: workspace.slug, isActive: workspace.isActive, isPayReady: wasPayReady } as Record<string, unknown>,
+    { name: workspace.name, slug: workspace.slug, isActive: workspace.isActive, isPayReady: workspace.isPayReady } as Record<string, unknown>,
+    ['name', 'slug', 'isActive', 'isPayReady']
+  );
+
+  await createAuditLog({
+    action: 'update',
+    entity: 'Workspace',
+    entityId: id,
+    userId: auth.userId,
+    userEmail: auth.email,
+    userRole: auth.role,
+    workspaceId: null,
+    changes,
+    request,
+  });
+
   if (!wasPayReady && workspace.isPayReady) {
     await ModuleSubscription.updateMany(
       { workspace: id, status: 'inactive' },
@@ -114,6 +133,18 @@ export async function DELETE(
 
   await User.updateMany({ workspace: id }, { workspace: null });
   await ModuleSubscription.deleteMany({ workspace: id });
+
+  await createAuditLog({
+    action: 'delete',
+    entity: 'Workspace',
+    entityId: id,
+    userId: auth.userId,
+    userEmail: auth.email,
+    userRole: auth.role,
+    workspaceId: null,
+    metadata: { deletedWorkspaceName: workspace.name, deletedWorkspaceSlug: workspace.slug },
+    request: _request,
+  });
 
   return NextResponse.json({ message: 'Workspace eliminado correctamente' });
 }

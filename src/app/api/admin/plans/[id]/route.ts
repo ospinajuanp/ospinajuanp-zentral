@@ -4,6 +4,7 @@ import { Plan } from '@/lib/models/plan';
 import { Workspace } from '@/lib/models/workspace';
 import { getApiAuth } from '@/lib/auth/api';
 import { checkFeatureEnabled } from '@/lib/settings/guard';
+import { createAuditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -71,6 +72,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 });
     }
 
+    await createAuditLog({
+      action: 'update',
+      entity: 'Plan',
+      entityId: id,
+      userId: auth.userId,
+      userEmail: auth.email,
+      userRole: auth.role,
+      workspaceId: null,
+      changes: Object.keys(update).length > 0 ? update as Record<string, { old: unknown; new: unknown }> : undefined,
+      request: req,
+    });
+
     return NextResponse.json({ plan });
   } catch {
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
@@ -103,6 +116,18 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!plan) {
       return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 });
     }
+
+    await createAuditLog({
+      action: 'delete',
+      entity: 'Plan',
+      entityId: id,
+      userId: auth.userId,
+      userEmail: auth.email,
+      userRole: auth.role,
+      workspaceId: null,
+      metadata: { deletedPlanName: plan.name },
+      request: req,
+    });
 
     return NextResponse.json({ message: 'Plan eliminado' });
   } catch {

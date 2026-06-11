@@ -6,6 +6,7 @@ import { Workspace } from '@/lib/models/workspace';
 import { getApiAuth } from '@/lib/auth/api';
 import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { hashPassword } from '@/lib/auth';
+import { createAuditLog, calculateChanges } from '@/lib/audit';
 
 export async function GET(
   _request: NextRequest,
@@ -67,6 +68,24 @@ export async function PUT(
 
   await user.save();
 
+  const changes = calculateChanges(
+    { name: user.name, email: user.email, role: user.role, isActive: user.isActive, workspace: user.workspace } as Record<string, unknown>,
+    { name: name ?? user.name, email: email ?? user.email, role: role ?? user.role, isActive: isActive ?? user.isActive, workspace: workspace ?? user.workspace } as Record<string, unknown>,
+    ['name', 'email', 'role', 'isActive', 'workspace']
+  );
+
+  await createAuditLog({
+    action: 'update',
+    entity: 'User',
+    entityId: id,
+    userId: auth.userId,
+    userEmail: auth.email,
+    userRole: auth.role,
+    workspaceId: null,
+    changes,
+    request,
+  });
+
   return NextResponse.json({ message: 'Usuario actualizado correctamente', user });
 }
 
@@ -94,6 +113,18 @@ export async function DELETE(
   if (!user) {
     return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
   }
+
+  await createAuditLog({
+    action: 'delete',
+    entity: 'User',
+    entityId: id,
+    userId: auth.userId,
+    userEmail: auth.email,
+    userRole: auth.role,
+    workspaceId: null,
+    metadata: { deletedUserName: user.name, deletedUserEmail: user.email, deletedUserRole: user.role },
+    request: _request,
+  });
 
   return NextResponse.json({ message: 'Usuario eliminado correctamente' });
 }

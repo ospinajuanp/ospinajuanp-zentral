@@ -4,6 +4,7 @@ import { Module } from '@/lib/models/module';
 import { Plan } from '@/lib/models/plan';
 import { getApiAuth } from '@/lib/auth/api';
 import { checkFeatureEnabled } from '@/lib/settings/guard';
+import { createAuditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -60,6 +61,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Módulo no encontrado' }, { status: 404 });
     }
 
+    await createAuditLog({
+      action: 'update',
+      entity: 'Module',
+      entityId: id,
+      userId: auth.userId,
+      userEmail: auth.email,
+      userRole: auth.role,
+      workspaceId: null,
+      changes: Object.keys(update).length > 0 ? update as Record<string, { old: unknown; new: unknown }> : undefined,
+      request: req,
+    });
+
     return NextResponse.json({ module: mod });
   } catch {
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
@@ -92,6 +105,18 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!mod) {
       return NextResponse.json({ error: 'Módulo no encontrado' }, { status: 404 });
     }
+
+    await createAuditLog({
+      action: 'delete',
+      entity: 'Module',
+      entityId: id,
+      userId: auth.userId,
+      userEmail: auth.email,
+      userRole: auth.role,
+      workspaceId: null,
+      metadata: { deletedModuleName: mod.name, deletedModuleKey: mod.key },
+      request: req,
+    });
 
     return NextResponse.json({ message: 'Módulo eliminado' });
   } catch {
