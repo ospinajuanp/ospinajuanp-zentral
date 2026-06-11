@@ -5,7 +5,7 @@ import SessionTimeout from '@/components/session-timeout';
 import LogoutButton from '@/components/logout-button';
 import { NavLink } from '@/components/nav-link';
 import { SidebarShell } from '@/components/sidebar-shell';
-import { HomeIcon, BuildingIcon, ModuleIcon, PriceIcon, UsersIcon } from '@/components/icons';
+import { HomeIcon, BuildingIcon, ModuleIcon, PriceIcon, UsersIcon, ClipboardIcon } from '@/components/icons';
 
 const bottomNav = [
   { label: 'Dashboard', href: '/admin', icon: <HomeIcon />, exact: true },
@@ -13,6 +13,7 @@ const bottomNav = [
   { label: 'Modulos', href: '/admin/modules', icon: <ModuleIcon /> },
   { label: 'Planes', href: '/admin/plans', icon: <PriceIcon /> },
   { label: 'Usuarios', href: '/admin/users', icon: <UsersIcon /> },
+  { label: 'Audit Logs', href: '/admin/audit-logs', icon: <ClipboardIcon /> },
 ];
 
 export default async function AdminLayout({
@@ -48,6 +49,7 @@ export default async function AdminLayout({
               <NavLink href="/admin/modules">Modulos</NavLink>
               <NavLink href="/admin/plans">Planes</NavLink>
               <NavLink href="/admin/users">Usuarios</NavLink>
+              <NavLink href="/admin/audit-logs">Audit Logs</NavLink>
               <div className="pt-3 mt-3 border-t border-slate-800">
                 <NavLink href="/admin/settings">Configuracion</NavLink>
               </div>
