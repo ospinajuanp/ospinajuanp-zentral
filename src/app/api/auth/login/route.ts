@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
 
   const token = await signJwt({
     sub: user._id.toString(),
+    email: user.email,
     role: user.role,
     workspaceId: user.workspace?.toString() ?? null,
     purpose: 'session',

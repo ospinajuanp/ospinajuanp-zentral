@@ -11,6 +11,7 @@ if (!process.env.JWT_SECRET) {
 
 export interface JwtPayload {
   sub: string;
+  email: string;
   role: Role;
   workspaceId: string | null;
   purpose: 'session';
