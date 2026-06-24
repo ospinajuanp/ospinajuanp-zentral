@@ -7,7 +7,7 @@
 
 ## 1. Visión General
 
-El módulo **Personal Finance** es una herramienta de educación y gestión financiera personal para empleados (no empresarial). Cada usuario tiene control exclusivo sobre sus datos financieros; el Admin del workspace **no puede ver** los datos de los empleados.
+El módulo **Personal Finance** es una herramienta de educación y gestión financiera personal. Cada usuario de la plataforma tiene control exclusivo sobre sus datos financieros; el Admin del workspace **no puede ver** los datos financieros de ningún otro usuario.
 
 ### Objetivos Principales
 - Registro de ingresos y gastos personales
@@ -19,7 +19,7 @@ El módulo **Personal Finance** es una herramienta de educación y gestión fina
 - Soporte multi-moneda (COP/USD)
 
 ### Constraints
-- Admin **nunca** puede ver datos financieros de empleados
+- Admin **nunca** puede ver datos financieros de otros usuarios
 - Módulo gratuito con **200 cuota/mes** (cada CRUD operation consume 1)
 - Eliminación en cascada: al borrar usuario se eliminan sus datos financieros
 - Sin integración con TransferCheck (módulo completamente independiente)
@@ -46,7 +46,7 @@ user: Types.ObjectId        // auth.userId
 | Rol | Permisos |
 |-----|----------|
 | Superadmin | Ve módulo en settings, no ve datos de usuarios |
-| Admin (Empresa) | **NO puede ver** datos financieros de empleados |
+| Admin (Empresa) | **NO puede ver** datos financieros de otros usuarios |
 | Operador/Empleado | CRUD exclusivo sobre sus propios datos |
 
 ---
@@ -1486,8 +1486,8 @@ src/app/(modules)/personalfinance/page.tsx
 5. [x] Implementar selector de mes (billingCycleDay)
 6. [x] Selector de año dinámico basado en datos reales
 7. [x] Consumo de quota por tab con prevRef para evitar doble ejecución
-8. [ ] Test: Admin NO ve datos de empleado (403)
-9. [ ] Test: Empleado puede CRUD sus propios datos
+8. [ ] Test: Admin NO ve datos de otros usuarios (403)
+9. [ ] Test: Usuario puede CRUD sus propios datos
 10. [ ] Test: Quota se consume en cada CREATE
 11. [ ] Test: Selector de mes filtra correctamente
 
@@ -1501,7 +1501,7 @@ src/app/(modules)/personalfinance/page.tsx
 4. [ ] Test: Registrar deuda nueva
 5. [ ] Test: Registrar pago descuenta del saldo
 6. [ ] Test: Deuda pagada aparece como "paid" pero se mantiene historial
-7. [ ] Test: Admin NO ve deudas de empleados
+7. [ ] Test: Admin NO ve deudas de otros usuarios
 
 ### ITERACIÓN 3: Reglas Presupuestarias
 **Objetivo:** Motor de reglas con validación 100% y análisis visual
@@ -1656,5 +1656,5 @@ async function deleteUserData(userId: string, workspaceId: string) {
 - [ ] billingCycleDay configurable (default 1)
 - [ ] currency por usuario (COP/USD)
 - [ ] Eliminación en cascada al borrar usuario
-- [ ] Admin nunca ve datos de empleados
+- [ ] Admin nunca ve datos de otros usuarios
 - [ ] TransferCheck NO se toca

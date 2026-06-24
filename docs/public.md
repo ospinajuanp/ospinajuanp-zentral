@@ -313,11 +313,12 @@ hashtag#SoftwareEngineering hashtag#JobSearch hashtag#FullStackDeveloper hashtag
 ## Serie: Módulo Personal Finance
 
 ### POST #14 —
-La mayoría de plataformas de gestión financiera se diseñan pensando en el flujo empresarial: dashboards para CFOs, reportes para contadores, conciliaciones bancarias para tesorerías. Pero qué pasa con el empleado que recibe su nómina, paga sus cuentas, intenta ahorrar para una casa y tiene que manejar múltiples deudas con diferentes bancos y tasas?
+
+La mayoría de plataformas de gestión financiera se diseñan pensando en el flujo empresarial: dashboards para CFOs, reportes para contadores, conciliaciones bancarias para tesorerías. Pero qué pasa con la persona que recibe su nómina, paga sus cuentas, intenta ahorrar para una casa y tiene que manejar múltiples deudas con diferentes bancos y tasas?
 
 Zentral evoluciona con un nuevo módulo pensado exclusivamente en esa persona: **Personal Finance**.
 
-El objetivo es simple pero ambicioso: crear una herramienta de educación y gestión financiera personal que viva dentro del ecosistema empresarial de Zentral, donde cada empleado tenga control total sobre sus datos financieros sin que el administrador de su empresa pueda verlos jamás.
+El objetivo es simple pero ambicioso: crear una herramienta de educación y gestión financiera personal que viva dentro del ecosistema empresarial de Zentral, donde cada usuario tenga control total sobre sus datos financieros sin que el administrador de su empresa pueda verlos jamás.
 
 El módulo está diseñado para resolver las preguntas financieras que todos nos hacemos:
 
@@ -333,7 +334,7 @@ El módulo está diseñado para resolver las preguntas financieras que todos nos
 
 **Simuladores Stateless**: ¿Cuánto carro puedo pagar realmente? ¿Es viable arrendar o comprar? Estas calculadoras van más allá de las apps bancarias tradicionales porque usan las reglas financieras que los asesores no te explican: la Regla del 30% para vivienda, la Regla 20/4/10 para vehículos.
 
-Toda esta funcionalidad vive detrás de la misma arquitectura que protege TransferCheck: multi-tenancy real donde el admin de la empresa jamás ve los datos del empleado, cuotas atómicas que impiden sobreconsumos, y un diseño que prioriza la privacidad como derecho fundamental.
+Toda esta funcionalidad vive detrás de la misma arquitectura que protege TransferCheck: multi-tenancy real donde el admin de la empresa jamás ve los datos del usuario, cuotas atómicas que impiden sobreconsumos, y un diseño que prioriza la privacidad como derecho fundamental.
 
 Hoy abro una nueva serie desglosando la construcción técnica de cada funcionalidad de Personal Finance. El código sigue corriendo.
 
@@ -344,6 +345,7 @@ Si quieres auditar el repositorio o seguir la construcción de este módulo en t
 hashtag#PersonalFinance hashtag#FinanzasPersonales hashtag#SaaS hashtag#WebDevelopment hashtag#ReactJS hashtag#JobSearch
 
 ### POST #15 —
+
 Un módulo SaaS que cobra por operación no puede limitarse a validar números en código. Cuando la concurrencia es real, esas validaciones se desmoronan. Lo mismo aplica para cualquier recurso limitado que consuma tu usuario:api keys, credits, queries, almacenamiento.
 
 Para el módulo Personal Finance de mi plataforma Zentral, diseñé un sistema de cuotas multi-plan donde cada workspace puede activar múltiples suscripciones simultáneas (Free base + planes premium por temporada) con quotas independientes por módulo. Implementé una estrategia de consumo en cascada Oldest-First que agotaba primero los saldos base antes de tocar los de alta capacidad:
