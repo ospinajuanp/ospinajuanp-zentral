@@ -1475,21 +1475,23 @@ src/app/(modules)/personalfinance/page.tsx
 
 ## 8. Plan de Iteraciones y Tests Manuales
 
-### ITERACIÓN 1: Fundamentos y CRUD
+### ITERACIÓN 1: Fundamentos y CRUD ✅
 **Objetivo:** Crear esquemas, API básica, UI skeleton con tabs
 
 **Pasos:**
-1. [ ] Crear ModuleSubscription para personalfinance (key: 'personalfinance', name: 'Finanzas Personales', quota: 200)
-2. [ ] Crear esquemas Mongoose (Summary, Income, Expense)
-3. [ ] Crear API routes: summary (GET/PUT), incomes (CRUD), expenses (CRUD)
-4. [ ] Crear UI: tabs Principal + Ingresos + Egresos + Quota component
-5. [ ] Implementar selector de mes (billingCycleDay)
-6. [ ] Test: Admin NO ve datos de empleado (403)
-7. [ ] Test: Empleado puede CRUD sus propios datos
-8. [ ] Test: Quota se consume en cada CREATE
-9. [ ] Test: Selector de mes filtra correctamente
+1. [x] Crear ModuleSubscription para personalfinance (key: 'personalfinance', name: 'Finanzas Personales', quota: 200)
+2. [x] Crear esquemas Mongoose (Summary, Income, Expense)
+3. [x] Crear API routes: summary (GET/PUT), incomes (CRUD), expenses (CRUD)
+4. [x] Crear UI: tabs Principal + Ingresos + Egresos + Quota component
+5. [x] Implementar selector de mes (billingCycleDay)
+6. [x] Selector de año dinámico basado en datos reales
+7. [x] Consumo de quota por tab con prevRef para evitar doble ejecución
+8. [ ] Test: Admin NO ve datos de empleado (403)
+9. [ ] Test: Empleado puede CRUD sus propios datos
+10. [ ] Test: Quota se consume en cada CREATE
+11. [ ] Test: Selector de mes filtra correctamente
 
-### ITERACIÓN 2: Deudas
+### ITERACIÓN 2: Deudas (PENDIENTE)
 **Objetivo:** Sistema completo de deudas con pagos
 
 **Pasos:**
