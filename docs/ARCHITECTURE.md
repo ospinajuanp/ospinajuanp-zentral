@@ -1,5 +1,8 @@
 # Arquitectura del Sistema, Seguridad e Inquilino Múltiple (Multi-tenancy)
 
+> **Última actualización:** 2026-06-24
+> **Estado del proyecto:** ~87% completo
+
 Este documento detalla los pilares arquitectónicos de Zentral, enfocándose en el aislamiento estricto de datos, la interceptación criptográfica en el Edge y la estrategia de Control de Acceso Basado en Roles (RBAC).
 
 ---
@@ -82,3 +85,43 @@ Zentral implementa un modelo jerárquico estricto donde los privilegios están c
 El modelo de datos del Workspace cuenta con el flag crítico `isPayReady`. Este campo actúa como un interruptor maestro controlado por el `superadmin` desde su panel global o modificado automáticamente por el sistema de compras.
 
 * **Efecto de Bloqueo Inmediato:** Si `isPayReady === false`, el middleware o los guards de ruta despropagan el estado `active` de todas las suscripciones del espacio de trabajo en caliente. Los usuarios del inquilino verán bloqueado el acceso a las herramientas operativas de forma inmediata, mitigando pérdidas financieras por impagos sin necesidad de alterar los registros históricos de suscripción del cliente.
+
+---
+
+## 📊 Estructura del Proyecto
+
+```
+src/
+├── proxy.ts              # Edge middleware (JWT validation, context injection)
+├── app/
+│   ├── (auth)/           # Login, Register, Password reset
+│   ├── (core)/           # Dashboard, Users, Profile
+│   ├── (modules)/        # TransferCheck, PersonalFinance, Antecedentes, Cartera, Facturacion
+│   ├── admin/            # Superadmin panel
+│   └── api/              # API routes (auth, modules, admin)
+├── components/
+│   ├── protected-layout.tsx
+│   ├── sidebar-shell.tsx
+│   └── ui/               # Reusable UI components
+└── lib/
+    ├── models/           # Mongoose models (10+)
+    ├── auth/             # JWT utilities
+    ├── db/               # Mongoose connection
+    └── settings/         # Feature toggles guard
+```
+
+---
+
+## ⚠️ Consideraciones de Seguridad Pendientes
+
+| ID | Issue | Prioridad |
+|----|-------|-----------|
+| S-C2 | `.env.local` contiene credenciales reales | ALTA |
+| S-C3 | `ENCRYPTION_KEY` deriva del JWT_SECRET con fallback | ALTA |
+| S-H1 | Sin rate limiting en endpoints no-auth | ALTA |
+| S-H2 | Sin validación de tamaño en uploads | ALTA |
+| S-H6 | Sin estrategia de backup de BD | MEDIA |
+| S-M2 | JWT expira en 7 días sin revocación | MEDIA |
+| S-M3 | Password mínimo 6 chars sin complejidad | MEDIA |
+
+Ver `docs/MEJORAS.md` para lista completa de 131 mejoras planificadas.

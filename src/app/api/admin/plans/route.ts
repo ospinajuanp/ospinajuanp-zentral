@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db/mongoose';
 import { Plan } from '@/lib/models/plan';
 import { getApiAuth } from '@/lib/auth/api';
 import { checkFeatureEnabled } from '@/lib/settings/guard';
+import { createAuditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   try {
@@ -85,6 +86,17 @@ export async function POST(req: NextRequest) {
       plan.ctaLink = `/register?plan=${plan._id}`;
       await plan.save();
     }
+
+    await createAuditLog({
+      action: 'create',
+      entity: 'Plan',
+      entityId: plan._id.toString(),
+      userId: auth.userId,
+      userEmail: auth.email,
+      userRole: auth.role,
+      workspaceId: null,
+      request: req,
+    });
 
     return NextResponse.json({ plan: await Plan.findById(plan._id).populate('includedModules.module', 'key name defaultQuota tier') }, { status: 201 });
   } catch (err) {

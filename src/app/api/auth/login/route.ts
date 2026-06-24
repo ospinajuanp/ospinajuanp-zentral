@@ -7,6 +7,7 @@ import { verifyPassword, signJwt } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { getAppSettings } from '@/lib/models/app-settings';
+import { createAuditLog } from '@/lib/audit';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -51,6 +52,17 @@ export async function POST(request: NextRequest) {
   const user = await User.findOne({ email: email.toLowerCase() }).select('+passwordHash');
 
   if (!user) {
+    await createAuditLog({
+      action: 'login',
+      entity: 'User',
+      entityId: 'unknown',
+      userId: 'unknown',
+      userEmail: email.toLowerCase(),
+      userRole: 'unknown',
+      workspaceId: null,
+      metadata: { success: false, reason: 'user_not_found' },
+      request,
+    });
     return NextResponse.json(
       { error: 'Invalid credentials' },
       { status: 401 }
@@ -60,6 +72,17 @@ export async function POST(request: NextRequest) {
   const valid = await verifyPassword(password, user.passwordHash);
 
   if (!valid) {
+    await createAuditLog({
+      action: 'login',
+      entity: 'User',
+      entityId: user._id.toString(),
+      userId: user._id.toString(),
+      userEmail: user.email,
+      userRole: user.role,
+      workspaceId: user.workspace?.toString() ?? null,
+      metadata: { success: false, reason: 'invalid_password' },
+      request,
+    });
     return NextResponse.json(
       { error: 'Invalid credentials' },
       { status: 401 }
@@ -96,6 +119,17 @@ export async function POST(request: NextRequest) {
   });
 
   const redirectTo = user.role === 'superadmin' ? '/admin' : '/dashboard';
+
+  await createAuditLog({
+    action: 'login',
+    entity: 'User',
+    entityId: user._id.toString(),
+    userId: user._id.toString(),
+    userEmail: user.email,
+    userRole: user.role,
+    workspaceId: user.workspace?.toString() ?? null,
+    request,
+  });
 
   const response = NextResponse.json({
     user: {

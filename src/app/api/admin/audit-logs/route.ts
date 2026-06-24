@@ -6,7 +6,11 @@ import { getApiAuth } from '@/lib/auth/api';
 
 export async function GET(request: NextRequest) {
   const auth = await getApiAuth(request);
-  if (!auth || auth.role !== 'superadmin') {
+  if (!auth) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+  }
+
+  if (auth.role === 'operador') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
@@ -23,6 +27,10 @@ export async function GET(request: NextRequest) {
   if (entity) filter.entity = entity;
   if (action) filter.action = action;
   if (userId) filter.userId = userId;
+
+  if (auth.role === 'admin' && auth.workspaceId) {
+    filter.workspaceId = auth.workspaceId;
+  }
 
   const [logs, total] = await Promise.all([
     AuditLog.find(filter)

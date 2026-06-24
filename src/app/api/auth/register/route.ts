@@ -11,6 +11,7 @@ import { sendVerificationEmail } from '@/lib/email/resend';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { getAppSettings } from '@/lib/models/app-settings';
+import { createAuditLog } from '@/lib/audit';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -153,6 +154,28 @@ export async function POST(request: NextRequest) {
   }
 
   await recalculateQuotas(workspace._id.toString());
+
+  await createAuditLog({
+    action: 'create',
+    entity: 'Workspace',
+    entityId: workspace._id.toString(),
+    userId: user._id.toString(),
+    userEmail: user.email,
+    userRole: 'admin',
+    workspaceId: workspace._id.toString(),
+    request,
+  });
+
+  await createAuditLog({
+    action: 'create',
+    entity: 'User',
+    entityId: user._id.toString(),
+    userId: user._id.toString(),
+    userEmail: user.email,
+    userRole: 'admin',
+    workspaceId: workspace._id.toString(),
+    request,
+  });
 
   if (emailVerificationRequired) {
     const verificationToken = await signVerificationToken({
