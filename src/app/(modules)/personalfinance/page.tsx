@@ -35,6 +35,8 @@ interface Expense {
   recurringPeriod?: string;
   description?: string;
   date: string;
+  emergencyFundTarget?: number;
+  monthsToEmergencyFund?: number;
 }
 
 interface Debt {
@@ -295,6 +297,7 @@ export default function PersonalFinanceDashboard() {
             onYearChange={(y) => setSelectedYear(y)}
             availableYears={availableYears}
             debtSummary={debtSummary}
+            expenses={expenses}
           />
         )}
         {activeTab === 'ingresos' && (
@@ -345,6 +348,7 @@ function PrincipalTab({
   onYearChange,
   availableYears,
   debtSummary,
+  expenses,
 }: {
   summary: Summary | null;
   totalIncomes: number;
@@ -357,6 +361,7 @@ function PrincipalTab({
   onYearChange: (y: number) => void;
   availableYears: number[];
   debtSummary: { totalBalance: number; totalMonthlyPayment: number } | null;
+  expenses: Expense[];
 }) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -420,12 +425,47 @@ function PrincipalTab({
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-        <h3 className="text-lg font-semibold text-white">Fondo de Emergencia</h3>
-        <p className="mt-2 text-sm text-slate-400">
-          Configura tu fondo de emergencia para ver la cobertura en meses.
-        </p>
-      </div>
+      {(() => {
+        const emergencyFundExpense = expenses.find(
+          (e) => e.category === 'Ahorro emergencia'
+        );
+        if (!emergencyFundExpense) return null;
+        const target = emergencyFundExpense.emergencyFundTarget || 0;
+        const months = emergencyFundExpense.monthsToEmergencyFund || 1;
+        const monthlyAmount = emergencyFundExpense.amount;
+        const progress = target > 0 ? (monthlyAmount * months) / target : 0;
+        return (
+          <div className="rounded-lg border border-green-900 bg-slate-900 p-5">
+            <h3 className="text-lg font-semibold text-white">Fondo de Emergencia</h3>
+            <div className="mt-3 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-400">Meta:</span>
+                <span className="text-sm font-medium text-white">{formatCurrency(target)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-400">Ahorro mensual:</span>
+                <span className="text-sm font-medium text-green-400">{formatCurrency(monthlyAmount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-400">Meses para meta:</span>
+                <span className="text-sm font-medium text-white">{months}</span>
+              </div>
+              <div className="mt-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Progreso</span>
+                  <span className="text-green-400">{Math.round(progress * 100)}%</span>
+                </div>
+                <div className="mt-1 h-2 w-full rounded-full bg-slate-700">
+                  <div
+                    className="h-2 rounded-full bg-green-500"
+                    style={{ width: `${Math.min(progress * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -692,12 +732,27 @@ function EgresosTab({
   const [amount, setAmount] = useState('');
   const [isRecurrent, setIsRecurrent] = useState(false);
   const [description, setDescription] = useState('');
+  const [emergencyFundTarget, setEmergencyFundTarget] = useState('');
+  const [monthsToEmergencyFund, setMonthsToEmergencyFund] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const toast = useToastContext();
 
   const categories = EXPENSE_CATEGORIES[type];
+  const isEmergencyFund = category === 'Ahorro emergencia';
+
+  const calculatedEmergencyFundTarget = totalExpenses * 6;
+
+  useEffect(() => {
+    if (isEmergencyFund && emergencyFundTarget && monthsToEmergencyFund) {
+      const target = parseFloat(emergencyFundTarget);
+      const months = parseInt(monthsToEmergencyFund);
+      if (target > 0 && months > 0) {
+        setAmount((target / months).toFixed(0));
+      }
+    }
+  }, [isEmergencyFund, emergencyFundTarget, monthsToEmergencyFund]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -715,6 +770,8 @@ function EgresosTab({
           isRecurrent,
           date: new Date(new Date().getFullYear(), new Date().getMonth(), 15).toISOString(),
           description,
+          emergencyFundTarget: isEmergencyFund && emergencyFundTarget ? parseFloat(emergencyFundTarget) : undefined,
+          monthsToEmergencyFund: isEmergencyFund && monthsToEmergencyFund ? parseInt(monthsToEmergencyFund) : undefined,
         }),
       });
 
@@ -733,6 +790,8 @@ function EgresosTab({
       setCategory('');
       setAmount('');
       setDescription('');
+      setEmergencyFundTarget('');
+      setMonthsToEmergencyFund('');
       onRefresh();
       onQuotaChange();
     } catch {
@@ -796,7 +855,7 @@ function EgresosTab({
               <label className="block text-sm text-slate-400">Categoría</label>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => { setCategory(e.target.value); setEmergencyFundTarget(''); setMonthsToEmergencyFund(''); setAmount(''); }}
                 className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
               >
                 <option value="">Seleccionar...</option>
@@ -805,14 +864,42 @@ function EgresosTab({
                 ))}
               </select>
             </div>
+            {isEmergencyFund && (
+              <>
+                <div>
+                  <label className="block text-sm text-slate-400">Meta Fondo ({formatCurrency(calculatedEmergencyFundTarget)})</label>
+                  <input
+                    type="number"
+                    value={emergencyFundTarget}
+                    onChange={(e) => setEmergencyFundTarget(e.target.value)}
+                    className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                    placeholder={`${calculatedEmergencyFundTarget}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400">Meses para meta</label>
+                  <input
+                    type="number"
+                    value={monthsToEmergencyFund}
+                    onChange={(e) => setMonthsToEmergencyFund(e.target.value)}
+                    className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                    placeholder="12"
+                    min="1"
+                  />
+                </div>
+              </>
+            )}
             <div>
-              <label className="block text-sm text-slate-400">Monto</label>
+              <label className="block text-sm text-slate-400">
+                {isEmergencyFund ? 'Monto Mensual (calculado)' : 'Monto'}
+              </label>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-                placeholder="0"
+                placeholder={isEmergencyFund ? 'Se calcula' : '0'}
+                readOnly={isEmergencyFund && !!emergencyFundTarget && !!monthsToEmergencyFund}
               />
             </div>
             <div className="flex items-center gap-2 pt-6">

@@ -15,6 +15,8 @@ export interface IPersonalFinanceExpense extends Document {
   description?: string;
   date: Date;
   linkedGoalId?: Types.ObjectId;
+  emergencyFundTarget?: number;
+  monthsToEmergencyFund?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +38,8 @@ const PersonalFinanceExpenseSchema = new Schema<IPersonalFinanceExpense>(
     description: { type: String },
     date: { type: Date, required: true },
     linkedGoalId: { type: Schema.Types.ObjectId },
+    emergencyFundTarget: { type: Number, min: 0 },
+    monthsToEmergencyFund: { type: Number, min: 1 },
   },
   { timestamps: true }
 );

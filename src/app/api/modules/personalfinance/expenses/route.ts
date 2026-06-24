@@ -86,7 +86,18 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { type, category, amount, currency, isRecurrent, recurringPeriod, description, date } = body;
+  const {
+    type,
+    category,
+    amount,
+    currency,
+    isRecurrent,
+    recurringPeriod,
+    description,
+    date,
+    emergencyFundTarget,
+    monthsToEmergencyFund,
+  } = body;
 
   if (!type || !category || amount === undefined || !date) {
     return NextResponse.json(
@@ -108,6 +119,8 @@ export async function POST(req: NextRequest) {
     recurringPeriod,
     description,
     date: new Date(date),
+    emergencyFundTarget: emergencyFundTarget ? parseFloat(emergencyFundTarget) : undefined,
+    monthsToEmergencyFund: monthsToEmergencyFund ? parseInt(monthsToEmergencyFund) : undefined,
   });
 
   return NextResponse.json(JSON.parse(JSON.stringify(expense)) as IPersonalFinanceExpense, { status: 201 });
