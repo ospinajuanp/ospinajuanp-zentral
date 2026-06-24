@@ -1,5 +1,7 @@
 # Ingeniería de Frontend, Abstracciones de UI y Accesibilidad (A11y)
 
+> **Última actualización:** 2026-06-19
+
 Este documento detalla las decisiones de arquitectura de frontend implementadas en Zentral, enfocándose en la migración hacia React 19, la optimización de rendimiento de componentes cliente de terceros, la unificación visual con Tailwind CSS v4 y las políticas estrictas de accesibilidad.
 
 ---
@@ -22,7 +24,7 @@ Para erradicar el antipatrón de duplicación de lógica (*Don't Repeat Yourself
 Centraliza el ciclo de vida de las peticiones REST paginadas, controlando de manera nativa:
 1. El estado mutador del tamaño de página (selectores reactivos de 5, 10, 20, 50 y 100 registros).
 2. Los flags booleanos de carga diferida (`isLoading`) y control de excepciones (`error`).
-3. El tipado estricto `<T>` de los payloads devueltos por los Server Components post-procesados con `.lean()` y serializados mediante `JSON.parse(JSON.stringify(data))`.
+3. El tipado estricto `<T>` de los payloads devueltos por los Server Components post-procesados con `.lean()` y serializados mediante `JSON.parse(JSON.stringify())`.
 
 ### Componente Reutilizable: `<DataTable>`
 Recibe las propiedades estructuradas del hook y se encarga de renderizar de forma segura las colecciones de datos. Implementa una estrategia **móvil-first destructiva**: las filas tradicionales de tabla HTML se transforman automáticamente en un grid de tarjetas verticales apiladas (`grid-cols-1 md:table-row`) cuando el ancho del navegador desciende de los 768px, garantizando operatividad total desde teléfonos inteligentes.
@@ -50,3 +52,30 @@ Zentral no trata la accesibilidad como un añadido secundario; está integrada e
 * **Control del Teclado (Keyboard Interception):** Los componentes interactivos flotantes escuchan de forma nativa el evento global `keydown`. Al detectar la pulsación de la tecla `Escape`, ejecutan el método de cierre automático y devuelven el foco al elemento disparador original, evitando trampas de teclado (*keyboard traps*).
 * **Tratamiento de Decoraciones:** Todos los componentes gráficos basados en emojis o iconos puros de SVG incorporan el atributo `aria-hidden="true"`, evitando que los lectores de pantalla vocalicen caracteres innecesarios que entorpezcan la navegación del usuario.
 * **Saltos de Navegación (*Skip Links*):** El layout raíz incorpora un enlace invisible superior de salto de contenido enfocado por teclado. Esto permite a usuarios con discapacidades motrices saltarse la barra de navegación repetitiva del header e ir directo al core funcional de la interfaz con un solo tabulador.
+
+---
+
+## 📊 Estado y Mejoras Pendientes
+
+### Implementado ✅
+- Sistema de diseño con tokens oscuros B2B
+- Hook `usePaginatedData<T>()` + `<DataTable>`
+- Optimización Embla sin ResizeObserver
+- ErrorBoundary + Toast notification system
+- Accesibilidad: aria-labelledby, role=dialog, skip-links
+
+### Pendiente 🔜
+
+| ID | Issue | Prioridad |
+|----|-------|-----------|
+| F-C3 | Wrapper de fetch centralizado (`useApi()`) | ALTA |
+| F-C5 | Módulos placeholder → implementarlos | ALTA |
+| F-H1 | `React.memo()` en SidebarShell, PricingCards | MEDIA |
+| F-H2 | `useMemo` en ProtectedLayout bottomNav | MEDIA |
+| F-H6 | Modales no cierran con Escape consistentemente | MEDIA |
+| F-H7 | Sin focus trap en modales | MEDIA |
+| F-H8 | Sin breadcrumbs | MEDIA |
+| F-H9 | Sin React Context para auth/session | MEDIA |
+| F-M1 | Button/InputField no usados consistentemente | BAJA |
+
+Ver `docs/MEJORAS.md` para lista completa de 131 mejoras planificadas.

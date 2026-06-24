@@ -1,4 +1,7 @@
-# Planes de Precios
+# Planes de Precios — Zentral
+
+> **Última actualización:** 2026-06-19
+> **Estado:** Implementado con multi-plan acumulativo, suscripciones enterprise, y pasarela simulada
 
 Los planes se gestionan dinámicamente desde la BD y se muestran en la landing page.
 
@@ -64,7 +67,7 @@ Contacto vía WhatsApp.
 ## Comparativa rápida
 
 | | Free | Premium | Premium Plus | Enterprise |
-|---|---|---|---|---|---|
+|---|---|---|---|---|
 | Precio | $0/mes | $12/mes | $24/mes | A medida |
 | Usuarios | 1 | 5 | Ilimitados | Ilimitados |
 | Modulos | 1 free | Todos (free + premium) | Todos (free + premium) | Todos |
@@ -120,7 +123,7 @@ Contacto vía WhatsApp.
 
 Cada workspace soporta múltiples planes simultáneamente (`workspace.plans: Plan[]`).
 
-- **Free incluido siempre**: todo workspace tiene el plan Free como base
+- **Free incluido siempre**: todo workspace tiene el Plan Free como base
 - **Planes pagos acumulativos**: las cuotas de módulos se suman entre todas las compras activas
 - **WorkspacePurchase**: cada compra genera un registro con `modules[]` (moduleKey, quota, tier), `planName`, `amount`, `status`
 - **recalculateQuotas()**: funcion compartida (`src/lib/purchase/recalculate-quotas.ts`) que agrega cuotas de todas las compras activas + Free y sincroniza `ModuleSubscription`s. Protege suscripciones enterprise (`tier: 'enterprise'`), nunca las toca.
@@ -158,15 +161,30 @@ El superadmin puede asignar modulos con tier `enterprise` directamente desde el 
 
 ---
 
+## Herencia de Planes ("Basado en")
+
 Al crear un plan, se puede seleccionar "Basado en" otro plan existente. Esto:
 
-  - **Hereda**: modulos, maxUsers, extraFeatures, description, support, onboarding del plan base
-  - **Modulos heredados**: se muestran en una seccion de solo lectura (no aparecen en los checkboxes)
-  - **Modulos adicionales**: solo los modulos NO heredados son seleccionables
-  - **Al guardar**: `includedModules = heredados + seleccionados`
+- **Hereda**: modulos, maxUsers, extraFeatures, description, support, onboarding del plan base
+- **Modulos heredados**: se muestran en una seccion de solo lectura (no aparecen en los checkboxes)
+- **Modulos adicionales**: solo los modulos NO heredados son seleccionables
+- **Al guardar**: `includedModules = heredados + seleccionados`
 
-> **Nota**: Las cuotas especificas por plan se definen via `quotaOverride` en `includedModules`. En el seed, `quotaOverride` es `null` para todos los modulos, por lo que las cuotas heredan el `defaultQuota` de cada modulo. Para asignar cuotas diferentes por plan, usar el campo `quotaOverride` en el formulario de creacion/edicion.
+> **Nota**: Las cuotas específicas por plan se definen via `quotaOverride` en `includedModules`. En el seed, `quotaOverride` es `null` para todos los modulos, por lo que las cuotas heredan el `defaultQuota` de cada modulo. Para asignar cuotas diferentes por plan, usar el campo `quotaOverride` en el formulario de creacion/edicion.
 >
 > Ver `docs/.seed-credentials.md` para las cuotas reales generadas por el seed actual.
 
 Esto permite crear planes como "Premium Plus" que parten de Premium y agregan módulos extra.
+
+---
+
+## ⚠️ Mejoras Pendientes
+
+| ID | Issue | Prioridad |
+|----|-------|-----------|
+| N-H1 | Integración de pagos real (Stripe/Wompi) | ALTA |
+| S-M4 | Compra duplicada de planes pagos posible | MEDIA |
+| S-M5 | Toggle permite cancelar último plan activo | MEDIA |
+| S-M12 | delete workspace deja datos huerfanos | MEDIA |
+
+Ver `docs/MEJORAS.md` para lista completa de 131 mejoras planificadas.

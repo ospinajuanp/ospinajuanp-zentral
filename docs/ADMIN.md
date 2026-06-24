@@ -1,4 +1,7 @@
-# Panel de Administracion (Superadmin)
+# Panel de Administración (Superadmin)
+
+> **Última actualización:** 2026-06-19
+> **Estado:** Implementado con todas las funcionalidades CRUD, Audit Logs, y Feature Toggles
 
 El panel de superadmin esta en `/admin` y solo es accesible con rol `superadmin`.
 
@@ -178,3 +181,18 @@ Registro de todas las operaciones CRUD realizadas desde el panel superadmin.
 | ip | String | IP del cliente |
 | userAgent | String | User agent del navegador |
 | createdAt | Date | Timestamp |
+
+---
+
+## Mejoras Pendientes
+
+| ID | Issue | Prioridad |
+|----|-------|-----------|
+| F-H5 | Search/filter en listas admin | ALTA |
+| F-H11 | Admin stats sin refresh (polling o boton) | MEDIA |
+| F-H12 | Export CSV/Excel en listas admin | MEDIA |
+| S-H6 | Sin estrategia de backup de BD | ALTA |
+| S-M11 | Sin health check endpoint | MEDIA |
+| S-M12 | delete workspace deja datos huerfanos | MEDIA |
+
+Ver `docs/MEJORAS.md` para lista completa de 131 mejoras planificadas.

@@ -1,5 +1,8 @@
 # Pipeline de Integraciones, Extracción con IA y Automatización de Correo
 
+> **Última actualización:** 2026-06-19
+> **Estado:** Módulo TransferCheck activo, otros pendientes
+
 Este documento describe en profundidad el flujo de ingeniería detrás del módulo **TransferCheck**, detallando el pipeline de extracción híbrido (OCR + LLM), el esquema de seguridad para integraciones OAuth2 con Google y los algoritmos de normalización de datos.
 
 ---
@@ -17,24 +20,26 @@ El propósito de `TransferCheck` es eliminar la verificación manual de transfer
  └───────────┘    Baja Certeza                         └─────────────────────┘
        │                                                                                                      │
        └─────────────────┬──────────────────┘
-                                                          │ Extraction JSON {monto, referencia, fecha}
-                                                         ▼
+                                              │ Extraction JSON {monto, referencia, fecha}
+                                             ▼
              ┌───────────────────────┐
              │  TransferCheckLog                                 │ ➔ Estado: 'pending_email'
              └───────────────────────┘
-                                                         │
-                                                        ▼
+                                             │
+                                            ▼
              ┌───────────────────────┐
              │ Query Automatizada                               │ ➔ Filtro: gmail.readonly
              │ en la API de Gmail                                  │   Busca variaciones de monto/ref
              └───────────────────────┘
-                                                 │
+                                               │
             ┌────────────┴────────────┐
             ▼                                                                     ▼
      [Match Exitoso]                                        [Sin Coincidencia]
     status: 'matched'                                       status: 'pending_email'
                                                                     (Espera Sync o Manual)
 ```
+
+---
 
 ## 🤖 Pipeline de Extracción Híbrido: Resiliencia y Mitigación de Fallos
 
@@ -59,6 +64,8 @@ Para optimizar costos y garantizar una disponibilidad del 99.9%, Zentral impleme
 }
 ```
 
+---
+
 ## 🔐 Integración Descentralizada con Gmail OAuth2
 
 Para que el sistema busque los correos de confirmación, cada Workspace debe conectar su propia cuenta de correo institucional. Esto plantea un reto crítico de seguridad: almacenar tokens de acceso de terceros de forma masiva sin comprometer la integridad del sistema.
@@ -79,7 +86,7 @@ Dado que los `access_token` de Google expiran cada 3600 segundos (1 hora), el mo
 
 ## 🧮 Algoritmo de Normalización y Coincidencia Lineal
 
-El reto más complejo después de extraer los datos es la variabilidad de formatos de los comprobantes. Las notificaciones de los bancos colombianos e internacionales formatean los números y las referencias de maneras totalmente dispares (ej. un mismo monto puede reportarse como `173.000`, `173000.00` o `$173,000`).
+El reto más complejo después de extraer los datos es la variabilidad de formatos de los comprobantes. Las notificaciones de los bancos colombianos e internacionales formatean los números y las referencias de maneras totalmente dispares (ej. un mismo monto puede reportarse como `173.000`, `173000.00` o `$173.000`).
 
 ### Estrategia de Invariabilidad Numérica
 Para evitar falsos negativos en el cruce de datos, el script de sincronización (`sync-email.ts`) normaliza los inputs a tipos de datos primitivos de JavaScript antes de ejecutar las queries de búsqueda de Gmail:
@@ -94,3 +101,25 @@ label:INBOX "173000" "9827410293" after:2026/05/20
 
 * **Manejo de Ventanas de Tiempo**: El algoritmo restringe la búsqueda a correos recibidos en una ventana de tolerancia temporal cercana a la fecha de emisión del comprobante, mitigando colisiones con transferencias históricas que compartan montos idénticos.
 
+---
+
+## 📊 Estado de la Documentación
+
+### Implementado ✅
+- Pipeline OCR + Gemini con graceful degradation
+- Integración Gmail OAuth2 con encriptación AES-256-CBC
+- Normalización de montos colombiano/internacional
+- Query de búsqueda avanzada con ventana de tiempo
+
+### Pendiente 🔜
+- Implementar módulos: Antecedentes, Cartera, Facturación
+- Gmail OAuth cache LRU (B-H8)
+- Gmail batch API para múltiples mensajes (B-H7)
+- OCR result caching por SHA-256 hash (B-M3)
+
+### Pendiente de Seguridad ⚠️
+- `ENCRYPTION_KEY` usa fallback hardcodeado (S-C3)
+- `gmailAccessToken` en texto plano (S-M8)
+- Gmail OAuth state sin HMAC (S-L4)
+
+Ver `docs/MEJORAS.md` para lista completa de 131 mejoras planificadas.

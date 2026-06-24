@@ -1,5 +1,7 @@
 # Manejo de Concurrencia, Cuotas Atómicas y Arquitectura Multi-plan
 
+> **Última actualización:** 2026-06-19
+
 Este documento describe la estrategia de ingeniería backend utilizada en Zentral para mitigar condiciones de carrera (*race conditions*) en el consumo de recursos, el diseño del motor multi-plan acumulativo y el funcionamiento del algoritmo distributivo de cuotas.
 
 ---
@@ -83,7 +85,7 @@ Cada vez que un administrador compra un nuevo plan, cancela una suscripción o e
 1. **Recopilación Activa:** Consulta todas las compras válidas del workspace dentro del modelo `WorkspacePurchase` donde `status === 'active'`.
 2. **Agrupación por Módulo:** Mapea el catálogo completo de módulos incluidos en cada uno de esos planes y calcula el acumulado total de `quota` y el nivel de `tier` más alto contratado.
 3. **Protección a Cuentas Enterprise:** El algoritmo ejecuta un filtro estricto de exclusión (`tier: { $ne: 'enterprise' }`). Esto asegura que las suscripciones Enterprise personalizadas (creadas manualmente por el `superadmin` con cuotas a medida) queden completamente blindadas y no sean eliminadas ni alteradas por el proceso de sincronización automatizado de los planes estándar.
-4. **Sincronización Atómica:** Actualiza o inserta (*upsert*) los documentos correspondientes en la colección `ModuleSubscription`, asegurando que la UI del dashboard del cliente refleje el consumo total sumado al instante mediante la ejecución de un `router.refresh()` forzado desde el cliente.
+4. **Sincronización Atómica:** Actualiza o inserta (*upsert*) los documentos correspondientes en la colección `ModuleSubscription`, asegurando que la UI del dashboard del cliente refleje el consumo total sumando al instante mediante la ejecución de un `router.refresh()` forzado desde el cliente.
 
 ---
 
@@ -95,3 +97,18 @@ Para optimizar el gasto de recursos del cliente, el helper interno de Zentral co
 
 * **Filtro y Ordenamiento:** El sistema consulta las suscripciones activas del módulo requerido, ordenándolas de manera que los planes base e históricos (`free` / `premium`) se procesen primero en la cola de ejecución.
 * **Consumo en Cascada:** Si el plan base se queda sin saldo, el puntero atómico salta automáticamente a la siguiente capa disponible (la suscripción de nivel `enterprise`), protegiendo el saldo premium personalizado del cliente hasta que sea estrictamente necesario consumirlo.
+
+---
+
+## ⚠️ Mejoras Pendientes
+
+| ID | Issue | Prioridad |
+|----|-------|-----------|
+| B-C3 | `recalculateQuotas()` N+1 queries → `bulkWrite` | ALTA |
+| B-C4 | `processPendingMatches` secuencial → `Promise.allSettled` | ALTA |
+| B-H3 | `register/route.ts` queries secuenciales | MEDIA |
+| B-H4 | `admin/workspaces/[id]` users + subs secuencial | MEDIA |
+| B-H5 | `purchase/route.ts` workspace + plan secuencial | MEDIA |
+| B-M6 | Seed sin protección de fallo parcial | MEDIA |
+
+Ver `docs/MEJORAS.md` para lista completa de 131 mejoras planificadas.

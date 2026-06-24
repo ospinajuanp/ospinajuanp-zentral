@@ -1,98 +1,212 @@
 # Zentral — Plataforma Micro-SaaS para Operaciones Empresariales B2B
 
-Zentral es un ecosistema modular e inquilinato múltiple (Multi-tenant) diseñado para optimizar flujos críticos de operaciones empresariales B2B. El núcleo de la plataforma permite la ejecución y validación de módulos independientes (como conciliación de pagos e IA en tiempo real), completamente aislados por entorno de trabajo (*workspace*), controlados por un robusto sistema de límites atómicos y gobernados por políticas de acceso basadas en roles (RBAC) interceptadas en el Edge.
-
-Construido sobre **Next.js 16 (App Router)**, **React 19** y **Tailwind CSS v4**, el sistema está pensado para ofrecer escalabilidad vertical, alta densidad de datos en la UI y máxima resiliencia ante fallos de APIs externas.
-
----
-
-## 🛠️ Desglose Arquitectónico y Retos de Ingeniería Solucionados
-
-### 1. Control de Cuotas Atómico y Mitigación de Condiciones de Carrera (Race Conditions)
-En un SaaS multi-usuario concurrente, los enfoques tradicionales de lectura y posterior actualización de cuotas rompen la integridad de los datos si múltiples operarios realizan acciones en paralelo. 
-* **Solución:** Zentral implementa mutaciones atómicas directas en MongoDB utilizando `findOneAndUpdate` combinado con el operador lógico `$expr`. El sistema evalúa la disponibilidad del cupo (`usedQuota < monthlyQuota`) y realiza el incremento de consumo en una única operación atómica a nivel de base de datos, garantizando consistencia absoluta sin bloqueos pesados de tablas.
-* **Consumo Eficiente:** El motor implementa una estrategia de consumo de cuotas *Oldest-First*, agotando automáticamente los recursos de los planes base contratados antes de afectar las cuotas de las suscripciones Enterprise personalizadas.
-
-### 2. Pipeline Resiliente de Extracción con IA (Estrategia de Fallback en Caliente)
-El módulo principal `TransferCheck` procesa comprobantes de transferencias bancarias de forma síncrona/asíncrona y los cruza con la API de Gmail en modo lectura.
-* **Degradación Elegante (*Graceful Degradation*):** La aplicación procesa la imagen a través de un motor ligero y de bajo costo (OCR.space) que parsea monedas en formatos colombianos e internacionales. Si el servicio excede su cuota o falla en la lectura del texto, Zentral conmuta en caliente (Fallback directo) hacia un LLM avanzado (**Gemini 2.0 Flash**), procesando el archivo en forma de buffers en memoria base64, garantizando que el usuario final nunca experimente una interrupción del servicio y protegiendo la privacidad al evitar persistencia en disco duro.
-
-### 3. Seguridad Zero-Trust y Aislamiento Estricto de Datos (Multi-tenancy)
-La filtración accidental de datos entre empresas es el riesgo número uno en arquitecturas de software multi-tenant.
-* **Edge Proxy Interceptor:** Un middleware ligero en el Edge (`src/proxy.ts`) intercepta todas las peticiones utilizando criptografía compacta (`jose` para JWT) sobre cookies `httpOnly` con políticas `SameSite=Strict`. Este proxy valida la firma, extrae el contexto seguro e inyecta headers limpios (`x-workspace-id`, `x-user-role`) hacia las rutas protegidas.
-* **Workspace Isolation:** La base de datos no expone consultas globales en las capas operativas; cada consulta Mongoose está acoplada al contexto inyectado por el middleware, asegurando que un workspace jamás pueda leer, escribir o deducir información de un inquilino ajeno.
-
-### 4. Abstracción Avanzada de UI y Economía de Componentes
-Para evitar la repetición de lógica transaccional, estados de carga y layouts repetitivos en las vistas administrativas distribuidas entre Superadmin y Workspace Owners:
-* **Solución:** Se diseñó una infraestructura compuesta por el hook genérico de TypeScript `usePaginatedData<T>()` en tándem con un componente reutilizable `<DataTable>`. Esta capa extrajo y unificó el manejo de estados de carga, paginación reactiva dinámica (selectores de 5 a 100 filas) y fallos en 5 páginas críticas del sistema, eliminando más de 450 líneas de código duplicado y acelerando el desarrollo de futuros módulos.
+> **Estado del Proyecto:** Avanzado (~85% completo)
+> **Última actualización:** 2026-06-19
 
 ---
 
-## ⚙️ Tech Stack & Justificación Técnica
+## 📊 Resumen Ejecutivo
 
-* **Next.js 16.2 (App Router & Turbopack):** Elegido para la unificación del pipeline full-stack, optimización extrema de compilación en desarrollo y soporte nativo para ejecución distribuida en el Edge.
-* **React 19.2 & Tailwind CSS v4:** Aprovechamiento del compilador nativo de React, manejo optimizado de referencias web y una interfaz densa en datos con una paleta oscura profesional (`slate-950/900`) optimizada para flujos B2B operativos.
-* **MongoDB (Mongoose 9.6):** Base de datos indexada con índices compuestos nativos en modelos de uso intensivo (`User`, `WorkspacePurchase`, `TransferCheckLog`) para garantizar búsquedas en sub-milisegundos.
-* **Upstash Redis:** Capa de Rate Limiting que implementa ventanas fijas (*Fixed Window*) para blindar rutas críticas de autenticación y transacciones (`25 peticiones / 5 minutos`), mitigando ataques de fuerza bruta con bypass automático tolerante a fallos de conexión.
-* **Resend & Gmail OAuth2:** Flujo asíncrono para correos transaccionales y conexión OAuth descentralizada por Workspace bajo el scope estricto `gmail.readonly` para seguridad del usuario final.
+**Zentral** es un ecosistema modular e inquilinato múltiple (Multi-tenant) diseñado para optimizar flujos críticos de operaciones empresariales B2B. El núcleo de la plataforma permite la ejecución y validación de módulos independientes (como conciliación de pagos e IA en tiempo real), completamente aislados por entorno de trabajo (*workspace*), controlados por un robusto sistema de límites atómicos y gobernados por políticas de acceso basadas en roles (RBAC) interceptadas en el Edge.
+
+### Fortalezas del Proyecto
+- ✅ Multi-tenancy robusto con aislamiento en Edge
+- ✅ Cuotas atómicas (0 race conditions)
+- ✅ Pipeline IA híbrida con fallback (OCR + Gemini)
+- ✅ Feature toggles (19 controles configurables)
+- ✅ 25/131 mejoras completadas
+
+### Pendientes Críticos
+1. **GEMINI_API_KEY real** — IA no funciona sin quota
+2. **Implementar módulos de negocio** — 3 módulos en "próximamente"
+3. **Pagos reales** — Solo simulado actualmente
+4. **Optimización N+1** — `recalculateQuotas` y `processPendingMatches`
+5. **Rate limiting extendido** — Solo endpoints auth protegidos
 
 ---
 
-## 📂 Mapa de Documentación Especializada
+## 🛠️ Tech Stack & Justificación Técnica
 
-Para auditar a fondo la implementación técnica y decisiones arquitectónicas del sistema, navega por los siguientes módulos de documentación interna:
-
-* [🏛️ Arquitectura, Seguridad y RBAC](docs/ARCHITECTURE.md) — Detalle del Edge Proxy, ciclo de vida del JWT y aislamiento Multi-tenant.
-* [📊 Concurrencia, Cuotas y Compras Multi-plan](docs/CONCURRENCY_En_SAAS.md) — Análisis del motor de cuotas atómico y el recálculo masivo de suscripciones activas.
-* [🤖 Pipeline de Integración de IA y Mensajería](docs/INTEGRATIONS_PIPELINE.md) — Flujo paso a paso del motor de extracción inteligente, fallback de Gemini y queries OAuth con Gmail.
-* [🎨 Ingeniería de Frontend y Patrones Reutilizables](docs/UI_UX_ENGINEERING.md) — Abstracción de hooks de TypeScript, optimizaciones del Carrusel Embla sin ResizeObserver y accesibilidad (A11y).
+| Capa | Tecnología |
+|------|------------|
+| Framework | Next.js 16.2.6 (App Router) |
+| React | React 19.2.4 |
+| Lenguaje | TypeScript 5 |
+| Estilos | Tailwind CSS v4 |
+| Base de datos | MongoDB (Mongoose 9.6.2) |
+| Autenticación | JWT propio (jose 6.2.3) |
+| Correos | Resend 6.12.3 |
+| Rate Limiting | Upstash Redis (@upstash/redis 1.38.0) |
+| IA | Google Generative AI (@google/generative-ai 0.24.1) |
+| OCR | OCR.space API |
+| Gmail | googleapis 172.0.0, google-auth-library 10.6.2 |
+| Carruseles | embla-carousel-react 8.6.0 |
+| Hashing | bcryptjs 3.0.3 |
 
 ---
 
-## 🚀 Instalación y Despliegue Rápido
+## 🏛️ Arquitectura & Pilares Técnicos
+
+### 1. Control de Cuotas Atómico y Mitigación de Condiciones de Carrera
+Solución: Mutaciones atómicas directas en MongoDB utilizando `findOneAndUpdate` + `$expr`. El sistema evalúa `usedQuota < monthlyQuota` y ejecuta el incremento en una única operación atómica.
+
+### 2. Pipeline Resiliente de Extracción con IA (Graceful Degradation)
+- **Capa 1:** OCR.space (bajo costo, rápido)
+- **Fallback:** Gemini 2.0 Flash (procesamiento en memoria, sin guardar a disco)
+- Garantiza disponibilidad 99.9% y privacidad absoluta
+
+### 3. Seguridad Zero-Trust y Aislamiento Multi-tenant
+- Edge Proxy Middleware (`src/proxy.ts`) intercepta peticiones
+- JWT en cookies `httpOnly` con políticas `SameSite=Strict`
+- Headers seguros inyectados: `x-workspace-id`, `x-user-role`, `x-user-id`
+- Consultas Mongoose siempre filtradas por workspace
+
+### 4. Abstracción Avanzada de UI (DRY)
+- Hook genérico `usePaginatedData<T>()` centraliza paginación
+- Componente reutilizable `<DataTable>` con estrategia mobile-first
+- **Impacto:** -450+ líneas de código duplicado
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+src/
+├── app/
+│   ├── (auth)/           # Login, Register, Forgot/Reset Password
+│   ├── (core)/           # Dashboard, Users, Profile, Workspace
+│   ├── (modules)/        # TransferCheck, Antecedentes, Cartera, Facturacion
+│   ├── admin/             # Superadmin: Stats, Workspaces, Modules, Plans, Users
+│   └── page.tsx          # Landing page
+├── components/
+│   ├── landing/          # Hero, Features, Pricing, Modules, Footer
+│   ├── ui/               # Button, Input, Toast, Modal, Pagination
+│   ├── protected-layout.tsx
+│   ├── sidebar-shell.tsx
+│   └── data-table.tsx
+├── hooks/
+│   └── use-paginated-data.ts
+├── lib/
+│   ├── models/           # 10 modelos Mongoose
+│   ├── auth/             # JWT (jose)
+│   ├── db/               # Mongoose singleton
+│   ├── email/            # Resend
+│   ├── purchase/         # recalculateQuotas
+│   ├── modules/
+│   │   └── transfercheck/  # extractor, matcher, gmail-service, ocr-service, ai-service
+│   └── settings/         # Feature toggles guard
+└── proxy.ts             # Edge middleware
+```
+
+---
+
+## 📋 Inventario de Modelos de Datos
+
+| Modelo | Propósito |
+|--------|-----------|
+| `User` | Usuarios con roles (superadmin, admin, operador, hijo) |
+| `Workspace` | Espacios de trabajo multi-tenant |
+| `Plan` | Planes de precios (Free, Premium, Premium Plus, Enterprise) |
+| `Module` | Catálogo de módulos (TransferCheck, Antecedentes, etc.) |
+| `ModuleSubscription` | Suscripción workspace → módulo con cuotas |
+| `WorkspacePurchase` | Historial de compras de planes |
+| `WorkspaceSettings` | Configuración (Gmail OAuth encriptado AES-256-CBC) |
+| `TransferCheckLog` | Logs de conciliación bancaria |
+| `AppSettings` | 19 feature toggles globales |
+| `AuditLog` | Trazabilidad de operaciones CRUD |
+
+---
+
+## 🎯 Prioridades de Desarrollo
+
+### 🔥 ALTA PRIORIDAD
+| # | Item | Razón |
+|---|------|-------|
+| 1 | Reemplazar GEMINI_API_KEY | El módulo de IA no funciona sin quota real |
+| 2 | Implementar módulos: Antecedentes, Cartera, Facturación | Funcionalidad pendiente = revenue potencial |
+| 3 | N+1 queries → `bulkWrite` en `recalculateQuotas` | Rendimiento degradado con escala |
+| 4 | `processPendingMatches` secuencial → `Promise.allSettled` | 50 logs = minutos de procesamiento |
+| 5 | Rate limiting en endpoints no-auth | Seguridad incompleta |
+
+### ⭐ MEDIA PRIORIDAD
+| # | Item | Razón |
+|---|------|-------|
+| 1 | Integración pagos reales (Stripe/Wompi) | Sin monetización real |
+| 2 | Audit logging completo | Compliance |
+| 3 | Breadcrumbs | Navegación |
+| 4 | Password policy | Seguridad débil actual |
+| 5 | Gmail OAuth cache LRU | Rendimiento |
+
+### 📋 BAJA PRIORIDAD
+| # | Item | Razón |
+|---|------|-------|
+| 1 | Tests automatizados | Calidad |
+| 2 | PWA support | Enhancement |
+| 3 | i18n | Solo español |
+| 4 | Dark/light mode | Ya tiene tema oscuro |
+| 5 | API documentation | Interno |
+
+---
+
+## 🚀 Instalación y Despliegue
 
 ### Prerrequisitos
-* Node.js >= 18
-* Gestor de paquetes `pnpm`
-* Instancia de MongoDB (Local o Atlas)
+- Node.js >= 18
+- Gestor de paquetes `pnpm`
+- Instancia de MongoDB (Local o Atlas)
 
 ### Configuración del Entorno
 
 1. Clona el repositorio e instala las dependencias:
    ```bash
    pnpm install
-    ```
-2. Configura las variables de entorno creando un archivo .env.local en la raíz del proyecto:
+   ```
 
-  ```bash
-  MONGO_URL=mongodb+srv://.../zentral
-  JWT_SECRET=tu_firma_secreta_jwt
-  RESEND_API_KEY=re_...
-  NEXT_PUBLIC_APP_URL=http://localhost:3000
-  KV_REST_API_URL=[https://...upstash.io](https://...upstash.io)
-  KV_REST_API_TOKEN=...
-  GEMINI_API_KEY=AIza...
-  OCR_SPACE_API_KEY=...
-  GMAIL_CLIENT_ID=...apps.googleusercontent.com
-  GMAIL_CLIENT_SECRET=...
-  GMAIL_REDIRECT_URI=http://localhost:3000/api/auth/gmail/callback
-  ```
+2. Configura las variables de entorno:
+   ```bash
+   cp .env.example .env.local
+   # Editar .env.local con tus credenciales
+   ```
 
-
-3. Ejecuta el script de inicialización para poblar la base de datos con módulos, planes base y usuarios de prueba (Superadmin, Workspace Admins y Operadores):
-
-```bash
-pnpm run seed
-```
+3. Ejecuta el script de inicialización:
+   ```bash
+   pnpm run seed
+   ```
 
 4. Enciende el servidor de desarrollo:
+   ```bash
+   pnpm run dev
+   ```
 
-
+### Scripts Disponibles
 ```bash
-pnpm run dev
+pnpm run dev          # Desarrollo
+pnpm run build        # Producción
+pnpm run start        # Iniciar producción
+pnpm run lint         # ESLint
+pnpm run type-check   # TypeScript
+pnpm run seed         # Poblar BD con datos de prueba
 ```
 
-## 📄 Licencia
+---
+
+## 📂 Documentación Especializada
+
+Para auditar a fondo la implementación técnica:
+
+- [🏛️ Arquitectura, Seguridad y RBAC](docs/ARCHITECTURE.md)
+- [📊 Concurrencia, Cuotas y Compras Multi-plan](docs/CONCURRENCY_En_SAAS.md)
+- [🤖 Pipeline de Integración de IA y Mensajería](docs/INTEGRATIONS_PIPELINE.md)
+- [🎨 Ingeniería de Frontend y Patrones Reutilizables](docs/UI_UX_ENGINEERING.md)
+- [📋 Catálogo de Módulos](docs/PLAN.md)
+- [💰 Sistema de Precios y Planes](docs/PLANES.md)
+- [⚙️ Panel de Administración](docs/ADMIN.md)
+- [🔧 Mejoras Planificadas (131 items)](docs/MEJORAS.md)
+
+---
+
+## 📜 Licencia
+
 Copyright (c) 2026 Juan Pablo Ospina. Todos los derechos reservados.
-El código fuente está visible con fines de auditoría técnica y portafolio profesional. 
+El código fuente está visible con fines de auditoría técnica y portafolio profesional.
 No se permite la reproducción, distribución o uso comercial de este software sin autorización expresa del autor.
