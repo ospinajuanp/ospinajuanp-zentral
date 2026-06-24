@@ -306,10 +306,44 @@ Te invito a auditar todo el ecosistema, revisar los diagramas de arquitectura o 
 👉 https://github.com/ospinajuanp/ospinajuanp-zentral
 
 ¡Muchas gracias a todos los que siguieron, comentaron y aportaron en esta serie! El código sigue corriendo.
-
 hashtag#SoftwareEngineering hashtag#JobSearch hashtag#FullStackDeveloper hashtag#SaaS hashtag#NextJS hashtag#TypeScript hashtag#Contratando hashtag#CleanCode hashtag#RPA
 
+
+
+## Serie: Módulo Personal Finance
+
 ### POST #14 —
+La mayoría de plataformas de gestión financiera se diseñan pensando en el flujo empresarial: dashboards para CFOs, reportes para contadores, conciliaciones bancarias para tesorerías. Pero qué pasa con el empleado que recibe su nómina, paga sus cuentas, intenta ahorrar para una casa y tiene que manejar múltiples deudas con diferentes bancos y tasas?
+
+Zentral evoluciona con un nuevo módulo pensado exclusivamente en esa persona: **Personal Finance**.
+
+El objetivo es simple pero ambicioso: crear una herramienta de educación y gestión financiera personal que viva dentro del ecosistema empresarial de Zentral, donde cada empleado tenga control total sobre sus datos financieros sin que el administrador de su empresa pueda verlos jamás.
+
+El módulo está diseñado para resolver las preguntas financieras que todos nos hacemos:
+
+**Ingresos y Gastos**: Registra cada peso que entra y sale. Categorías predefinidas (salario, arriendo, entretenimiento) y la posibilidad de crear las tuyas propias. El sistema filtra automáticamente por período de facturación para que veas exactamente cuánto ganas y gastas en tu "mes financiero" personalizado.
+
+**Deudas**: ¿Cuánto debes en total? ¿Cuánto pagas mensualmente? ¿Cuándo te liberas? El módulo centraliza tus tarjetas de crédito, préstamos quirografarios, créditos vehiculares e hipotecarios. Registra cada pago y el sistema recalcula tu saldo pendiente automáticamente. Al marcar una deuda como pagada, queda en historial para que nunca pierdas el registro.
+
+**Reglas Presupuestarias**: ¿Te alcanzaría un apartamento si tu arriendo es el 40% de tu ingreso? ¿Es viable ese carro nuevo con la regla 20/4/10? El módulo no solo registra números, sino que los analiza contra reglas financieras probadas (50/30/20, 70/20/10) y te dice exactamente dónde estás excedido y cuánto necesitas ajustar.
+
+**Fondo de Emergencia**: ¿Cuántos meses cubrirías si pierdes tu empleo mañana? El sistema calcula tu cobertura basándose en tus gastos obligatorios y te dice cuánto falta para estar completamente protegido.
+
+**Metas de Ahorro**: Prima para carro, vacaciones, apartamento. Define el objetivo, el plazo y el sistema te calcula cuánto necesitas aportar mensualmente. Si te atrasas, el indicador cambia de color. Si llegas al 100%, celebración.
+
+**Simuladores Stateless**: ¿Cuánto carro puedo pagar realmente? ¿Es viable arrendar o comprar? Estas calculadoras van más allá de las apps bancarias tradicionales porque usan las reglas financieras que los asesores no te explican: la Regla del 30% para vivienda, la Regla 20/4/10 para vehículos.
+
+Toda esta funcionalidad vive detrás de la misma arquitectura que protege TransferCheck: multi-tenancy real donde el admin de la empresa jamás ve los datos del empleado, cuotas atómicas que impiden sobreconsumos, y un diseño que prioriza la privacidad como derecho fundamental.
+
+Hoy abro una nueva serie desglosando la construcción técnica de cada funcionalidad de Personal Finance. El código sigue corriendo.
+
+Si quieres auditar el repositorio o seguir la construcción de este módulo en tiempo real, te invito a explorar mi GitHub:
+
+👉 https://github.com/ospinajuanp/ospinajuanp-zentral
+
+hashtag#PersonalFinance hashtag#FinanzasPersonales hashtag#SaaS hashtag#WebDevelopment hashtag#ReactJS hashtag#JobSearch
+
+### POST #15 —
 Un módulo SaaS que cobra por operación no puede limitarse a validar números en código. Cuando la concurrencia es real, esas validaciones se desmoronan. Lo mismo aplica para cualquier recurso limitado que consuma tu usuario:api keys, credits, queries, almacenamiento.
 
 Para el módulo Personal Finance de mi plataforma Zentral, diseñé un sistema de cuotas multi-plan donde cada workspace puede activar múltiples suscripciones simultáneas (Free base + planes premium por temporada) con quotas independientes por módulo. Implementé una estrategia de consumo en cascada Oldest-First que agotaba primero los saldos base antes de tocar los de alta capacidad:
@@ -328,7 +362,8 @@ Si quieres auditar como implementé las suscripciones de modulo o revisar el pip
 
 hashtag#SaaS hashtag#SoftwareArchitecture hashtag#MongoDB hashtag#Backend hashtag#CleanCode hashtag#JobSearch
 
-### POST #15 —
+### POST #16 —
+
 La mayoria de dashboards financieros preguntan al usuario que periodo quiere consultar. Pero si tu base de datos solo tiene datos de los ultimos 6 meses, para que mostrar opciones de anos que no tienen informacion? Es una experiencia de usuario mediocre que se resuelve con una sola query.
 
 Para el modulo Personal Finance de mi plataforma Zentral, implementé un endpoint dinamico que consulta anos con datos y devuelve el rango completo disponible:
@@ -359,7 +394,8 @@ Si quieres auditar como construí este endpoint o ver como lo integre con el sel
 
 hashtag#Frontend hashtag#UXDesign hashtag#ReactJS hashtag#CleanCode hashtag#SoftwareEngineering hashtag#JobSearch
 
-### POST #16 —
+### POST #17 —
+
 Cada vez que un usuario entra a una tab en una aplicacion, no deberia tener que esperar a que la interfaz parpadee mientras carga. Peor aun, no deberia consumir resources de quota por hacer algo que no necesita.
 
 En el modulo Personal Finance de Zentral, diseñé un sistema de consumo de quotas que distingue entre navegacion y operacion real:
