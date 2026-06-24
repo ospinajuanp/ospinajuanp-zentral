@@ -8,6 +8,7 @@ export interface IAppSettings extends Document {
   transactionalEmailsEnabled: boolean;
   simulatedPurchaseEnabled: boolean;
   transferCheckEnabled: boolean;
+  personalFinanceEnabled: boolean;
   gmailOAuthEnabled: boolean;
   publicPlansApiEnabled: boolean;
   debugEndpointsEnabled: boolean;
@@ -31,6 +32,7 @@ const appSettingsSchema = new Schema<IAppSettings>(
     transactionalEmailsEnabled: { type: Boolean, default: true },
     simulatedPurchaseEnabled: { type: Boolean, default: true },
     transferCheckEnabled: { type: Boolean, default: true },
+    personalFinanceEnabled: { type: Boolean, default: true },
     gmailOAuthEnabled: { type: Boolean, default: true },
     publicPlansApiEnabled: { type: Boolean, default: true },
     debugEndpointsEnabled: { type: Boolean, default: false },
