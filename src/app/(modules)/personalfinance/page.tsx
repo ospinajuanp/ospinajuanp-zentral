@@ -195,21 +195,7 @@ export default function PersonalFinanceDashboard() {
   const prevTabRef = useRef<Tab | null>(null);
 
   useEffect(() => {
-    const sessionKey = 'pf_initial_load_done';
-
-    if (prevTabRef.current === null) {
-      const wasLoadedBefore = sessionStorage.getItem(sessionKey);
-      prevTabRef.current = activeTab;
-      if (!wasLoadedBefore) {
-        sessionStorage.setItem(sessionKey, 'true');
-      }
-      return;
-    }
-
-    if (prevTabRef.current !== activeTab) {
-      setQuotaVersion((v) => v + 1);
-      prevTabRef.current = activeTab;
-    }
+    prevTabRef.current = activeTab;
   }, [activeTab]);
 
   useEffect(() => {
