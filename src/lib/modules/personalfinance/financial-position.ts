@@ -136,7 +136,7 @@ export async function recalculateFinancialPosition(
         snapshots: newSnapshot,
       },
     },
-    { upsert: true, new: true, lean: true }
+    { upsert: true, returnDocument: 'after', lean: true }
   );
 
   return {

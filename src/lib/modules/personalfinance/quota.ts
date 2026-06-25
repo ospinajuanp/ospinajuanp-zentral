@@ -75,7 +75,7 @@ export async function consumeQuota(
         $expr: { $gte: [{ $subtract: ['$monthlyQuota', '$usedQuota'] }, count] },
       },
       { $inc: { usedQuota: count } },
-      { new: true, lean: true }
+      { returnDocument: 'after', lean: true }
     );
 
     if (result) {
