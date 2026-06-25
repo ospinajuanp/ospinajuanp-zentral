@@ -6,6 +6,7 @@ import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { PersonalFinanceDebt } from '@/lib/models/personalfinance-debt';
 import { DebtPayment } from '@/lib/models/debt-payment';
 import { consumeQuota } from '@/lib/modules/personalfinance/quota';
+import { recalculateFinancialPosition } from '@/lib/modules/personalfinance/financial-position';
 import type { IPersonalFinanceDebt } from '@/lib/models/personalfinance-debt';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -82,6 +83,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     },
     { new: true, lean: true }
   );
+
+  await recalculateFinancialPosition(auth.workspaceId, auth.userId);
 
   return NextResponse.json(JSON.parse(JSON.stringify(updatedDebt)) as IPersonalFinanceDebt);
 }

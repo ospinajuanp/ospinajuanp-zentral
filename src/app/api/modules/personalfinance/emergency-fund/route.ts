@@ -6,6 +6,7 @@ import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { EmergencyFund } from '@/lib/models/emergency-fund';
 import { PersonalFinanceExpense } from '@/lib/models/personalfinance-expense';
 import { consumeQuota } from '@/lib/modules/personalfinance/quota';
+import { recalculateFinancialPosition } from '@/lib/modules/personalfinance/financial-position';
 import type { IEmergencyFund } from '@/lib/models/emergency-fund';
 
 export async function GET(req: NextRequest) {
@@ -83,6 +84,8 @@ export async function POST(req: NextRequest) {
     lastUpdated: new Date(),
   });
 
+  await recalculateFinancialPosition(auth.workspaceId, auth.userId);
+
   return NextResponse.json(JSON.parse(JSON.stringify(emergencyFund)) as IEmergencyFund, { status: 201 });
 }
 
@@ -128,6 +131,8 @@ export async function PATCH(req: NextRequest) {
   if (!emergencyFund) {
     return NextResponse.json({ error: 'Fondo de emergencia no encontrado' }, { status: 404 });
   }
+
+  await recalculateFinancialPosition(auth.workspaceId, auth.userId);
 
   return NextResponse.json(JSON.parse(JSON.stringify(emergencyFund)) as IEmergencyFund);
 }

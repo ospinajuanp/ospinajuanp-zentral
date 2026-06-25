@@ -6,6 +6,7 @@ import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { PersonalFinanceIncome } from '@/lib/models/personalfinance-income';
 import { PersonalFinanceSummary } from '@/lib/models/personalfinance-summary';
 import { consumeQuota } from '@/lib/modules/personalfinance/quota';
+import { recalculateFinancialPosition } from '@/lib/modules/personalfinance/financial-position';
 import type { IPersonalFinanceIncome } from '@/lib/models/personalfinance-income';
 
 export async function GET(req: NextRequest) {
@@ -102,6 +103,8 @@ export async function POST(req: NextRequest) {
     description,
     date: new Date(date),
   });
+
+  await recalculateFinancialPosition(auth.workspaceId, auth.userId);
 
   return NextResponse.json(JSON.parse(JSON.stringify(income)) as IPersonalFinanceIncome, { status: 201 });
 }

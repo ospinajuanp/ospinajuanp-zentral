@@ -6,6 +6,7 @@ import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { PersonalFinanceExpense } from '@/lib/models/personalfinance-expense';
 import { PersonalFinanceSummary } from '@/lib/models/personalfinance-summary';
 import { consumeQuota } from '@/lib/modules/personalfinance/quota';
+import { recalculateFinancialPosition } from '@/lib/modules/personalfinance/financial-position';
 import type { IPersonalFinanceExpense } from '@/lib/models/personalfinance-expense';
 
 export async function GET(req: NextRequest) {
@@ -117,6 +118,8 @@ export async function POST(req: NextRequest) {
     emergencyFundTarget: emergencyFundTarget ? parseFloat(emergencyFundTarget) : undefined,
     monthsToEmergencyFund: monthsToEmergencyFund ? parseInt(monthsToEmergencyFund) : undefined,
   });
+
+  await recalculateFinancialPosition(auth.workspaceId, auth.userId);
 
   return NextResponse.json(JSON.parse(JSON.stringify(expense)) as IPersonalFinanceExpense, { status: 201 });
 }

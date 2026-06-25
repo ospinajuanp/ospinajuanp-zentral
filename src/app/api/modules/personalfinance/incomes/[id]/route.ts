@@ -5,6 +5,7 @@ import { getApiAuth } from '@/lib/auth/api';
 import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { PersonalFinanceIncome } from '@/lib/models/personalfinance-income';
 import { consumeQuota } from '@/lib/modules/personalfinance/quota';
+import { recalculateFinancialPosition } from '@/lib/modules/personalfinance/financial-position';
 import type { IPersonalFinanceIncome } from '@/lib/models/personalfinance-income';
 
 export async function GET(
@@ -78,6 +79,8 @@ export async function PUT(
     return NextResponse.json({ error: 'Ingreso no encontrado' }, { status: 404 });
   }
 
+  await recalculateFinancialPosition(auth.workspaceId, auth.userId);
+
   return NextResponse.json(JSON.parse(JSON.stringify(income)) as IPersonalFinanceIncome);
 }
 
@@ -111,6 +114,8 @@ export async function DELETE(
   if (!income) {
     return NextResponse.json({ error: 'Ingreso no encontrado' }, { status: 404 });
   }
+
+  await recalculateFinancialPosition(auth.workspaceId, auth.userId);
 
   return NextResponse.json({ success: true });
 }
