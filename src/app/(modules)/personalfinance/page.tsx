@@ -765,9 +765,9 @@ function EgresosTab({
 
   function calculateMonthsForEmergencyFund(target: number, income: number) {
     const maxMonthlyAmount = income * 0.10;
-    let months = 12;
-    while (months > 1 && target / months > maxMonthlyAmount) {
-      months--;
+    let months = 1;
+    while (months < 120 && target / months > maxMonthlyAmount) {
+      months++;
     }
     return months;
   }
