@@ -1213,7 +1213,29 @@ function DeudasTab({
   const [paymentDebtId, setPaymentDebtId] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [viewPaymentsDebtId, setViewPaymentsDebtId] = useState<string | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(false);
   const toast = useToastContext();
+
+  async function fetchPaymentHistory(debtId: string) {
+    setPaymentHistoryLoading(true);
+    try {
+      const res = await fetch(`/api/modules/personalfinance/debts/${debtId}/payments`);
+      if (res.ok) {
+        const data = await res.json();
+        setPaymentHistory(data.items || []);
+      }
+    } catch {
+    } finally {
+      setPaymentHistoryLoading(false);
+    }
+  }
+
+  function handleViewPayments(debtId: string) {
+    setViewPaymentsDebtId(debtId);
+    fetchPaymentHistory(debtId);
+  }
 
   function handleEdit(debt: Debt) {
     setEditId(debt._id);
@@ -1527,20 +1549,30 @@ function DeudasTab({
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
+                          onClick={() => handleViewPayments(debt._id)}
+                          className="text-slate-400 hover:text-slate-300 mr-2"
+                          title="Ver historial de pagos"
+                        >
+                          📋
+                        </button>
+                        <button
                           onClick={() => handleEdit(debt)}
                           className="text-blue-400 hover:text-blue-300 mr-2"
+                          title="Editar"
                         >
                           ✏️
                         </button>
                         <button
                           onClick={() => setPaymentDebtId(debt._id)}
                           className="text-green-400 hover:text-green-300 mr-2"
+                          title="Registrar pago"
                         >
                           💰
                         </button>
                         <button
                           onClick={() => setDeleteId(debt._id)}
                           className="text-red-400 hover:text-red-300"
+                          title="Eliminar"
                         >
                           🗑️
                         </button>
@@ -1585,6 +1617,65 @@ function DeudasTab({
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {viewPaymentsDebtId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="w-full max-w-lg rounded-lg border border-slate-800 bg-slate-900 p-6">
+                <h3 className="text-lg font-medium text-white mb-4">
+                  Historial de Pagos
+                </h3>
+                {paymentHistoryLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                  </div>
+                ) : paymentHistory.length === 0 ? (
+                  <p className="text-slate-400 text-center py-4">No hay pagos registrados</p>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {paymentHistory.map((payment: any, index: number) => (
+                      <div key={payment._id || index} className="rounded-lg border border-slate-700 bg-slate-800 p-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-sm font-medium text-green-400">
+                              {formatCurrency(payment.amount)}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {new Date(payment.paymentDate).toLocaleDateString('es-CO', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-slate-400">
+                              Capital: <span className="text-blue-400">{formatCurrency(payment.principalPortion)}</span>
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              Interés: <span className="text-orange-400">{formatCurrency(payment.interestPortion)}</span>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-slate-700">
+                          <p className="text-xs text-slate-400">
+                            Saldo después: <span className="text-white">{formatCurrency(payment.balanceAfter)}</span>
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => { setViewPaymentsDebtId(null); setPaymentHistory([]); }}
+                    className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
+                  >
+                    Cerrar
+                  </button>
+                </div>
               </div>
             </div>
           )}
