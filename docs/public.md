@@ -599,6 +599,28 @@ Si quieres ver la diferencia entre ambos modelos o explorar la arquitectura del 
 
 hashtag#PersonalFinance hashtag#FinancialPlanning hashtag#SoftwareArchitecture hashtag#CleanCode hashtag#JobSearch
 
+### POST #24 —
+
+Las reglas presupuestarias son la columna vertebral de cualquier plan financiero personal. La regla 50/30/20 dice que deberías gastar 50% en necesidades, 30% en deseos y ahorrar 20%. Pero si solo guardas los números sin analizar si los estás cumpliendo, es solo un ejercicio contable.
+
+Para el módulo Personal Finance de Zentral, diseñé un sistema de BudgetRules que va más allá de guardar porcentajes:
+
+1. **Estructura Flexible**: Cada regla tiene un array de categorías con nombre, porcentaje y tipo (obligatorio, ahorro/inversión, discrecional). Esto permite definir reglas como "50/30/20" o "70/20/10" con nombres fijos predefinidos, o crear reglas personalizadas editables.
+
+2. **Análisis Visual en Tiempo Real**: El sistema compara el gasto real del usuario contra los porcentajes teóricos. Si gastas 35% en obligatorios cuando tenías presupuestado 30%, el indicador cambia a rojo. Si estás entre 25-30%, amarillo (warning). Verde si estás dentro del rango ±5%.
+
+3. **Normalización de Datos Legacy**: Implementé un proceso de migración automática que convierte el formato antiguo (objeto fijo `{obligatory, savingsInvestment, discretionary}`) al nuevo formato array cuando el usuario edita o activa una regla. Esto protege los datos existentes mientras permite nuevas funcionalidades.
+
+4. **Selector de Categoría Específica**: Para el tipo "Ahorro/Inversión", el usuario puede seleccionar una categoría específica (ej: "CDT", "Cesantías", "Fondo de Emergencia") para analizar solo ese gasto particular, o dejar vacío para analizar todo el grupo.
+
+El código sigue corriendo.
+
+Si quieres auditar cómo implementé el análisis de reglas presupuestarias o ver la estructura de categorías, te invito a explorar mi repositorio:
+
+👉 https://github.com/ospinajuanp/ospinajuanp-zentral
+
+hashtag#PersonalFinance hashtag#Budgeting hashtag#SoftwareEngineering hashtag#CleanCode hashtag#JobSearch
+
 
 
 ## Próximos Pasos

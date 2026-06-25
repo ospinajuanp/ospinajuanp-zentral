@@ -1,7 +1,7 @@
 # Personal Finance Module - Plan de Implementación
 
-> **Última actualización:** 2026-06-24
-> **Estado:** Planificación completa - Listo para implementar
+> **Última actualización:** 2026-06-25
+> **Estado:** ITERACIÓN 4 - Emergency Fund + BudgetRules (MVP completo)
 
 ---
 
@@ -302,66 +302,76 @@ export const PersonalFinanceDebt =
   mongoose.model<IPersonalFinanceDebt>('PersonalFinanceDebt', PersonalFinanceDebtSchema);
 ```
 
-### 4.5 `personalfinance-budget-rule.ts`
+### 4.5 `personalfinance-budget-rule.ts` ✅
 
 ```typescript
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Schema, Model } from 'mongoose';
 
-export interface IBudgetPercentages {
-  obligatory: number;
-  savingsInvestment: number;
-  discretionary: number;
+export type BudgetCategoryType = 'obligatory' | 'savings_investment' | 'discretionary' | 'custom';
+
+export interface IBudgetCategory {
+  name: string;
+  percentage: number;
+  expenseType?: BudgetCategoryType;
+  linkedExpenseCategory?: string;
 }
 
-export interface IPersonalFinanceBudgetRule {
-  workspace: Types.ObjectId;
-  user: Types.ObjectId;
-  name: string; // "50/30/20", "70/20/10", "Personalizada"
-  percentages: IBudgetPercentages;
+export interface IBudgetRule extends mongoose.Document {
+  workspace: mongoose.Types.ObjectId;
+  user: mongoose.Types.ObjectId;
+  name: string;
+  percentages: IBudgetCategory[];
+  totalPercentage: number;
   isActive: boolean;
-  isCustom: boolean; // Si es regla personalizada del usuario
+  isCustom: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const PersonalFinanceBudgetRuleSchema = new Schema<IPersonalFinanceBudgetRule>(
+const BudgetCategorySchema = new Schema<IBudgetCategory>(
+  {
+    name: { type: String, required: true },
+    percentage: { type: Number, required: true, min: 0, max: 100 },
+    expenseType: {
+      type: String,
+      enum: ['obligatory', 'savings_investment', 'discretionary', 'custom', undefined],
+    },
+    linkedExpenseCategory: { type: String },
+  },
+  { _id: false }
+);
+
+const BudgetRuleSchema = new Schema<IBudgetRule>(
   {
     workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true },
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     name: { type: String, required: true },
-    percentages: {
-      obligatory: { type: Number, required: true, min: 0, max: 100 },
-      savingsInvestment: { type: Number, required: true, min: 0, max: 100 },
-      discretionary: { type: Number, required: true, min: 0, max: 100 },
-    },
+    percentages: { type: [BudgetCategorySchema], default: [] },
+    totalPercentage: { type: Number, default: 0 },
     isActive: { type: Boolean, default: false },
     isCustom: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-// Validación: la suma debe ser exactamente 100
-PersonalFinanceBudgetRuleSchema.pre('validate', function (next) {
-  const total =
-    (this.percentages?.obligatory || 0) +
-    (this.percentages?.savingsInvestment || 0) +
-    (this.percentages?.discretionary || 0);
-
-  if (total !== 100) {
-    this.invalidate(
-      'percentages',
-      `Los porcentajes deben sumar exactamente 100%. Suma actual: ${total}%`
-    );
-  }
-  next();
+BudgetRuleSchema.pre('validate', function () {
+  this.totalPercentage = this.percentages.reduce((sum, p) => sum + (p.percentage || 0), 0);
 });
 
-PersonalFinanceBudgetRuleSchema.index({ workspace: 1, user: 1, isActive: 1 });
+BudgetRuleSchema.index({ workspace: 1, user: 1, isActive: 1 });
+BudgetRuleSchema.index({ workspace: 1, user: 1, isCustom: 1 });
 
-export const PersonalFinanceBudgetRule =
-  mongoose.models.PersonalFinanceBudgetRule ||
-  mongoose.model<IPersonalFinanceBudgetRule>('PersonalFinanceBudgetRule', PersonalFinanceBudgetRuleSchema);
+export const BudgetRule: Model<IBudgetRule> =
+  mongoose.models.BudgetRule ||
+  mongoose.model<IBudgetRule>('BudgetRule', BudgetRuleSchema);
 ```
+
+**Características MVP (ITERACIÓN 3):**
+- Array de categorías: `[{name, percentage, expenseType, linkedExpenseCategory}]`
+- 3 tipos: Obligatorio, Ahorro/Inversión, Discrecional
+- Selector de categoría específica por tipo
+- Normalización automática de formato legacy (objeto → array)
+- Análisis visual con estados: verde (ok), amarillo (warning), rojo (over)
 
 ### 4.6 `personalfinance-emergency-fund.ts`
 
