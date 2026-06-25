@@ -1785,18 +1785,26 @@ src/app/(modules)/personalfinance/page.tsx
 **Fix crítico implementado (2026-06-24):** El endpoint de payment (`POST /debts/[id]/payment`) ejecutaba `dbConnect()` después de `checkFeatureEnabled()`, causando timeout en Vercel. Solución: agregar `dbConnect()` dentro de `getAppSettings()` en `src/lib/models/app-settings.ts`.
 
 ### ITERACIÓN 3: Reglas Presupuestarias ✅
-**Objetivo:** Motor de reglas con validación 100% y análisis visual
+**Objetivo:** Motor de reglas con validación y análisis visual
 
 **Pasos:**
-1. [x] Crear esquema BudgetRule con validación 100%
+1. [x] Crear esquema BudgetRule con categorías dinámicas
 2. [x] Crear API routes: budget-rules (CRUD) + activate
 3. [x] Implementar utils analyzeBudgetRule()
 4. [x] UI: Tab Reglas con cards para cada regla
-5. [x] UI: Reglas predefinidas (50/30/20, 70/20/10) + regla personalizada con campos editables
+5. [x] UI: Reglas predefinidas (50/30/20, 70/20/10, 40/30/30) + regla personalizada con categorías dinámicas
 6. [x] UI: Análisis visual con colores (verde/amarillo/rojo) según compliance
-7. [ ] Test: Crear regla custom suma != 100 → error de validación
-8. [ ] Test: Gastar 67% en obligatorios con regla 50/30/20 → muestra +17% en rojo
-9. [ ] Test: Activar regla desactiva otras
+7. [x] Sistema de categorías custom con expenseType mapping
+8. [x] Validación permite < 100% (alerta) y > 100% (análisis pero warning)
+9. [ ] Test: Crear regla custom suma != 100 → warning pero genera análisis
+10. [ ] Test: Gastar 67% en obligatorios con regla 50/30/20 → muestra +17% en rojo
+11. [ ] Test: Activar regla desactiva otras
+
+**Implementación de categorías dinámicas:**
+- Cada regla tiene array de `BudgetCategory: { name, percentage, expenseType }`
+- `expenseType` mapea al tipo de gasto (obligatory, savings_investment, discretionary)
+- Permite agregar/eliminar categorías dinámicamente
+- Validación: total <= 100% (warning si excede, pero aún genera análisis)
 
 ### ITERACIÓN 4: Fondo de Emergencia ✅
 **Objetivo:** Cálculo automático de cobertura
