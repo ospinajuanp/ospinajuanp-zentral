@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
   const body = await req.json();
-  const { amount } = body;
+  const { amount, includeInterest = true } = body;
 
   if (!amount || parseFloat(amount) <= 0) {
     return NextResponse.json({ error: 'Monto debe ser mayor a 0' }, { status: 400 });
@@ -46,17 +46,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Esta deuda ya esta pagada' }, { status: 400 });
   }
 
-  const paymentAmount = parseFloat(amount);
-  const newBalance = Math.max(0, debt.currentBalance - paymentAmount);
+  const principalAmount = parseFloat(amount);
+  const monthlyInterest = debt.currentBalance * (debt.interestRate / 100);
 
-  const interestPortion = debt.currentBalance * (debt.interestRate / 100);
-  const principalPortion = Math.min(paymentAmount, debt.currentBalance) - interestPortion;
+  let totalPayment = principalAmount;
+  let interestPortion = 0;
+  let principalPortion = principalAmount;
+
+  if (includeInterest) {
+    totalPayment = principalAmount + monthlyInterest;
+    interestPortion = monthlyInterest;
+    principalPortion = Math.min(principalAmount, debt.currentBalance);
+  }
+
+  const newBalance = Math.max(0, debt.currentBalance - principalPortion);
 
   await DebtPayment.create({
     workspace: auth.workspaceId,
     user: auth.userId,
     debtId: debt._id,
-    amount: paymentAmount,
+    amount: totalPayment,
     principalPortion: Math.max(0, principalPortion),
     interestPortion: Math.max(0, interestPortion),
     balanceAfter: newBalance,

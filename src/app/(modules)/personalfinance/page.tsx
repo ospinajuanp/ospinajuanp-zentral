@@ -1216,6 +1216,7 @@ function DeudasTab({
   const [viewPaymentsDebtId, setViewPaymentsDebtId] = useState<string | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(false);
+  const [includeInterest, setIncludeInterest] = useState(true);
   const toast = useToastContext();
 
   async function fetchPaymentHistory(debtId: string) {
@@ -1232,9 +1233,35 @@ function DeudasTab({
     }
   }
 
-  function handleViewPayments(debtId: string) {
+  async function checkPaymentThisMonth(debtId: string): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/modules/personalfinance/debts/${debtId}/payments`);
+      if (res.ok) {
+        const data = await res.json();
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const hasPaymentThisMonth = data.items?.some((payment: any) => {
+          const paymentDate = new Date(payment.paymentDate);
+          return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+        });
+        return !hasPaymentThisMonth;
+      }
+    } catch {
+    }
+    return true;
+  }
+
+  async function handleViewPayments(debtId: string) {
     setViewPaymentsDebtId(debtId);
     fetchPaymentHistory(debtId);
+  }
+
+  async function openPaymentModal(debtId: string) {
+    const shouldIncludeInterest = await checkPaymentThisMonth(debtId);
+    setIncludeInterest(shouldIncludeInterest);
+    setPaymentDebtId(debtId);
+    setPaymentAmount('');
   }
 
   function handleEdit(debt: Debt) {
@@ -1350,7 +1377,10 @@ function DeudasTab({
       const res = await fetch(`/api/modules/personalfinance/debts/${paymentDebtId}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: parseFloat(paymentAmount) }),
+        body: JSON.stringify({ 
+          amount: parseFloat(paymentAmount),
+          includeInterest,
+        }),
       });
 
       if (!res.ok) {
@@ -1520,20 +1550,24 @@ function DeudasTab({
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-medium text-slate-400">Tipo</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-slate-400">Acreedor</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-slate-400">Préstamo</th>
                   <th className="px-4 py-3 text-right text-sm font-medium text-slate-400">Saldo</th>
                   <th className="px-4 py-3 text-right text-sm font-medium text-slate-400">Cuota</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-slate-400">Interés mes</th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-slate-400">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
                 {debts.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                    <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                       No hay deudas registradas
                     </td>
                   </tr>
                 ) : (
-                  debts.map((debt) => (
+                  debts.map((debt) => {
+                    const monthlyInterest = debt.currentBalance * (debt.interestRate / 100);
+                    return (
                     <tr key={debt._id}>
                       <td className="px-4 py-3 text-sm text-white">
                         <span className="rounded-full px-2 py-1 text-xs bg-orange-900 text-orange-300">
@@ -1541,11 +1575,17 @@ function DeudasTab({
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-white">{debt.creditor}</td>
+                      <td className="px-4 py-3 text-right text-sm text-slate-400">
+                        {formatCurrency(debt.originalAmount)}
+                      </td>
                       <td className="px-4 py-3 text-right text-sm font-medium text-red-400">
                         {formatCurrency(debt.currentBalance)}
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-slate-400">
                         {formatCurrency(debt.monthlyPayment)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-orange-400">
+                        {formatCurrency(monthlyInterest)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
@@ -1563,7 +1603,7 @@ function DeudasTab({
                           ✏️
                         </button>
                         <button
-                          onClick={() => setPaymentDebtId(debt._id)}
+                          onClick={() => openPaymentModal(debt._id)}
                           className="text-green-400 hover:text-green-300 mr-2"
                           title="Registrar pago"
                         >
@@ -1578,7 +1618,8 @@ function DeudasTab({
                         </button>
                       </td>
                     </tr>
-                  ))
+                  );
+                  })
                 )}
               </tbody>
             </table>
@@ -1588,35 +1629,97 @@ function DeudasTab({
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
               <div className="w-full max-w-md rounded-lg border border-slate-800 bg-slate-900 p-6">
                 <h3 className="text-lg font-medium text-white mb-4">Registrar pago</h3>
-                <form onSubmit={handlePayment} className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-slate-400">Monto del pago</label>
-                    <input
-                      type="number"
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-                      placeholder="0"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => { setPaymentDebtId(null); setPaymentAmount(''); }}
-                      className="flex-1 rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={paymentLoading || !paymentAmount}
-                      className="flex-1 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {paymentLoading ? 'Guardando...' : 'Registrar'}
-                    </button>
-                  </div>
-                </form>
+                {(() => {
+                  const debt = debts.find(d => d._id === paymentDebtId);
+                  if (!debt) return null;
+                  const monthlyInterest = debt.currentBalance * (debt.interestRate / 100);
+                  const paymentAmountNum = parseFloat(paymentAmount) || 0;
+                  const totalWithInterest = includeInterest ? paymentAmountNum + monthlyInterest : paymentAmountNum;
+                  return (
+                    <>
+                      <div className="rounded-lg border border-slate-700 bg-slate-800 p-3 mb-4">
+                        <p className="text-sm font-medium text-white">{debt.creditor}</p>
+                        <div className="mt-2 space-y-1 text-xs text-slate-400">
+                          <div className="flex justify-between">
+                            <span>Saldo:</span>
+                            <span className="text-red-400">{formatCurrency(debt.currentBalance)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Tasa:</span>
+                            <span>{debt.interestRate}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Interés mes:</span>
+                            <span className="text-orange-400">{formatCurrency(monthlyInterest)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center mb-4">
+                        <input
+                          type="checkbox"
+                          id="includeInterest"
+                          checked={includeInterest}
+                          onChange={(e) => setIncludeInterest(e.target.checked)}
+                          className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-green-600 focus:ring-green-600"
+                        />
+                        <label htmlFor="includeInterest" className="ml-2 text-sm text-slate-300">
+                          Incluir intereses ({formatCurrency(monthlyInterest)})
+                        </label>
+                      </div>
+
+                      <form onSubmit={handlePayment} className="space-y-4">
+                        <div>
+                          <label className="block text-sm text-slate-400">
+                            {includeInterest ? 'Monto del capital' : 'Monto del pago'}
+                          </label>
+                          <input
+                            type="number"
+                            value={paymentAmount}
+                            onChange={(e) => setPaymentAmount(e.target.value)}
+                            className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                            placeholder="0"
+                            autoFocus
+                          />
+                        </div>
+
+                        {includeInterest && paymentAmountNum > 0 && (
+                          <div className="rounded-lg border border-green-800 bg-green-900/30 p-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-400">Capital:</span>
+                              <span className="text-white">{formatCurrency(paymentAmountNum)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-400">Interés:</span>
+                              <span className="text-orange-400">{formatCurrency(monthlyInterest)}</span>
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-green-800 flex justify-between font-medium">
+                              <span className="text-white">Total a pagar:</span>
+                              <span className="text-green-400">{formatCurrency(totalWithInterest)}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => { setPaymentDebtId(null); setPaymentAmount(''); }}
+                            className="flex-1 rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={paymentLoading || !paymentAmount}
+                            className="flex-1 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {paymentLoading ? 'Guardando...' : 'Registrar'}
+                          </button>
+                        </div>
+                      </form>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}
