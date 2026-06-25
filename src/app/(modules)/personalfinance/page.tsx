@@ -1906,6 +1906,7 @@ function analyzeBudgetRule(
   totalIncome: number,
   formatFn?: (n: number) => string
 ): BudgetAnalysis {
+  const safeCategories: BudgetCategory[] = Array.isArray(categories) ? categories : [];
   const totalSpent = actualSpend.obligatory + actualSpend.savingsInvestment + actualSpend.discretionary;
   const overallPercentage = totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
 
@@ -1934,7 +1935,7 @@ function analyzeBudgetRule(
     return 0;
   };
 
-  const categoryAnalyses = categories.map(cat => {
+  const categoryAnalyses = safeCategories.map(cat => {
     const actualAmount = getActualAmountByType(cat.expenseType);
     return analyzeCategory(cat, actualAmount);
   });
