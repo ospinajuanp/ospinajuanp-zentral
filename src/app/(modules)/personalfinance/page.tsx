@@ -2038,7 +2038,21 @@ function ReglasTab({
 
   const actualSpend = { obligatory: totalObligatory, savingsInvestment: totalSavingsInvestment, discretionary: totalDiscretionary };
 
-  const activeRule = rules.find(r => r.isActive);
+  const normalizeRule = (rule: any) => {
+    let percentages = rule.percentages;
+    if (!Array.isArray(percentages)) {
+      const obj = percentages || {};
+      percentages = [
+        { name: 'Obligatorios', percentage: obj.obligatory || 0, expenseType: 'obligatory' },
+        { name: 'Ahorro/Inversión', percentage: obj.savingsInvestment || 0, expenseType: 'savings_investment' },
+        { name: 'Discrecional', percentage: obj.discretionary || 0, expenseType: 'discretionary' },
+      ].filter(c => c.percentage > 0);
+    }
+    return { ...rule, percentages };
+  };
+
+  const normalizedRules = rules.map(normalizeRule);
+  const activeRule = normalizedRules.find((r: any) => r.isActive);
   const analysis = activeRule ? analyzeBudgetRule(actualSpend, activeRule.percentages, totalIncomes, formatCurrency) : null;
 
   const fetchRules = useCallback(async () => {
@@ -2046,7 +2060,8 @@ function ReglasTab({
     try {
       const res = await fetch('/api/modules/personalfinance/budget-rules');
       const data = await res.json();
-      setRules(data.items || []);
+      const items = (data.items || []).map(normalizeRule);
+      setRules(items);
     } catch {
       toast.error('Error al cargar reglas');
     } finally {
@@ -2304,7 +2319,7 @@ function ReglasTab({
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {rules.map((rule) => (
+            {normalizedRules.map((rule: any) => (
               <div
                 key={rule._id}
                 className={`rounded-lg border p-4 ${rule.isActive ? 'border-green-600 bg-green-900/20' : 'border-slate-800 bg-slate-900'}`}
@@ -2388,7 +2403,7 @@ function ReglasTab({
             </div>
           )}
 
-          {!activeRule && rules.length > 0 && (
+          {!activeRule && normalizedRules.length > 0 && (
             <div className="rounded-lg border border-slate-800 bg-slate-900 p-5 mt-6 text-center">
               <p className="text-slate-400">Activa una regla para ver el análisis de tu presupuesto.</p>
             </div>
@@ -2400,7 +2415,7 @@ function ReglasTab({
         open={deleteId !== null}
         title="Eliminar regla"
         message="¿Estás seguro de que deseas eliminar esta regla?"
-        itemName={rules.find((r) => r._id === deleteId)?.name || ''}
+        itemName={normalizedRules.find((r: any) => r._id === deleteId)?.name || ''}
         onConfirm={() => deleteId && handleDelete(deleteId)}
         onCancel={() => setDeleteId(null)}
         loading={deleteLoading}
