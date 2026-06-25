@@ -1798,29 +1798,52 @@ src/app/(modules)/personalfinance/page.tsx
 8. [ ] Test: Gastar 67% en obligatorios con regla 50/30/20 → muestra +17% en rojo
 9. [ ] Test: Activar regla desactiva otras
 
-### ITERACIÓN 4: Fondo de Emergencia
+### ITERACIÓN 4: Fondo de Emergencia ✅
 **Objetivo:** Cálculo automático de cobertura
 
 **Pasos:**
-1. [ ] Crear esquema EmergencyFund
-2. [ ] Crear API routes: emergency-fund (GET/PUT)
-3. [ ] Implementar utils calculateEmergencyFundCoverage()
-4. [ ] UI: Card en Principal con meses cubiertos + barra de progreso
+1. [x] Crear esquema EmergencyFund (con linkedExpenseId para tracking)
+2. [x] Crear API routes: emergency-fund (GET/POST/PATCH)
+3. [x] UI: Card en Principal con meses cubiertos + barra de progreso
+4. [x] Integración con FinancialPosition para cálculo de patrimonio
 5. [ ] Test: Cambiar gastos recurrentes → recalcula meses
 6. [ ] Test: Fondo cubre 6+ meses → verde
 7. [ ] Test: Fondo cubre < 3 meses → rojo con warning
 
-### ITERACIÓN 5: Goals (Metas de Ahorro)
-**Objetivo:** Sistema completo de metas con plazos y aportes
+**Implementación real:**
+- El EmergencyFund se crea linked a un expense "Fondo de Emergencia" (tipo savings_investment)
+- El cálculo de cobertura se hace en UI: `savedAmount / (expense.amount * monthsCompleted)`
+- Se integra con `recalculateFinancialPosition()` para incluir en availableMoney
+
+### ITERACIÓN 5: Savings & Investments (PENDIENTE - Goals NO implementado)
+**Objetivo:** Sistema de instrumentos financieros y metas de ahorro
+
+**AVISO:** Esta iteración se SPLITEÓ en dos implementaciones diferentes:
+
+#### 5A: SavingsInvestment ✅ (COMPLETADO)
+**Implementado:** Instrumentos financieros reales (CDT, ETFs, fondos, cesantías)
 
 **Pasos:**
-1. [ ] Crear esquema SavingsGoal
+1. [x] Crear esquema SavingsInvestment (types: savings, investment, CDT, pension, crypto, other)
+2. [x] Crear API routes: savings-investments (CRUD)
+3. [x] UI: Sección "Otros Ahorros e Inversiones" en PrincipalTab
+4. [x] Integración con FinancialPosition para cálculo de patrimonio
+5. [ ] Test: Crear CDT con fecha de vencimiento
+6. [ ] Test: Cambiar status a 'closed' lo excluye del cálculo
+
+#### 5B: SavingsGoal (Metas de Ahorro) ❌ (PENDIENTE)
+**NO implementado todavía.** Esto es diferente a SavingsInvestment:
+- SavingsInvestment = Instrumentos financieros reales (CDT, fondos, etc.)
+- SavingsGoal = Metas personales (ej: "Ahorrar $20M para prima de carro en 12 meses")
+
+**Pasos:**
+1. [ ] Crear esquema SavingsGoal (targetAmount, currentAmount, targetDate, suggestedMonthlyContribution)
 2. [ ] Crear API routes: goals (CRUD) + contribute endpoint
 3. [ ] Implementar utils: calculateGoalProgress, calculateSuggestedContribution
 4. [ ] UI: Tab Metas con cards de progreso
 5. [ ] UI: Resumen en Principal (2-3 metas más cercanas al deadline)
 6. [ ] Test: Crear meta con targetDate vs targetMonths
-7. [ ] Test: Aporteautomatico marca como completado al llegar a 100%
+7. [ ] Test: Aporte automático marca como completado al llegar a 100%
 8. [ ] Test: Meta pausada no aparece en "prioritarias"
 
 ### ITERACIÓN 6: Simuladores
@@ -1833,22 +1856,24 @@ src/app/(modules)/personalfinance/page.tsx
 4. [ ] UI: Tab Simuladores con subtabs Casa + Vehículo
 5. [ ] Test: Ingreso 0 → maneja división por cero
 6. [ ] Test: Down payment 50% → warning de validación
-7. [ ] Test: Loan term 5 años → warning de que excede maximo
+7. [ ] Test: Loan term 5 años → warning de que excede máximo
 
 ### ITERACIÓN 7: Integración Final
 **Objetivo:** Feature toggle, moneda, categorías editables, seed data
 
 **Pasos:**
-1. [ ] Feature toggle personalFinanceEnabled en app-settings
-2. [ ] Selector COP/USD en UI (persisted in Summary)
+1. [x] Feature toggle personalFinanceEnabled en app-settings ✅
+2. [x] Selector COP/USD en UI (persisted in Summary) ✅
 3. [ ] Esquema Category para categorías editables
 4. [ ] API routes: categories (CRUD) - solo custom, no default
 5. [ ] UI: Categorías nuevas aparecen en Ingresos/Egresos
-6. [ ] Actualizar seed.ts con módulo + datos de ejemplo
+6. [x] Actualizar seed.ts con módulo + datos de ejemplo ✅
 7. [ ] Test: Moneda cambia afecta todos los valores mostrados
 8. [ ] Test: Agregar categoría custom nueva → aparece en selects
 9. [ ] Test: Admin ve módulo pero no puede ver datos de usuarios
 10. [ ] Test end-to-end completo
+
+**Fix crítico Vercel (2026-06-24):** El endpoint de payment (`POST /debts/[id]/payment`) y cualquier endpoint que use `checkFeatureEnabled()` fallaba en Vercel por ejecutar `dbConnect()` después de `getAppSettings()`. Solución: agregar `dbConnect()` dentro de `getAppSettings()` en `src/lib/models/app-settings.ts`.
 
 ---
 

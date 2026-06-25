@@ -535,6 +535,70 @@ Si quieres auditar cómo estructuré la conexión a la base de datos o revisar e
 
 hashtag#Serverless hashtag#Vercel hashtag#MongoDB hashtag#SoftwareEngineering hashtag#Backend hashtag#CleanCode hashtag#JobSearch
 
+### POST #22 —
+
+Un fondo de emergencia no es simplemente "tener ahorros". Es un sistema que responde a una pregunta específica: ¿Cuántos meses sobrevivirías si perdieras tu ingreso mañana?
+
+Para el módulo Personal Finance de Zentral, diseñé el EmergencyFund no como un simple balance, sino como un indicador de cobertura que se calcula dinámicamente:
+
+```typescript
+// El usuario define su meta de gastos mensuales en un expense
+const monthlyExpense = expense.amount; // ej: $2.500.000/mes
+const monthsCompleted = emergencyFund.monthsCompleted; // ej: 4 meses
+const savedAmount = emergencyFund.savedAmount; // ej: $10.000.000
+
+// El progreso es: savedAmount / (monthlyExpense * mesesTranscurridos)
+const actualMonthsCovered = savedAmount / (monthlyExpense * monthsCompleted);
+```
+
+La clave del diseño es que el EmergencyFund está vinculado a un expense del tipo "Fondo de Emergencia" en la categoría savings_investment. Esto significa que:
+
+1. Cuando el usuario crea un gasto "Fondo de Emergencia" mensual, el sistema automáticamente propone una meta basada en 6 meses de gastos obligatorios
+2. El EmergencyFund rastrea cuánto se ha acumulado históricamente
+3. El cálculo de cobertura usa los datos reales del usuario, no assumptions genéricas
+
+El fondo de emergencia se integra con FinancialPosition para influir en el patrimonio disponible real del usuario.
+
+El código sigue corriendo.
+
+Si quieres auditar cómo implementé el modelo de fondo de emergencia o ver el cálculo de cobertura, te invito a explorar mi repositorio:
+
+👉 https://github.com/ospinajuanp/ospinajuanp-zentral
+
+hashtag#PersonalFinance hashtag#EmergencyFund hashtag#FinancialPlanning hashtag#SoftwareEngineering hashtag#CleanCode hashtag#JobSearch
+
+### POST #23 —
+
+Una meta de ahorro no es lo mismo que un instrumento financiero. Pero la mayoría de apps los tratan igual.
+
+Cuando diseñé el módulo Personal Finance de Zentral, identifiqué una diferencia crítica:
+
+**SavingsInvestment** = Productos financieros reales
+- CDT en un banco
+- Fondos de inversión ETFs
+- Cesantías en un fondo
+- Ahorro programado
+- Criptomonedas
+
+**SavingsGoal** = Objetivos financieros personales
+- "Ahorrar $20M para la prima de un carro en 12 meses"
+- "Juntar $5M para vacaciones en 4 meses"
+- "Acumular $50M para el pie de una casa en 36 meses"
+
+Implementé SavingsInvestment (instrumentos financieros reales) con tipos predefinidos, tasas de interés, frecuencias de capitalización y fechas de vencimiento. Se integra con FinancialPosition para mostrar cuánto patrimonio hay invertido en instrumentos que generan rendimientos.
+
+Pero SavingsGoal (metas personales) quedó como pendiente porque requiere una lógica diferente: fechas objetivo, aportes sugeridos basados en el ingreso disponible, estados de progreso (in_progress, completed, paused) y un indicador visual del deadline.
+
+Esta distinción entre instrumento y meta es crucial para que el usuario entienda la diferencia entre "tengo $10M en un CDT" y "voy bien para mi meta de $20M para el carro".
+
+El código sigue corriendo.
+
+Si quieres ver la diferencia entre ambos modelos o explorar la arquitectura del módulo, te invito a explorar mi repositorio:
+
+👉 https://github.com/ospinajuanp/ospinajuanp-zentral
+
+hashtag#PersonalFinance hashtag#FinancialPlanning hashtag#SoftwareArchitecture hashtag#CleanCode hashtag#JobSearch
+
 
 
 ## Próximos Pasos

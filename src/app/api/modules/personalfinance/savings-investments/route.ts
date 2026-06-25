@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db/mongoose';
 import { getApiAuth } from '@/lib/auth/api';
 import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { SavingsInvestment } from '@/lib/models/savings-investment';
+import { consumeQuota } from '@/lib/modules/personalfinance/quota';
 import { recalculateFinancialPosition } from '@/lib/modules/personalfinance/financial-position';
 import type { ISavingsInvestment } from '@/lib/models/savings-investment';
 
@@ -43,6 +44,11 @@ export async function POST(req: NextRequest) {
 
   const check = await checkFeatureEnabled(req, 'personalFinanceEnabled');
   if (check) return check;
+
+  const { consumed } = await consumeQuota(auth.workspaceId);
+  if (!consumed) {
+    return NextResponse.json({ error: 'Cuota mensual excedida', remaining: 0 }, { status: 429 });
+  }
 
   const body = await req.json();
   const { name, type, initialAmount, currentBalance, interestRate, interestFrequency, startDate, expectedEndDate, notes } = body;
