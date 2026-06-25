@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     _id: linkedExpenseId,
     workspace: auth.workspaceId,
     user: auth.userId,
-    category: 'Ahorro emergencia',
+    category: 'Fondo de Emergencia',
   });
 
   if (!expense) {

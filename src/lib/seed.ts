@@ -303,7 +303,7 @@ export async function seed() {
     { month: 0, type: 'obligatory' as const, category: 'Alimentación/Hogar', amount: 600000, description: 'Supermercado' },
     { month: 0, type: 'obligatory' as const, category: 'Transporte', amount: 300000, description: 'Transporte público y gasolina' },
     { month: 0, type: 'obligatory' as const, category: 'Salud/Seguros', amount: 200000, description: 'EPS y medicina' },
-    { month: 0, type: 'savings_investment' as const, category: 'Ahorro emergencia', amount: 350000, description: 'Ahorro mensual fondo emergencia' },
+    { month: 0, type: 'savings_investment' as const, category: 'Fondo de Emergencia', amount: 350000, description: 'Ahorro mensual fondo emergencia' },
     { month: 0, type: 'discretionary' as const, category: 'Entretenimiento', amount: 150000, description: 'Streaming y salidas' },
     // Mes pasado
     { month: -1, type: 'obligatory' as const, category: 'Arriendo/Hipoteca', amount: 1200000, description: 'Arriendo apartamento' },
@@ -311,7 +311,7 @@ export async function seed() {
     { month: -1, type: 'obligatory' as const, category: 'Alimentación/Hogar', amount: 550000, description: 'Supermercado' },
     { month: -1, type: 'obligatory' as const, category: 'Transporte', amount: 300000, description: 'Transporte público' },
     { month: -1, type: 'obligatory' as const, category: 'Salud/Seguros', amount: 200000, description: 'EPS' },
-    { month: -1, type: 'savings_investment' as const, category: 'Ahorro emergencia', amount: 350000, description: 'Ahorro mensual' },
+    { month: -1, type: 'savings_investment' as const, category: 'Fondo de Emergencia', amount: 350000, description: 'Ahorro mensual' },
     { month: -1, type: 'discretionary' as const, category: 'Entretenimiento', amount: 180000, description: 'Cine y restaurantes' },
     // Hace 2 meses
     { month: -2, type: 'obligatory' as const, category: 'Arriendo/Hipoteca', amount: 1200000, description: 'Arriendo' },
@@ -319,14 +319,14 @@ export async function seed() {
     { month: -2, type: 'obligatory' as const, category: 'Alimentación/Hogar', amount: 500000, description: 'Supermercado' },
     { month: -2, type: 'obligatory' as const, category: 'Transporte', amount: 300000, description: 'Transporte' },
     { month: -2, type: 'obligatory' as const, category: 'Salud/Seguros', amount: 200000, description: 'EPS' },
-    { month: -2, type: 'savings_investment' as const, category: 'Ahorro emergencia', amount: 350000, description: 'Ahorro mensual' },
+    { month: -2, type: 'savings_investment' as const, category: 'Fondo de Emergencia', amount: 350000, description: 'Ahorro mensual' },
     // Hace 3 meses
     { month: -3, type: 'obligatory' as const, category: 'Arriendo/Hipoteca', amount: 1200000, description: 'Arriendo' },
     { month: -3, type: 'obligatory' as const, category: 'Servicios', amount: 250000, description: 'Servicios' },
     { month: -3, type: 'obligatory' as const, category: 'Alimentación/Hogar', amount: 480000, description: 'Supermercado' },
     { month: -3, type: 'obligatory' as const, category: 'Transporte', amount: 300000, description: 'Transporte' },
     { month: -3, type: 'obligatory' as const, category: 'Salud/Seguros', amount: 200000, description: 'EPS' },
-    { month: -3, type: 'savings_investment' as const, category: 'Ahorro emergencia', amount: 350000, description: 'Ahorro mensual' },
+    { month: -3, type: 'savings_investment' as const, category: 'Fondo de Emergencia', amount: 350000, description: 'Ahorro mensual' },
     { month: -3, type: 'discretionary' as const, category: 'Viajes', amount: 500000, description: 'Pasaje vuelo' },
     // Hace 4 meses
     { month: -4, type: 'obligatory' as const, category: 'Arriendo/Hipoteca', amount: 1200000, description: 'Arriendo' },
@@ -334,21 +334,21 @@ export async function seed() {
     { month: -4, type: 'obligatory' as const, category: 'Alimentación/Hogar', amount: 520000, description: 'Supermercado' },
     { month: -4, type: 'obligatory' as const, category: 'Transporte', amount: 300000, description: 'Transporte' },
     { month: -4, type: 'obligatory' as const, category: 'Salud/Seguros', amount: 200000, description: 'EPS' },
-    { month: -4, type: 'savings_investment' as const, category: 'Ahorro emergencia', amount: 350000, description: 'Ahorro mensual' },
+    { month: -4, type: 'savings_investment' as const, category: 'Fondo de Emergencia', amount: 350000, description: 'Ahorro mensual' },
     // Hace 5 meses
     { month: -5, type: 'obligatory' as const, category: 'Arriendo/Hipoteca', amount: 1200000, description: 'Arriendo' },
     { month: -5, type: 'obligatory' as const, category: 'Servicios', amount: 260000, description: 'Servicios' },
     { month: -5, type: 'obligatory' as const, category: 'Alimentación/Hogar', amount: 500000, description: 'Supermercado' },
     { month: -5, type: 'obligatory' as const, category: 'Transporte', amount: 300000, description: 'Transporte' },
     { month: -5, type: 'obligatory' as const, category: 'Salud/Seguros', amount: 200000, description: 'EPS' },
-    { month: -5, type: 'savings_investment' as const, category: 'Ahorro emergencia', amount: 350000, description: 'Ahorro mensual' },
+    { month: -5, type: 'savings_investment' as const, category: 'Fondo de Emergencia', amount: 350000, description: 'Ahorro mensual' },
   ];
 
   const emergencyFundExpense = await PersonalFinanceExpense.create({
     workspace: ws1._id,
     user: pfUser,
     type: 'savings_investment',
-    category: 'Ahorro emergencia',
+    category: 'Fondo de Emergencia',
     amount: 350000,
     currency: 'COP',
     isRecurrent: true,

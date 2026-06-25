@@ -61,7 +61,7 @@ const INCOME_CATEGORIES = {
 
 const EXPENSE_CATEGORIES = {
   obligatory: ['Arriendo/Hipoteca', 'Servicios', 'Alimentación/Hogar', 'Transporte', 'Salud/Seguros', 'Educación', 'Pago de deudas', 'Suscripciones'],
-  savings_investment: ['Ahorro emergencia', 'Aportaciones a fondos', 'Inversiones', 'CDT', 'Cesantías', 'Aporte a metas'],
+  savings_investment: ['Fondo de Emergencia', 'Aportaciones a fondos', 'Inversiones', 'CDT', 'Cesantías', 'Aporte a metas'],
   discretionary: ['Entretenimiento', 'Restaurantes', 'Viajes', 'Compras personales', 'Hobbies', 'Otros'],
 };
 
@@ -490,7 +490,7 @@ function PrincipalTab({
 
       {(() => {
         const emergencyFundExpense = expenses.find(
-          (e) => e.category === 'Ahorro emergencia'
+          (e) => e.category === 'Fondo de Emergencia'
         );
         if (!emergencyFundExpense) return null;
         const target = emergencyFundExpense.emergencyFundTarget || 0;
@@ -872,7 +872,7 @@ function EgresosTab({
   const toast = useToastContext();
 
   const categories = EXPENSE_CATEGORIES[type];
-  const isEmergencyFund = category === 'Ahorro emergencia';
+  const isEmergencyFund = category === 'Fondo de Emergencia';
 
   function handleEdit(expense: Expense) {
     setEditId(expense._id);
@@ -1043,7 +1043,7 @@ function EgresosTab({
                 value={category}
                 onChange={(e) => {
                   setCategory(e.target.value);
-                  if (e.target.value === 'Ahorro emergencia') {
+                  if (e.target.value === 'Fondo de Emergencia') {
                     const target = calculatedEmergencyFundTarget;
                     setEmergencyFundTarget(target.toString());
                     if (totalIncomes > 0) {
