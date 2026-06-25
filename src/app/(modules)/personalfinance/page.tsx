@@ -192,26 +192,19 @@ export default function PersonalFinanceDashboard() {
     }
   }, []);
 
-  const prevTabRef = useRef<Tab | null>(null);
+  const prevTabRef = useRef<Tab>(null as Tab | null);
+  const hasEverConsumedQuota = useRef(false);
 
   useEffect(() => {
-    const sessionKey = 'pf_quota_consumed';
-    const hasConsumed = sessionStorage.getItem(sessionKey);
-
-    const previousTab = prevTabRef.current;
-    prevTabRef.current = activeTab;
-
-    if (previousTab === null && hasConsumed) {
+    if (!hasEverConsumedQuota.current) {
+      hasEverConsumedQuota.current = true;
+      prevTabRef.current = activeTab;
       return;
     }
 
-    if (previousTab === null && !hasConsumed) {
-      sessionStorage.setItem(sessionKey, 'true');
-      return;
-    }
-
-    if (previousTab !== activeTab) {
+    if (prevTabRef.current !== activeTab) {
       setQuotaVersion((v) => v + 1);
+      prevTabRef.current = activeTab;
     }
   }, [activeTab]);
 
