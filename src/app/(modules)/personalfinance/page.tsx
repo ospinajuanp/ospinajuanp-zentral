@@ -2319,7 +2319,7 @@ function ReglasTab({
                   )}
                 </div>
                 <div className="space-y-1 text-sm">
-                  {rule.percentages.map((cat, idx) => (
+                  {(rule.percentages || []).map((cat: any, idx: number) => (
                     <div key={idx} className="flex justify-between">
                       <span className="text-slate-400">{cat.name}:</span>
                       <span className="text-white">{cat.percentage}%</span>
@@ -2366,7 +2366,7 @@ function ReglasTab({
                   <p className="text-xl font-bold text-white">{formatCurrency(analysis.totalSpent)}</p>
                   <p className="text-xs text-slate-400">{analysis.overview.percentage.toFixed(1)}% de ingresos</p>
                 </div>
-                {analysis.categories.map((cat, idx) => (
+                {(analysis.categories || []).map((cat: any, idx: number) => (
                   <div key={idx} className={`rounded-lg p-3 ${getStatusBg(cat.status)}`}>
                     <p className="text-sm text-slate-400">{cat.name}</p>
                     <p className="text-xl font-bold text-white">{formatCurrency(cat.actualAmount)}</p>
