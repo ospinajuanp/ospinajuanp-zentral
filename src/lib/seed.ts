@@ -13,6 +13,7 @@ import { PersonalFinanceDebt } from './models/personalfinance-debt';
 import { DebtPayment } from './models/debt-payment';
 import { EmergencyFund } from './models/emergency-fund';
 import { SavingsInvestment } from './models/savings-investment';
+import { TransferCheckLog } from './models/transfercheck-log';
 import { recalculateFinancialPosition } from './modules/personalfinance/financial-position';
 
 interface PlanSeed {
@@ -548,6 +549,122 @@ export async function seed() {
   });
 
   console.log('[seed] SavingsInvestment: 4 investments created');
+
+  // ═══════════════════════════════════════════════════════════════════
+  // TRANSFERCHECK TEST DATA (Demo Corp workspace)
+  // ═══════════════════════════════════════════════════════════════════
+
+  const transferLogs = [
+    {
+      status: 'matched' as const,
+      daysAgo: 0,
+      monto: 150000,
+      referencia: 'TRF20240625001',
+      fecha: new Date(Date.now() - 0 * 24 * 60 * 60 * 1000).toISOString(),
+      emailFrom: 'notificaciones@bancobogota.com',
+      emailSubject: 'Transferencia recibida por $150,000 COP',
+    },
+    {
+      status: 'matched' as const,
+      daysAgo: 1,
+      monto: 850000,
+      referencia: 'TRF20240624002',
+      fecha: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      emailFrom: 'noresponder@davivienda.com',
+      emailSubject: 'Transferencia acreditada - $850,000 COP',
+    },
+    {
+      status: 'matched' as const,
+      daysAgo: 2,
+      monto: 2500000,
+      referencia: 'NEQUI20240623003',
+      fecha: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      emailFrom: 'info@nequi.co',
+      emailSubject: 'Recibiste $2,500,000 COP de Juan Pérez',
+    },
+    {
+      status: 'pending_email' as const,
+      daysAgo: 0,
+      monto: 320000,
+      referencia: 'TRF20240625004',
+      fecha: new Date(Date.now() - 0 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      status: 'pending_email' as const,
+      daysAgo: 3,
+      monto: 1500000,
+      referencia: 'PSE20240622005',
+      fecha: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      status: 'manual_error' as const,
+      daysAgo: 5,
+      monto: 45000,
+      referencia: 'TRF20240620006',
+      fecha: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      status: 'matched' as const,
+      daysAgo: 7,
+      monto: 980000,
+      referencia: 'COLTEFIN20240618007',
+      fecha: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      emailFrom: 'cuentas@cormercantil.com',
+      emailSubject: 'Transferencia recibida',
+    },
+    {
+      status: 'matched' as const,
+      daysAgo: 10,
+      monto: 350000,
+      referencia: 'TDCBOGOTA20240615008',
+      fecha: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+      emailFrom: 'alertas@banco.com',
+      emailSubject: 'Movimiento en tu cuenta - Abono por $350,000',
+    },
+    {
+      status: 'pending_email' as const,
+      daysAgo: 4,
+      monto: 2100000,
+      referencia: 'CEDENAR20240621009',
+      fecha: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      status: 'matched' as const,
+      daysAgo: 14,
+      monto: 175000,
+      referencia: 'TRF20240611010',
+      fecha: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+      emailFrom: 'bancos@bancoppel.com',
+      emailSubject: 'Depósito por $175,000 COP',
+    },
+  ];
+
+  for (const log of transferLogs) {
+    const createdAt = new Date(Date.now() - log.daysAgo * 24 * 60 * 60 * 1000);
+    await TransferCheckLog.create({
+      workspace: ws1._id,
+      userId: pfUser,
+      photoData: {
+        monto: log.monto,
+        referencia: log.referencia,
+        fecha: log.fecha,
+      },
+      emailData: log.emailFrom ? {
+        from: log.emailFrom,
+        subject: log.emailSubject,
+        date: log.fecha,
+        snippet: `Transferencia por $${log.monto.toLocaleString('es-CO')} COP - Ref: ${log.referencia}`,
+        matchedMonto: log.status === 'matched' ? log.monto : 0,
+        matchedReferencia: log.status === 'matched' ? log.referencia : '',
+      } : null,
+      status: log.status,
+      retryCount: log.status === 'pending_email' ? 0 : 0,
+      nextRetryAt: log.status === 'pending_email' ? new Date(Date.now() + 60 * 60 * 1000) : null,
+      matchedAt: log.status === 'matched' ? createdAt : null,
+      createdAt,
+    });
+  }
+  console.log('[seed] TransferCheckLog: 10 records created');
 
   // ──── FinancialPosition (recalculate) ────
   await recalculateFinancialPosition(ws1._id, pfUser);
