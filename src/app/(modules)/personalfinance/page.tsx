@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToastContext } from '@/contexts/toast-context';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
-type Tab = 'principal' | 'ingresos' | 'egresos' | 'deudas';
+type Tab = 'principal' | 'ingresos' | 'egresos' | 'deudas' | 'reglas';
 type IncomeType = 'recurrent' | 'occasional';
 type ExpenseType = 'obligatory' | 'savings_investment' | 'discretionary';
 type DebtType = 'credit_card' | 'personal_loan' | 'vehicle_loan' | 'mortgage' | 'microcredit' | 'family_loan' | 'other';
@@ -52,6 +52,18 @@ interface Debt {
   expectedEndDate?: string;
   status: DebtStatus;
   notes?: string;
+}
+
+interface BudgetRule {
+  _id: string;
+  name: string;
+  percentages: {
+    obligatory: number;
+    savingsInvestment: number;
+    discretionary: number;
+  };
+  isActive: boolean;
+  isCustom: boolean;
 }
 
 const INCOME_CATEGORIES = {
@@ -306,7 +318,7 @@ export default function PersonalFinanceDashboard() {
       )}
 
       <div className="mt-8 flex gap-2 rounded-lg bg-slate-900 p-1">
-        {(['principal', 'ingresos', 'egresos', 'deudas'] as Tab[]).map((tab) => (
+        {(['principal', 'ingresos', 'egresos', 'deudas', 'reglas'] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -320,6 +332,7 @@ export default function PersonalFinanceDashboard() {
             {tab === 'ingresos' && 'Ingresos'}
             {tab === 'egresos' && 'Egresos'}
             {tab === 'deudas' && 'Deudas'}
+            {tab === 'reglas' && 'Reglas'}
           </button>
         ))}
       </div>
@@ -375,6 +388,14 @@ export default function PersonalFinanceDashboard() {
             formatCurrency={formatCurrency}
             onRefresh={fetchDebts}
             onRefreshExpenses={fetchExpenses}
+            onQuotaChange={() => setQuotaVersion((v) => v + 1)}
+          />
+        )}
+        {activeTab === 'reglas' && (
+          <ReglasTab
+            expenses={expenses}
+            formatCurrency={formatCurrency}
+            totalIncomes={totalIncomes}
             onQuotaChange={() => setQuotaVersion((v) => v + 1)}
           />
         )}
@@ -1846,6 +1867,435 @@ function DeudasTab({
         title="Eliminar deuda"
         message="¿Estás seguro de que deseas eliminar esta deuda?"
         itemName={debts.find((d) => d._id === deleteId)?.creditor || ''}
+        onConfirm={() => deleteId && handleDelete(deleteId)}
+        onCancel={() => setDeleteId(null)}
+        loading={deleteLoading}
+      />
+    </div>
+  );
+}
+
+function analyzeBudgetRule(
+  actualSpend: { obligatory: number; savingsInvestment: number; discretionary: number },
+  percentages: { obligatory: number; savingsInvestment: number; discretionary: number },
+  totalIncome: number
+) {
+  if (totalIncome <= 0) {
+    return {
+      isCompliant: false,
+      obligatory: { theoreticalPercentage: percentages.obligatory, actualPercentage: 0, actualAmount: 0, difference: 0, status: 'ok' as const },
+      savingsInvestment: { theoreticalPercentage: percentages.savingsInvestment, actualPercentage: 0, actualAmount: 0, difference: 0, status: 'ok' as const },
+      discretionary: { theoreticalPercentage: percentages.discretionary, actualPercentage: 0, actualAmount: 0, difference: 0, status: 'ok' as const },
+      totalIncome: 0,
+      totalSpent: 0,
+      overview: { percentage: 0, status: 'ok' as const },
+    };
+  }
+
+  const totalSpent = actualSpend.obligatory + actualSpend.savingsInvestment + actualSpend.discretionary;
+  const overallPercentage = (totalSpent / totalIncome) * 100;
+
+  const analyzeCategory = (actual: number, theoretical: number) => {
+    const actualPercentage = (actual / totalIncome) * 100;
+    const difference = actual - (totalIncome * (theoretical / 100));
+    const diffPercent = Math.abs(actualPercentage - theoretical);
+    let status: 'ok' | 'warning' | 'over' = 'ok';
+    if (diffPercent > 10) status = 'over';
+    else if (diffPercent > 5) status = 'warning';
+    return { theoreticalPercentage: theoretical, actualPercentage, actualAmount: actual, difference, status };
+  };
+
+  const obligatory = analyzeCategory(actualSpend.obligatory, percentages.obligatory);
+  const savingsInvestment = analyzeCategory(actualSpend.savingsInvestment, percentages.savingsInvestment);
+  const discretionary = analyzeCategory(actualSpend.discretionary, percentages.discretionary);
+
+  const allOk = obligatory.status === 'ok' && savingsInvestment.status === 'ok' && discretionary.status === 'ok';
+
+  let overallStatus: 'ok' | 'warning' | 'over' = 'ok';
+  if (obligatory.status === 'over' || savingsInvestment.status === 'over' || discretionary.status === 'over') {
+    overallStatus = 'over';
+  } else if (obligatory.status === 'warning' || savingsInvestment.status === 'warning' || discretionary.status === 'warning') {
+    overallStatus = 'warning';
+  }
+
+  return { isCompliant: allOk, obligatory, savingsInvestment, discretionary, totalIncome, totalSpent, overview: { percentage: overallPercentage, status: overallStatus } };
+}
+
+function ReglasTab({
+  expenses,
+  formatCurrency,
+  totalIncomes,
+  onQuotaChange,
+}: {
+  expenses: Expense[];
+  formatCurrency: (n: number) => string;
+  totalIncomes: number;
+  onQuotaChange: () => void;
+}) {
+  const [rules, setRules] = useState<BudgetRule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [obligatory, setObligatory] = useState('');
+  const [savingsInvestment, setSavingsInvestment] = useState('');
+  const [discretionary, setDiscretionary] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const toast = useToastContext();
+
+  const totalObligatory = expenses.filter(e => e.type === 'obligatory').reduce((sum, e) => sum + e.amount, 0);
+  const totalSavingsInvestment = expenses.filter(e => e.type === 'savings_investment').reduce((sum, e) => sum + e.amount, 0);
+  const totalDiscretionary = expenses.filter(e => e.type === 'discretionary').reduce((sum, e) => sum + e.amount, 0);
+
+  const actualSpend = { obligatory: totalObligatory, savingsInvestment: totalSavingsInvestment, discretionary: totalDiscretionary };
+
+  const activeRule = rules.find(r => r.isActive);
+  const analysis = activeRule ? analyzeBudgetRule(actualSpend, activeRule.percentages, totalIncomes) : null;
+
+  const fetchRules = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/modules/personalfinance/budget-rules');
+      const data = await res.json();
+      setRules(data.items || []);
+    } catch {
+      toast.error('Error al cargar reglas');
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchRules();
+  }, [fetchRules]);
+
+  const handleActivate = async (ruleId: string) => {
+    try {
+      const res = await fetch(`/api/modules/personalfinance/budget-rules/${ruleId}`, { method: 'POST' });
+      if (res.ok) {
+        toast.success('Regla activada');
+        fetchRules();
+      } else {
+        toast.error('Error al activar regla');
+      }
+    } catch {
+      toast.error('Error al activar regla');
+    }
+  };
+
+  function handleEdit(rule: BudgetRule) {
+    setEditId(rule._id);
+    setName(rule.name);
+    setObligatory(rule.percentages.obligatory.toString());
+    setSavingsInvestment(rule.percentages.savingsInvestment.toString());
+    setDiscretionary(rule.percentages.discretionary.toString());
+    setShowForm(true);
+  }
+
+  function resetForm() {
+    setEditId(null);
+    setName('');
+    setObligatory('');
+    setSavingsInvestment('');
+    setDiscretionary('');
+    setShowForm(false);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const obl = parseInt(obligatory) || 0;
+    const sav = parseInt(savingsInvestment) || 0;
+    const dis = parseInt(discretionary) || 0;
+    if (obl + sav + dis !== 100) {
+      toast.error('Los porcentajes deben sumar 100%');
+      return;
+    }
+    if (!name) {
+      toast.error('El nombre es requerido');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const url = editId && !editId.startsWith('default-')
+        ? `/api/modules/personalfinance/budget-rules/${editId}`
+        : '/api/modules/personalfinance/budget-rules';
+      const method = editId && !editId.startsWith('default-') ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          percentages: { obligatory: obl, savingsInvestment: sav, discretionary: dis },
+          isActive: true,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success(editId ? 'Regla actualizada' : 'Regla creada');
+        resetForm();
+        fetchRules();
+        onQuotaChange();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Error al guardar');
+      }
+    } catch {
+      toast.error('Error al guardar regla');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/modules/personalfinance/budget-rules/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Regla eliminada');
+        fetchRules();
+        onQuotaChange();
+      } else {
+        toast.error('Error al eliminar');
+      }
+    } catch {
+      toast.error('Error al eliminar');
+    } finally {
+      setDeleteLoading(false);
+      setDeleteId(null);
+    }
+  }
+
+  const getStatusColor = (status: 'ok' | 'warning' | 'over') => {
+    if (status === 'ok') return 'text-green-400';
+    if (status === 'warning') return 'text-yellow-400';
+    return 'text-red-400';
+  };
+
+  const getStatusBg = (status: 'ok' | 'warning' | 'over') => {
+    if (status === 'ok') return 'bg-green-900';
+    if (status === 'warning') return 'bg-yellow-900';
+    return 'bg-red-900';
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <button
+          onClick={() => { if (showForm && editId) { resetForm(); } else { setShowForm(!showForm); } }}
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+        >
+          {showForm ? 'Cancelar' : '+ Nueva Regla'}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="rounded-lg border border-slate-800 bg-slate-900 p-4 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm text-slate-400">Nombre de la regla</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                placeholder="Mi regla personalizada"
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <label className="block text-sm text-slate-400">Obligatorios (%)</label>
+              <input
+                type="number"
+                value={obligatory}
+                onChange={(e) => setObligatory(e.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                placeholder="50"
+                min="0"
+                max="100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400">Ahorro/Inversión (%)</label>
+              <input
+                type="number"
+                value={savingsInvestment}
+                onChange={(e) => setSavingsInvestment(e.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                placeholder="30"
+                min="0"
+                max="100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400">Discrecional (%)</label>
+              <input
+                type="number"
+                value={discretionary}
+                onChange={(e) => setDiscretionary(e.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                placeholder="20"
+                min="0"
+                max="100"
+              />
+            </div>
+          </div>
+          <div className="flex justify-between items-center">
+            <p className={`text-sm ${(parseInt(obligatory || '0') + parseInt(savingsInvestment || '0') + parseInt(discretionary || '0')) === 100 ? 'text-green-400' : 'text-red-400'}`}>
+              Total: {parseInt(obligatory || '0') + parseInt(savingsInvestment || '0') + parseInt(discretionary || '0')}%
+            </p>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {submitting ? 'Guardando...' : 'Guardar Regla'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {rules.map((rule) => (
+              <div
+                key={rule._id}
+                className={`rounded-lg border p-4 ${rule.isActive ? 'border-green-600 bg-green-900/20' : 'border-slate-800 bg-slate-900'}`}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="font-medium text-white">{rule.name}</h4>
+                    <p className="text-xs text-slate-400">{rule.isCustom ? 'Personalizada' : 'Predefinida'}</p>
+                  </div>
+                  {rule.isActive && (
+                    <span className="rounded-full bg-green-600 px-2 py-0.5 text-xs text-white">Activa</span>
+                  )}
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Obligatorios:</span>
+                    <span className="text-white">{rule.percentages.obligatory}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Ahorro/Inv:</span>
+                    <span className="text-white">{rule.percentages.savingsInvestment}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Discrecional:</span>
+                    <span className="text-white">{rule.percentages.discretionary}%</span>
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={() => handleActivate(rule._id)}
+                    disabled={rule.isActive}
+                    className="flex-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                  >
+                    Activar
+                  </button>
+                  {rule.isCustom && (
+                    <>
+                      <button
+                        onClick={() => handleEdit(rule)}
+                        className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => setDeleteId(rule._id)}
+                        className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+                      >
+                        Eliminar
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {activeRule && analysis && (
+            <div className="rounded-lg border border-slate-800 bg-slate-900 p-5 mt-6">
+              <h3 className="text-lg font-semibold text-white mb-4">
+                Análisis: {activeRule.name}
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className={`rounded-lg p-3 ${getStatusBg(analysis.overview.status)}`}>
+                  <p className="text-sm text-slate-400">Total Gastado</p>
+                  <p className="text-xl font-bold text-white">{formatCurrency(analysis.totalSpent)}</p>
+                  <p className="text-xs text-slate-400">{analysis.overview.percentage.toFixed(1)}% de ingresos</p>
+                </div>
+                <div className={`rounded-lg p-3 ${getStatusBg(analysis.obligatory.status)}`}>
+                  <p className="text-sm text-slate-400">Obligatorios</p>
+                  <p className="text-xl font-bold text-white">{formatCurrency(analysis.obligatory.actualAmount)}</p>
+                  <p className="text-xs text-slate-400">Teórico: {analysis.obligatory.theoreticalPercentage}%</p>
+                  <p className={`text-xs ${getStatusColor(analysis.obligatory.status)}`}>
+                    Real: {analysis.obligatory.actualPercentage.toFixed(1)}%
+                  </p>
+                </div>
+                <div className={`rounded-lg p-3 ${getStatusBg(analysis.savingsInvestment.status)}`}>
+                  <p className="text-sm text-slate-400">Ahorro/Inv</p>
+                  <p className="text-xl font-bold text-white">{formatCurrency(analysis.savingsInvestment.actualAmount)}</p>
+                  <p className="text-xs text-slate-400">Teórico: {analysis.savingsInvestment.theoreticalPercentage}%</p>
+                  <p className={`text-xs ${getStatusColor(analysis.savingsInvestment.status)}`}>
+                    Real: {analysis.savingsInvestment.actualPercentage.toFixed(1)}%
+                  </p>
+                </div>
+                <div className={`rounded-lg p-3 ${getStatusBg(analysis.discretionary.status)}`}>
+                  <p className="text-sm text-slate-400">Discrecional</p>
+                  <p className="text-xl font-bold text-white">{formatCurrency(analysis.discretionary.actualAmount)}</p>
+                  <p className="text-xs text-slate-400">Teórico: {analysis.discretionary.theoreticalPercentage}%</p>
+                  <p className={`text-xs ${getStatusColor(analysis.discretionary.status)}`}>
+                    Real: {analysis.discretionary.actualPercentage.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 space-y-2">
+                {analysis.obligatory.status !== 'ok' && (
+                  <p className="text-sm text-red-400">
+                    ⚠️ Excediste en Obligatorios. Diferencia: {formatCurrency(Math.abs(analysis.obligatory.difference))}
+                  </p>
+                )}
+                {analysis.savingsInvestment.status !== 'ok' && (
+                  <p className="text-sm text-yellow-400">
+                    ⚠️ Ahorro/Inversión {analysis.savingsInvestment.difference > 0 ? 'sobredimensionado' : 'insuficiente'}.
+                    Diferencia: {formatCurrency(Math.abs(analysis.savingsInvestment.difference))}
+                  </p>
+                )}
+                {analysis.discretionary.status !== 'ok' && (
+                  <p className="text-sm text-orange-400">
+                    ⚠️ Gastos Discrecionales {analysis.discretionary.difference > 0 ? 'excedidos' : 'por debajo'}.
+                    Diferencia: {formatCurrency(Math.abs(analysis.discretionary.difference))}
+                  </p>
+                )}
+                {analysis.isCompliant && (
+                  <p className="text-sm text-green-400">✅ Estás dentro de tu regla presupuestaria.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!activeRule && rules.length > 0 && (
+            <div className="rounded-lg border border-slate-800 bg-slate-900 p-5 mt-6 text-center">
+              <p className="text-slate-400">Activa una regla para ver el análisis de tu presupuesto.</p>
+            </div>
+          )}
+        </>
+      )}
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        title="Eliminar regla"
+        message="¿Estás seguro de que deseas eliminar esta regla?"
+        itemName={rules.find((r) => r._id === deleteId)?.name || ''}
         onConfirm={() => deleteId && handleDelete(deleteId)}
         onCancel={() => setDeleteId(null)}
         loading={deleteLoading}
