@@ -1791,8 +1791,8 @@ src/app/(modules)/personalfinance/page.tsx
 1. [ ] Crear esquema BudgetRule con validación 100%
 2. [ ] Crear API routes: budget-rules (CRUD) + activate
 3. [ ] Implementar utils analyzeBudgetRule()
-4. [ ] UI: tabs de reglas predefinidas (50/30/20, 70/20/10)
-5. [ ] UI: Tab personalizada con campos editables
+4. [ ] UI: tabs de reglas 
+5. [ ] UI: subtab en reglas de predefinidas (50/30/20, 70/20/10) y subtab personalizada con campos editables crud para los porcentajes maximo 100%
 6. [ ] UI: Gráfica de análisis con colores (rojo/verde/amarillo)
 7. [ ] Test: Crear regla custom suma != 100 → error de validación
 8. [ ] Test: Gastar 67% en obligatorios con regla 50/30/20 → muestra +17% en rojo
