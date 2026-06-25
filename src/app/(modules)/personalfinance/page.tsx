@@ -193,8 +193,15 @@ export default function PersonalFinanceDashboard() {
   }, []);
 
   const prevTabRef = useRef<Tab | null>(null);
+  const hasConsumedOnMount = useRef(false);
 
   useEffect(() => {
+    if (!hasConsumedOnMount.current) {
+      hasConsumedOnMount.current = true;
+      setQuotaVersion((v) => v + 1);
+    } else if (prevTabRef.current !== activeTab) {
+      setQuotaVersion((v) => v + 1);
+    }
     prevTabRef.current = activeTab;
   }, [activeTab]);
 
