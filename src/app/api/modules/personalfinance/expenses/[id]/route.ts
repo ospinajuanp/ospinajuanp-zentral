@@ -55,7 +55,7 @@ export async function PUT(
 
   const { id } = await params;
   const body = await req.json();
-  const { type, category, amount, currency, isRecurrent, recurringPeriod, description, date } = body;
+  const { type, category, amount, currency, isRecurrent, recurringPeriod, description, date, emergencyFundTarget, monthsToEmergencyFund } = body;
 
   await dbConnect();
 
@@ -71,6 +71,8 @@ export async function PUT(
         ...(recurringPeriod && { recurringPeriod }),
         ...(description !== undefined && { description }),
         ...(date && { date: new Date(date) }),
+        ...(emergencyFundTarget !== undefined && { emergencyFundTarget: parseFloat(emergencyFundTarget) }),
+        ...(monthsToEmergencyFund !== undefined && { monthsToEmergencyFund: parseInt(monthsToEmergencyFund) }),
       },
     },
     { new: true, lean: true }

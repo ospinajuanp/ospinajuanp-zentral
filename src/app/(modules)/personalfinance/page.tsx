@@ -521,6 +521,7 @@ function IngresosTab({
   totalIncomes: number;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [type, setType] = useState<IncomeType>('recurrent');
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
@@ -532,14 +533,36 @@ function IngresosTab({
 
   const categories = INCOME_CATEGORIES[type];
 
+  function handleEdit(income: Income) {
+    setEditId(income._id);
+    setType(income.type);
+    setCategory(income.category);
+    setAmount(income.amount.toString());
+    setDescription(income.description || '');
+    setShowForm(true);
+  }
+
+  function resetForm() {
+    setEditId(null);
+    setType('recurrent');
+    setCategory('');
+    setAmount('');
+    setDescription('');
+    setShowForm(false);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!category || !amount) return;
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/modules/personalfinance/incomes', {
-        method: 'POST',
+      const url = editId
+        ? `/api/modules/personalfinance/incomes/${editId}`
+        : '/api/modules/personalfinance/incomes';
+      const method = editId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type,
@@ -556,19 +579,16 @@ function IngresosTab({
           toast.error('Cuota mensual excedida');
           return;
         }
-        toast.error(data.error || 'Error al crear');
+        toast.error(data.error || (editId ? 'Error al actualizar' : 'Error al crear'));
         return;
       }
 
-      toast.success('Ingreso agregado');
-      setShowForm(false);
-      setCategory('');
-      setAmount('');
-      setDescription('');
+      toast.success(editId ? 'Ingreso actualizado' : 'Ingreso agregado');
+      resetForm();
       onRefresh();
       onQuotaChange();
     } catch {
-      toast.error('Error al crear ingreso');
+      toast.error(editId ? 'Error al actualizar ingreso' : 'Error al crear ingreso');
     } finally {
       setSubmitting(false);
     }
@@ -602,7 +622,7 @@ function IngresosTab({
     <div className="space-y-4">
       <div className="flex justify-end">
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { if (showForm && editId) { resetForm(); } else { setShowForm(!showForm); } }}
           className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           {showForm ? 'Cancelar' : '+ Agregar Ingreso'}
@@ -707,6 +727,12 @@ function IngresosTab({
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
+                          onClick={() => handleEdit(income)}
+                          className="text-blue-400 hover:text-blue-300 mr-2"
+                        >
+                          ✏️
+                        </button>
+                        <button
                           onClick={() => setDeleteId(income._id)}
                           className="text-red-400 hover:text-red-300"
                         >
@@ -766,6 +792,7 @@ function EgresosTab({
   totalIncomes: number;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [type, setType] = useState<ExpenseType>('obligatory');
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
@@ -780,6 +807,30 @@ function EgresosTab({
 
   const categories = EXPENSE_CATEGORIES[type];
   const isEmergencyFund = category === 'Ahorro emergencia';
+
+  function handleEdit(expense: Expense) {
+    setEditId(expense._id);
+    setType(expense.type);
+    setCategory(expense.category);
+    setAmount(expense.amount.toString());
+    setIsRecurrent(expense.isRecurrent);
+    setDescription(expense.description || '');
+    setEmergencyFundTarget(expense.emergencyFundTarget?.toString() || '');
+    setMonthsToEmergencyFund(expense.monthsToEmergencyFund?.toString() || '');
+    setShowForm(true);
+  }
+
+  function resetForm() {
+    setEditId(null);
+    setType('obligatory');
+    setCategory('');
+    setAmount('');
+    setIsRecurrent(false);
+    setDescription('');
+    setEmergencyFundTarget('');
+    setMonthsToEmergencyFund('');
+    setShowForm(false);
+  }
 
   const calculatedEmergencyFundTarget = totalExpenses * 6;
 
@@ -819,8 +870,12 @@ function EgresosTab({
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/modules/personalfinance/expenses', {
-        method: 'POST',
+      const url = editId
+        ? `/api/modules/personalfinance/expenses/${editId}`
+        : '/api/modules/personalfinance/expenses';
+      const method = editId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type,
@@ -840,31 +895,27 @@ function EgresosTab({
           toast.error('Cuota mensual excedida');
           return;
         }
-        toast.error(data.error || 'Error al crear');
+        toast.error(data.error || (editId ? 'Error al actualizar' : 'Error al crear'));
         return;
       }
 
-      const expenseData = await res.json();
-
-      if (isEmergencyFund) {
-        await fetch('/api/modules/personalfinance/emergency-fund', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ linkedExpenseId: expenseData._id }),
-        });
+      if (!editId) {
+        const expenseData = await res.json();
+        if (isEmergencyFund) {
+          await fetch('/api/modules/personalfinance/emergency-fund', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ linkedExpenseId: expenseData._id }),
+          });
+        }
       }
 
-      toast.success('Gasto agregado');
-      setShowForm(false);
-      setCategory('');
-      setAmount('');
-      setDescription('');
-      setEmergencyFundTarget('');
-      setMonthsToEmergencyFund('');
+      toast.success(editId ? 'Gasto actualizado' : 'Gasto agregado');
+      resetForm();
       onRefresh();
       onQuotaChange();
     } catch {
-      toast.error('Error al crear gasto');
+      toast.error(editId ? 'Error al actualizar gasto' : 'Error al crear gasto');
     } finally {
       setSubmitting(false);
     }
@@ -898,7 +949,7 @@ function EgresosTab({
     <div className="space-y-4">
       <div className="flex justify-end">
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { if (showForm && editId) { resetForm(); } else { setShowForm(!showForm); } }}
           className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           {showForm ? 'Cancelar' : '+ Agregar Gasto'}
@@ -1072,6 +1123,12 @@ function EgresosTab({
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
+                          onClick={() => handleEdit(expense)}
+                          className="text-blue-400 hover:text-blue-300 mr-2"
+                        >
+                          ✏️
+                        </button>
+                        <button
                           onClick={() => setDeleteId(expense._id)}
                           className="text-red-400 hover:text-red-300"
                         >
@@ -1129,6 +1186,7 @@ function DeudasTab({
   onQuotaChange: () => void;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [debtType, setDebtType] = useState<DebtType>('credit_card');
   const [creditor, setCreditor] = useState('');
   const [originalAmount, setOriginalAmount] = useState('');
@@ -1147,14 +1205,48 @@ function DeudasTab({
   const [paymentLoading, setPaymentLoading] = useState(false);
   const toast = useToastContext();
 
+  function handleEdit(debt: Debt) {
+    setEditId(debt._id);
+    setDebtType(debt.debtType);
+    setCreditor(debt.creditor);
+    setOriginalAmount(debt.originalAmount.toString());
+    setCurrentBalance(debt.currentBalance.toString());
+    setInterestRate(debt.interestRate?.toString() || '');
+    setMonthlyPayment(debt.monthlyPayment.toString());
+    setStartDate(new Date(debt.startDate).toISOString().split('T')[0]);
+    setExpectedEndDate(debt.expectedEndDate ? new Date(debt.expectedEndDate).toISOString().split('T')[0] : '');
+    setNotes(debt.notes || '');
+    setCurrency(debt.currency as 'COP' | 'USD');
+    setShowForm(true);
+  }
+
+  function resetForm() {
+    setEditId(null);
+    setDebtType('credit_card');
+    setCreditor('');
+    setOriginalAmount('');
+    setCurrentBalance('');
+    setInterestRate('');
+    setMonthlyPayment('');
+    setStartDate('');
+    setExpectedEndDate('');
+    setNotes('');
+    setCurrency('COP');
+    setShowForm(false);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!creditor || !originalAmount || !currentBalance || !interestRate || !monthlyPayment || !startDate || !currency) return;
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/modules/personalfinance/debts', {
-        method: 'POST',
+      const url = editId
+        ? `/api/modules/personalfinance/debts/${editId}`
+        : '/api/modules/personalfinance/debts';
+      const method = editId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           debtType,
@@ -1176,25 +1268,17 @@ function DeudasTab({
           toast.error('Cuota mensual excedida');
           return;
         }
-        toast.error(data.error || 'Error al crear');
+        toast.error(data.error || (editId ? 'Error al actualizar' : 'Error al crear'));
         return;
       }
 
-      toast.success('Deuda registrada');
-      setShowForm(false);
-      setCreditor('');
-      setOriginalAmount('');
-      setCurrentBalance('');
-      setInterestRate('');
-      setMonthlyPayment('');
-      setStartDate('');
-      setExpectedEndDate('');
-      setNotes('');
+      toast.success(editId ? 'Deuda actualizada' : 'Deuda registrada');
+      resetForm();
       onRefresh();
       onRefreshExpenses();
       onQuotaChange();
     } catch {
-      toast.error('Error al crear deuda');
+      toast.error(editId ? 'Error al actualizar deuda' : 'Error al crear deuda');
     } finally {
       setSubmitting(false);
     }
@@ -1270,7 +1354,7 @@ function DeudasTab({
           )}
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { if (showForm && editId) { resetForm(); } else { setShowForm(!showForm); } }}
           className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           {showForm ? 'Cancelar' : '+ Agregar Deuda'}
@@ -1384,10 +1468,10 @@ function DeudasTab({
           </div>
           <button
             type="submit"
-            disabled={submitting || !creditor || !originalAmount || !currentBalance || !interestRate || !monthlyPayment || !startDate || !currency}
+            disabled={submitting || !creditor || !originalAmount || !currentBalance || !monthlyPayment}
             className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
-            {submitting ? 'Guardando...' : 'Guardar'}
+            {submitting ? 'Guardando...' : editId ? 'Actualizar' : 'Guardar'}
           </button>
         </form>
       )}
@@ -1432,6 +1516,12 @@ function DeudasTab({
                         {formatCurrency(debt.monthlyPayment)}
                       </td>
                       <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => handleEdit(debt)}
+                          className="text-blue-400 hover:text-blue-300 mr-2"
+                        >
+                          ✏️
+                        </button>
                         <button
                           onClick={() => setPaymentDebtId(debt._id)}
                           className="text-green-400 hover:text-green-300 mr-2"
