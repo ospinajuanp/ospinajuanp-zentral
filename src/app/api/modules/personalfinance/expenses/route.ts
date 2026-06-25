@@ -17,11 +17,6 @@ export async function GET(req: NextRequest) {
   const check = await checkFeatureEnabled(req, 'personalFinanceEnabled');
   if (check) return check;
 
-  const { consumed } = await consumeQuota(auth.workspaceId);
-  if (!consumed) {
-    return NextResponse.json({ error: 'Cuota mensual excedida', remaining: 0 }, { status: 429 });
-  }
-
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
   const year = searchParams.get('year');
