@@ -436,11 +436,10 @@ function PrincipalTab({
         const monthlyAmount = emergencyFundExpense.amount;
         const startDate = new Date(emergencyFundExpense.date);
         const now = new Date();
-        const monthsElapsed = Math.min(
-          Math.floor((now.getTime() - startDate.getTime()) / (30 * 24 * 60 * 60 * 1000)),
-          totalMonths
-        );
-        const monthsRemaining = Math.max(totalMonths - monthsElapsed, 0);
+        const startMonth = startDate.getFullYear() * 12 + startDate.getMonth();
+        const currentMonth = now.getFullYear() * 12 + now.getMonth();
+        const monthsElapsed = Math.min(Math.max(currentMonth - startMonth + 1, 1), totalMonths);
+        const monthsSaving = Math.max(totalMonths - monthsElapsed, 0);
         const savedAmount = monthlyAmount * monthsElapsed;
         const progress = target > 0 ? savedAmount / target : 0;
         return (
@@ -460,8 +459,8 @@ function PrincipalTab({
                 <span className="text-sm font-medium text-white">{monthsElapsed}/{totalMonths} meses</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-slate-400">Meses restantes:</span>
-                <span className="text-sm font-medium text-orange-400">{monthsRemaining}</span>
+                <span className="text-sm text-slate-400">Meses guardando:</span>
+                <span className="text-sm font-medium text-orange-400">{monthsSaving}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-400">Acumulado:</span>
