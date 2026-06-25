@@ -844,6 +844,16 @@ function EgresosTab({
         return;
       }
 
+      const expenseData = await res.json();
+
+      if (isEmergencyFund) {
+        await fetch('/api/modules/personalfinance/emergency-fund', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ linkedExpenseId: expenseData._id }),
+        });
+      }
+
       toast.success('Gasto agregado');
       setShowForm(false);
       setCategory('');
