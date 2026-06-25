@@ -105,6 +105,7 @@ export default function PersonalFinanceDashboard() {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [debtSummary, setDebtSummary] = useState<{ totalBalance: number; totalMonthlyPayment: number } | null>(null);
   const [loadingDebts, setLoadingDebts] = useState(false);
+  const [emergencyFundData, setEmergencyFundData] = useState<{ savedAmount: number; monthsCompleted: number } | null>(null);
 
   const toast = useToastContext();
 
@@ -178,6 +179,18 @@ export default function PersonalFinanceDashboard() {
       setLoadingDebts(false);
     }
   }, [toast]);
+
+  const fetchEmergencyFund = useCallback(async () => {
+    try {
+      const res = await fetch('/api/modules/personalfinance/emergency-fund');
+      const data = await res.json();
+      if (data.savedAmount !== undefined) {
+        setEmergencyFundData(data);
+      }
+    } catch {
+      // silent fail
+    }
+  }, []);
 
   const prevTabRef = useRef<Tab | null>(null);
 
@@ -298,6 +311,8 @@ export default function PersonalFinanceDashboard() {
             availableYears={availableYears}
             debtSummary={debtSummary}
             expenses={expenses}
+            emergencyFundData={emergencyFundData}
+            fetchEmergencyFund={fetchEmergencyFund}
           />
         )}
         {activeTab === 'ingresos' && (
@@ -351,6 +366,8 @@ function PrincipalTab({
   availableYears,
   debtSummary,
   expenses,
+  emergencyFundData,
+  fetchEmergencyFund,
 }: {
   summary: Summary | null;
   totalIncomes: number;
@@ -364,12 +381,18 @@ function PrincipalTab({
   availableYears: number[];
   debtSummary: { totalBalance: number; totalMonthlyPayment: number } | null;
   expenses: Expense[];
+  emergencyFundData: { savedAmount: number; monthsCompleted: number } | null;
+  fetchEmergencyFund: () => void;
 }) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
   const availableMonths = selectedYear === currentYear
     ? MONTHS.filter((m) => m.value <= currentMonth)
     : MONTHS;
+
+  useEffect(() => {
+    fetchEmergencyFund();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -435,13 +458,8 @@ function PrincipalTab({
         const target = emergencyFundExpense.emergencyFundTarget || 0;
         const totalMonths = emergencyFundExpense.monthsToEmergencyFund || 1;
         const monthlyAmount = emergencyFundExpense.amount;
-        const startDate = new Date(emergencyFundExpense.date);
-        const now = new Date();
-        const startMonth = startDate.getFullYear() * 12 + startDate.getMonth();
-        const currentMonth = now.getFullYear() * 12 + now.getMonth();
-        const monthsElapsed = Math.min(Math.max(currentMonth - startMonth + 1, 1), totalMonths);
-        const monthsSaving = monthsElapsed;
-        const savedAmount = monthlyAmount * monthsElapsed;
+        const savedAmount = emergencyFundData?.savedAmount || 0;
+        const monthsCompleted = emergencyFundData?.monthsCompleted || 1;
         const progress = target > 0 ? savedAmount / target : 0;
         return (
           <div className="rounded-lg border border-green-900 bg-slate-900 p-5">
@@ -457,11 +475,11 @@ function PrincipalTab({
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-400">Progreso:</span>
-                <span className="text-sm font-medium text-white">{monthsElapsed}/{totalMonths} meses</span>
+                <span className="text-sm font-medium text-white">{monthsCompleted}/{totalMonths} meses</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-400">Meses guardando:</span>
-                <span className="text-sm font-medium text-orange-400">{monthsSaving}</span>
+                <span className="text-sm font-medium text-orange-400">{monthsCompleted}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-400">Acumulado:</span>
