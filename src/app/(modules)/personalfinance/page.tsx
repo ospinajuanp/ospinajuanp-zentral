@@ -193,37 +193,20 @@ export default function PersonalFinanceDashboard() {
   }, []);
 
   const prevTabRef = useRef<Tab | null>(null);
-  const isFirstRender = useRef(true);
 
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
+    if (prevTabRef.current === null) {
       prevTabRef.current = activeTab;
-      if (activeTab === 'principal') {
-        Promise.all([
-          fetch(`/api/modules/personalfinance/incomes?year=${selectedYear}&month=${selectedMonth}`),
-          fetch(`/api/modules/personalfinance/expenses?year=${selectedYear}&month=${selectedMonth}`),
-          fetch('/api/modules/personalfinance/debts?status=active'),
-        ])
-          .then(([incomesRes, expensesRes, debtsRes]) => Promise.all([incomesRes.json(), expensesRes.json(), debtsRes.json()]))
-          .then(([incomesData, expensesData, debtsData]) => {
-            setIncomes(incomesData.items || []);
-            setExpenses(expensesData.items || []);
-            setDebtSummary(debtsData.summary || { totalBalance: 0, totalMonthlyPayment: 0 });
-          })
-          .catch(() => {});
-      }
-      if (activeTab === 'ingresos') fetchIncomes();
-      if (activeTab === 'egresos') fetchExpenses();
-      if (activeTab === 'deudas') fetchDebts();
+      setQuotaVersion((v) => v + 1);
       return;
     }
-
     if (prevTabRef.current !== activeTab) {
       setQuotaVersion((v) => v + 1);
       prevTabRef.current = activeTab;
     }
+  }, [activeTab]);
 
+  useEffect(() => {
     if (activeTab === 'principal') {
       Promise.all([
         fetch(`/api/modules/personalfinance/incomes?year=${selectedYear}&month=${selectedMonth}`),
