@@ -416,6 +416,125 @@ Si quieres auditar como maneje el ciclo de vida de los efectos en React 19 o ver
 
 hashtag#ReactJS hashtag#FrontendArchitecture hashtag#SoftwareEngineering hashtag#CleanCode hashtag#JobSearch hashtag#NextJS
 
+### POST #18 —
+
+El patrimonio personal no es solo lo que ganas menos lo que gastas. Es una fotografía compleja que incluye tus deudas activas, tus ahorros invertidos, tu fondo de emergencia y el poder adquisitivo real de cada peso que recibes.
+
+Para el módulo Personal Finance de mi plataforma Zentral, diseñé un modelo de agregación centralizado llamado `FinancialPosition` que recalcula en tiempo real:
+
+```
+availableMoney = totalIncome - totalExpenses - totalDebtBalance + emergencyFundBalance + totalSavingsInvested
+```
+
+Cada vez que el usuario registra un pago de deuda, un nuevo ahorro o un gasto, el sistema ejecuta `recalculateFinancialPosition()` que:
+
+1. Consolida todos los ingresos y gastos históricos
+2. Suma los saldos pendientes de deudas activas
+3. Acumula el total pagado en deudas (para métricas de progreso)
+4. Incorpora el fondo de emergencia y las inversiones activas
+5. Genera un snapshot mensual que permite ver la evolución del patrimonio en el tiempo
+
+La posición financiera no es un balance estático; es un indicador vivo que le dice al usuario exactamente cuánto dinero "real" tiene disponible considerando toda su situación financiera.
+
+El código sigue corriendo.
+
+Si quieres auditar cómo implementé el modelo de posición financiera o ver el pipeline de agregación, te invito a explorar mi repositorio:
+
+👉 https://github.com/ospinajuanp/ospinajuanp-zentral
+
+hashtag#PersonalFinance hashtag#FinancialPlanning hashtag#SoftwareEngineering hashtag#MongoDB hashtag#CleanCode hashtag#JobSearch
+
+### POST #19 —
+
+En el mundo real, una persona no tiene solo un tipo de ahorro. Tiene CDT en el banco, un fondo de pensiones, inversiones en ETFs, cripto, ahorro programado y probablemente algo de cesantías atrapado en un fondo. Pero la mayoría de apps financieras tratan estos productos como si fueran todos iguales.
+
+Para el módulo Personal Finance de Zentral, implementé la colección `SavingsInvestment` que reconoce las particularidades de cada instrumento:
+
+- ** savings**: Ahorroprogramado, cuenta de ahorros tradicional
+- **investment**: Fondos de inversión, portafolios ETFs
+- **CDT**: Certificados de Depósito a Término con frecuencia de interés
+- **pension**: Cesantías, fondos de pensiones voluntarias
+- **crypto**: Criptomonedas (conectores futuros)
+- **other**: Cualquier otro instrumento personalizado
+
+Cada documento almacena no solo el saldo actual, sino la tasa de interés, la frecuencia de capitalización (mensual, trimestral, anual, al vencimiento) y la fecha esperada de vencimiento. Esto permite calcular proyecciones futuras automáticamente.
+
+El sistema permite múltiples SavingsInvestment por usuario, todos centralizados en una sola colección con índices compuestos para filtrado eficiente por tipo y estado.
+
+El código sigue corriendo.
+
+Si quieres auditar el modelo de inversiones o ver cómo manejó la frecuencia de intereses, te invito a explorar mi repositorio:
+
+👉 https://github.com/ospinajuanp/ospinajuanp-zentral
+
+hashtag#PersonalFinance hashtag#Investments hashtag#SoftwareEngineering hashtag#CleanCode hashtag#MongoDB hashtag#JobSearch
+
+### POST #20 —
+
+Registrar un pago de deuda suena trivial hasta que intentas descontar intereses correctamente. Si el usuario paga $500.000 pero el banco le cobra $50.000 de intereses ese mes, el saldo de la deuda no baja en $500.000 sino en $450.000. Peor aún: si el usuario decide NO pagar intereses (porque ya cubrió otros este mes), el sistema debe permitirselo.
+
+Para el módulo Personal Finance de Zentral, diseñé el endpoint de pagos de deuda con lógica de distribución automático:
+
+```typescript
+const monthlyInterest = debt.currentBalance * (debt.interestRate / 100);
+
+if (includeInterest) {
+  totalPayment = principalAmount + monthlyInterest;
+  interestPortion = monthlyInterest;
+  principalPortion = Math.min(principalAmount, debt.currentBalance);
+} else {
+  // Pago solo a principal (sin intereses)
+  totalPayment = principalAmount;
+  interestPortion = 0;
+  principalPortion = principalAmount;
+}
+
+const newBalance = Math.max(0, debt.currentBalance - principalPortion);
+```
+
+El sistema crea un `DebtPayment` con el desglose completo (principalPortion, interestPortion, balanceAfter) y actualiza automáticamente el status de la deuda a "paid" cuando el saldo llega a cero.
+
+Esta granularidad permite que el usuario vea exactamente cuánto pagó a principal versus intereses en cada transacción, información que los extractos bancarios tradicionales no muestran de forma clara.
+
+El código sigue corriendo.
+
+Si quieres auditar la lógica de distribución de pagos o ver cómo calculé los intereses mensuales, te invito a explorar mi repositorio:
+
+👉 https://github.com/ospinajuanp/ospinajuanp-zentral
+
+hashtag#PersonalFinance hashtag#DebtManagement hashtag#SoftwareEngineering hashtag#CleanCode hashtag#JobSearch
+
+### POST #21 —
+
+Un SaaS multi-tenant que falla en Vercel pero funciona perfecto en local casi siempre tiene el mismo problema: el orden de conexión a la base de datos.
+
+En mi plataforma Zentral, el endpoint de login fallaba con `MongooseError: Operation 'appsettings.findOne()' buffering timed out after 10000ms` únicamente en producción. El diagnóstico: `checkFeatureEnabled()` ejecutaba `getAppSettings()` antes de que `dbConnect()` se llamara explícitamente.
+
+En local, Mongoose mantiene la conexión del servidor entero. En Vercel (serverless), cada función Lambda es un contexto nuevo sin conexión previa. Cuando el código intentaba hacer una query MongoDB antes de llamar `dbConnect()`, el buffer de Mongoose esperaba 10 segundos antes de tirar timeout.
+
+La solución fue simple pero crítica: mover `await dbConnect()` dentro de `getAppSettings()`:
+
+```typescript
+export async function getAppSettings(): Promise<IAppSettings> {
+  const now = Date.now();
+  if (_cached && now - _cachedAt < CACHE_TTL) return _cached;
+
+  await dbConnect(); // ← Sin esto, Vercel falla
+  let settings = await AppSettings.findOne().lean();
+  // ...
+}
+```
+
+Este mismo problema aplica a cualquier endpoint que haga queries a MongoDB sin garantizar que `dbConnect()` se llamó primero. Es uno de los errores más comunes al migrar de desarrollo local a serverless.
+
+El código sigue corriendo.
+
+Si quieres auditar cómo estructuré la conexión a la base de datos o revisar el guard de features, te invito a explorar mi repositorio:
+
+👉 https://github.com/ospinajuanp/ospinajuanp-zentral
+
+hashtag#Serverless hashtag#Vercel hashtag#MongoDB hashtag#SoftwareEngineering hashtag#Backend hashtag#CleanCode hashtag#JobSearch
+
 
 
 ## Próximos Pasos

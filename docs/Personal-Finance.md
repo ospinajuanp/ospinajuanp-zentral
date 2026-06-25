@@ -502,6 +502,262 @@ export const PersonalFinanceCategory =
   mongoose.model<IPersonalFinanceCategory>('PersonalFinanceCategory', PersonalFinanceCategorySchema);
 ```
 
+### 4.9 `debt-payment.ts` ✅
+
+```typescript
+import mongoose, { Schema, Document, Types } from 'mongoose';
+
+export interface IDebtPayment extends Document {
+  workspace: Types.ObjectId;
+  user: Types.ObjectId;
+  debtId: Types.ObjectId;
+  linkedExpenseId?: Types.ObjectId;
+  amount: number;
+  principalPortion: number;
+  interestPortion: number;
+  balanceAfter: number;
+  paymentDate: Date;
+  paymentMethod?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const DebtPaymentSchema = new Schema<IDebtPayment>(
+  {
+    workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    debtId: { type: Schema.Types.ObjectId, ref: 'PersonalFinanceDebt', required: true },
+    linkedExpenseId: { type: Schema.Types.ObjectId, ref: 'PersonalFinanceExpense' },
+    amount: { type: Number, required: true, min: 0 },
+    principalPortion: { type: Number, default: 0, min: 0 },
+    interestPortion: { type: Number, default: 0, min: 0 },
+    balanceAfter: { type: Number, required: true, min: 0 },
+    paymentDate: { type: Date, default: Date.now },
+    paymentMethod: { type: String },
+    notes: { type: String },
+  },
+  { timestamps: true }
+);
+
+DebtPaymentSchema.index({ workspace: 1, user: 1, debtId: 1, paymentDate: -1 });
+DebtPaymentSchema.index({ linkedExpenseId: 1 });
+
+export const DebtPayment =
+  mongoose.models.DebtPayment ||
+  mongoose.model<IDebtPayment>('DebtPayment', DebtPaymentSchema);
+```
+
+### 4.10 `savings-investment.ts` ✅
+
+```typescript
+import mongoose, { Schema, Document, Types } from 'mongoose';
+
+export type SavingsInvestmentType = 'savings' | 'investment' | 'CDT' | 'pension' | 'crypto' | 'other';
+export type SavingsInvestmentStatus = 'active' | 'closed' | 'transferred';
+export type InterestFrequency = 'monthly' | 'quarterly' | 'annually' | 'at_maturity' | 'none';
+
+export interface ISavingsInvestment extends Document {
+  workspace: Types.ObjectId;
+  user: Types.ObjectId;
+  name: string;
+  type: SavingsInvestmentType;
+  initialAmount: number;
+  currentBalance: number;
+  interestRate: number;
+  interestFrequency: InterestFrequency;
+  startDate: Date;
+  expectedEndDate?: Date;
+  lastInterestCalculation: Date;
+  linkedExpenseId?: Types.ObjectId;
+  notes?: string;
+  status: SavingsInvestmentStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const SavingsInvestmentSchema = new Schema<ISavingsInvestment>(
+  {
+    workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    name: { type: String, required: true },
+    type: {
+      type: String,
+      enum: ['savings', 'investment', 'CDT', 'pension', 'crypto', 'other'],
+      required: true,
+    },
+    initialAmount: { type: Number, required: true, min: 0 },
+    currentBalance: { type: Number, required: true, min: 0 },
+    interestRate: { type: Number, default: 0, min: 0 },
+    interestFrequency: {
+      type: String,
+      enum: ['monthly', 'quarterly', 'annually', 'at_maturity', 'none'],
+      default: 'none',
+    },
+    startDate: { type: Date, required: true },
+    expectedEndDate: { type: Date },
+    lastInterestCalculation: { type: Date, default: Date.now },
+    linkedExpenseId: { type: Schema.Types.ObjectId, ref: 'PersonalFinanceExpense' },
+    notes: { type: String },
+    status: {
+      type: String,
+      enum: ['active', 'closed', 'transferred'],
+      default: 'active',
+    },
+  },
+  { timestamps: true }
+);
+
+SavingsInvestmentSchema.index({ workspace: 1, user: 1, status: 1 });
+SavingsInvestmentSchema.index({ workspace: 1, user: 1, type: 1 });
+SavingsInvestmentSchema.index({ linkedExpenseId: 1 });
+
+export const SavingsInvestment =
+  mongoose.models.SavingsInvestment ||
+  mongoose.model<ISavingsInvestment>('SavingsInvestment', SavingsInvestmentSchema);
+```
+
+### 4.11 `financial-position.ts` ✅
+
+```typescript
+import mongoose, { Schema, Document, Types } from 'mongoose';
+
+export interface IMonthlySnapshot {
+  month: number;
+  year: number;
+  totalIncome: number;
+  totalExpenses: number;
+  totalSavingsInvested: number;
+  emergencyFundBalance: number;
+  totalDebtBalance: number;
+  availableMoney: number;
+}
+
+export interface IFinancialPosition extends Document {
+  workspace: Types.ObjectId;
+  user: Types.ObjectId;
+
+  totalIncome: number;
+  totalExpenses: number;
+  totalSavingsInvested: number;
+  emergencyFundBalance: number;
+  totalDebtBalance: number;
+  totalDebtPaid: number;
+
+  snapshots: IMonthlySnapshot[];
+
+  lastUpdated: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const MonthlySnapshotSchema = new Schema<IMonthlySnapshot>(
+  {
+    month: { type: Number, required: true, min: 1, max: 12 },
+    year: { type: Number, required: true, min: 2000 },
+    totalIncome: { type: Number, default: 0, min: 0 },
+    totalExpenses: { type: Number, default: 0, min: 0 },
+    totalSavingsInvested: { type: Number, default: 0, min: 0 },
+    emergencyFundBalance: { type: Number, default: 0, min: 0 },
+    totalDebtBalance: { type: Number, default: 0, min: 0 },
+    availableMoney: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const FinancialPositionSchema = new Schema<IFinancialPosition>(
+  {
+    workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+
+    totalIncome: { type: Number, default: 0, min: 0 },
+    totalExpenses: { type: Number, default: 0, min: 0 },
+    totalSavingsInvested: { type: Number, default: 0, min: 0 },
+    emergencyFundBalance: { type: Number, default: 0, min: 0 },
+    totalDebtBalance: { type: Number, default: 0, min: 0 },
+    totalDebtPaid: { type: Number, default: 0, min: 0 },
+
+    snapshots: { type: [MonthlySnapshotSchema], default: [] },
+
+    lastUpdated: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
+
+FinancialPositionSchema.index({ workspace: 1, user: 1 }, { unique: true });
+
+export const FinancialPosition =
+  mongoose.models.FinancialPosition ||
+  mongoose.model<IFinancialPosition>('FinancialPosition', FinancialPositionSchema);
+```
+
+### 4.12 `emergency-fund.ts` ✅
+
+```typescript
+import mongoose, { Schema, Document, Types } from 'mongoose';
+
+export interface IEmergencyFund extends Document {
+  workspace: Types.ObjectId;
+  user: Types.ObjectId;
+  linkedExpenseId: Types.ObjectId;
+  savedAmount: number;
+  monthsCompleted: number;
+  lastUpdated: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const EmergencyFundSchema = new Schema<IEmergencyFund>(
+  {
+    workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    linkedExpenseId: { type: Schema.Types.ObjectId, ref: 'PersonalFinanceExpense', required: true },
+    savedAmount: { type: Number, default: 0, min: 0 },
+    monthsCompleted: { type: Number, default: 0, min: 0 },
+    lastUpdated: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
+
+EmergencyFundSchema.index({ workspace: 1, user: 1 }, { unique: true });
+EmergencyFundSchema.index({ linkedExpenseId: 1 });
+
+export const EmergencyFund =
+  mongoose.models.EmergencyFund ||
+  mongoose.model<IEmergencyFund>('EmergencyFund', EmergencyFundSchema);
+```
+
+### 4.13 Helper: `recalculateFinancialPosition()` ✅
+
+Ubicación: `src/lib/modules/personalfinance/financial-position.ts`
+
+Calcula y persiste la posición financiera agregada:
+
+```typescript
+export async function recalculateFinancialPosition(
+  workspaceId: string | Types.ObjectId,
+  userId: string | Types.ObjectId
+): Promise<FinancialPositionData> {
+  // Agregaciones paralelas con Promise.all():
+  // - PersonalFinanceIncome (total)
+  // - PersonalFinanceExpense (total)
+  // - PersonalFinanceDebt active (suma de currentBalance)
+  // - DebtPayment (suma de principalPortion = totalDebtPaid)
+  // - EmergencyFund (savedAmount)
+  // - SavingsInvestment active (suma de currentBalance)
+
+  // availableMoney = totalIncome - totalExpenses - totalDebtBalance + emergencyFundBalance + totalSavingsInvested
+
+  // Guarda snapshot mensual actual
+  // Upsert en FinancialPosition con returnDocument: 'after'
+}
+```
+
+**Fórmula del patrimonio:**
+```
+availableMoney = totalIncome - totalExpenses - totalDebtBalance + emergencyFundBalance + totalSavingsInvested
+```
+
 ---
 
 ## 5. Utilidades Financieras (Stateless)
@@ -1002,34 +1258,57 @@ export function calculateSuggestedContribution(
 
 ## 6. Estructura de API Routes
 
-### 6.1 Endpoint Summary
+### 6.1 Endpoint Summary ✅
 
 ```
 /api/modules/personalfinance/
 ├── GET              → Obtener quota del módulo
 │
 ├── summary/
-│   ├── GET          → Obtener/crear summary del usuario (currency, billingCycleDay)
-│   ├── PUT          → Actualizar summary
+│   ├── GET          → Obtener/crear summary del usuario (currency, billingCycleDay) ✅
+│   └── PUT          → Actualizar summary ✅
 │
 ├── incomes/
-│   ├── GET          → Lista de ingresos (filtros: mes, tipo)
-│   ├── POST         → Crear ingreso (+1 quota)
-│   ├── PUT/:id      → Actualizar ingreso
-│   └── DELETE/:id   → Eliminar ingreso
+│   ├── GET          → Lista de ingresos (filtros: mes, tipo) ✅
+│   ├── POST         → Crear ingreso (+1 quota) ✅
+│   ├── PUT/:id      → Actualizar ingreso ✅
+│   └── DELETE/:id   → Eliminar ingreso ✅
 │
 ├── expenses/
-│   ├── GET          → Lista de gastos (filtros: mes, tipo)
-│   ├── POST         → Crear gasto (+1 quota)
-│   ├── PUT/:id      → Actualizar gasto
-│   └── DELETE/:id   → Eliminar gasto
+│   ├── GET          → Lista de gastos (filtros: mes, tipo) ✅
+│   ├── POST         → Crear gasto (+1 quota) ✅
+│   ├── PUT/:id      → Actualizar gasto ✅
+│   └── DELETE/:id   → Eliminar gasto ✅
 │
 ├── debts/
-│   ├── GET          → Lista de deudas (filtros: status)
-│   ├── POST         → Crear deuda (+1 quota)
-│   ├── PUT/:id      → Actualizar deuda
-│   ├── DELETE/:id   → Eliminar deuda
-│   └── POST/:id/payment → Registrar pago a deuda (descuento自动deuda)
+│   ├── GET          → Lista de deudas (filtros: status) ✅
+│   ├── POST         → Crear deuda (+1 quota) ✅
+│   ├── PUT/:id      → Actualizar deuda ✅
+│   ├── DELETE/:id   → Eliminar deuda ✅
+│   └── POST/:id/payment → Registrar pago a deuda ✅
+│       Params: { amount, includeInterest: boolean }
+│       - includeInterest=true (default): añade intereses mensuales al pago
+│       - Calcula principalPortion e interestPortion automáticamente
+│       - Actualiza debt.currentBalance y status (paid si balance=0)
+│       - Crea DebtPayment con historial completo
+│       - Llama recalculateFinancialPosition()
+│
+├── savings-investments/ ✅ (NUEVO)
+│   ├── GET          → Lista de inversiones/ahorros (filtros: type, status) ✅
+│   ├── POST         → Crear inversión/ahorro (+1 quota) ✅
+│   ├── PUT/:id      → Actualizar ✅
+│   └── DELETE/:id   → Eliminar ✅
+│
+├── financial-position/ ✅ (NUEVO)
+│   ├── GET          → Obtener posición financiera agregada ✅
+│   │   Returns: { totalIncome, totalExpenses, totalSavingsInvested,
+│   │             emergencyFundBalance, totalDebtBalance, totalDebtPaid,
+│   │             availableMoney, snapshots[] }
+│   └── POST         → Recalcular y guardar (usado internamente) ✅
+│
+├── emergency-fund/
+│   ├── GET          → Obtener fondo de emergencia ✅
+│   └── PUT          → Actualizar fondo (balance, targetMonths, contribution) ✅
 │
 ├── budget-rules/
 │   ├── GET          → Lista de reglas
@@ -1037,10 +1316,6 @@ export function calculateSuggestedContribution(
 │   ├── PUT/:id      → Actualizar regla
 │   ├── DELETE/:id   → Eliminar regla
 │   └── PUT/:id/activate → Activar regla (desactiva otras)
-│
-├── emergency-fund/
-│   ├── GET          → Obtener fondo de emergencia
-│   └── PUT          → Actualizar fondo (balance, targetMonths, contribution)
 │
 ├── goals/
 │   ├── GET          → Lista de metas
@@ -1053,6 +1328,9 @@ export function calculateSuggestedContribution(
 │   ├── GET          → Lista de categorías (default + custom)
 │   ├── POST         → Crear categoría custom (+1 quota)
 │   └── DELETE/:id   → Eliminar categoría custom (no default)
+│
+├── years/ ✅ (NUEVO - utilidad)
+│   └── GET          → Obtener años con datos para selector dinámico
 │
 └── simulators/
     ├── POST/housing → Simulador de vivienda (stateless)
@@ -1491,17 +1769,20 @@ src/app/(modules)/personalfinance/page.tsx
 10. [ ] Test: Quota se consume en cada CREATE
 11. [ ] Test: Selector de mes filtra correctamente
 
-### ITERACIÓN 2: Deudas (PENDIENTE)
+### ITERACIÓN 2: Deudas ✅
 **Objetivo:** Sistema completo de deudas con pagos
 
 **Pasos:**
-1. [ ] Crear esquema Debt con tipos, saldos, status
-2. [ ] Crear API routes: debts (CRUD) + payment endpoint
-3. [ ] Integrar en UI: tab Deudas + columna en Principal
-4. [ ] Test: Registrar deuda nueva
-5. [ ] Test: Registrar pago descuenta del saldo
-6. [ ] Test: Deuda pagada aparece como "paid" pero se mantiene historial
-7. [ ] Test: Admin NO ve deudas de otros usuarios
+1. [x] Crear esquema Debt con tipos, saldos, status
+2. [x] Crear esquema DebtPayment para historial de pagos (principalPortion, interestPortion, balanceAfter)
+3. [x] Crear API routes: debts (CRUD) + payment endpoint con opción "incluir intereses"
+4. [x] Integrar en UI: tab Deudas + columna en Principal con Préstamo, Saldo, Cuota, Interés mes
+5. [ ] Test: Registrar deuda nueva
+6. [ ] Test: Registrar pago descuenta del saldo
+7. [ ] Test: Deuda pagada aparece como "paid" pero se mantiene historial
+8. [ ] Test: Admin NO ve deudas de otros usuarios
+
+**Fix crítico implementado (2026-06-24):** El endpoint de payment (`POST /debts/[id]/payment`) ejecutaba `dbConnect()` después de `checkFeatureEnabled()`, causando timeout en Vercel. Solución: agregar `dbConnect()` dentro de `getAppSettings()` en `src/lib/models/app-settings.ts`.
 
 ### ITERACIÓN 3: Reglas Presupuestarias
 **Objetivo:** Motor de reglas con validación 100% y análisis visual
