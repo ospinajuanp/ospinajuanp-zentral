@@ -1931,13 +1931,13 @@ function analyzeBudgetRule(
   };
 
   const getActualAmountByType = (cat: BudgetCategory): number => {
-    if (cat.expenseType === 'obligatory') return actualSpend.obligatory;
-    if (cat.expenseType === 'savings_investment') return actualSpend.savingsInvestment;
-    if (cat.expenseType === 'discretionary') return actualSpend.discretionary;
-    if (cat.expenseType === 'custom' && cat.linkedExpenseCategory) {
+    if (cat.linkedExpenseCategory) {
       const linkedExpenses = expenses.filter(e => e.category === cat.linkedExpenseCategory);
       return linkedExpenses.reduce((sum, e) => sum + e.amount, 0);
     }
+    if (cat.expenseType === 'obligatory') return actualSpend.obligatory;
+    if (cat.expenseType === 'savings_investment') return actualSpend.savingsInvestment;
+    if (cat.expenseType === 'discretionary') return actualSpend.discretionary;
     return 0;
   };
 
@@ -2268,9 +2268,8 @@ function ReglasTab({
                   onChange={(e) => {
                     const updated = [...categories];
                     updated[idx].expenseType = e.target.value as any;
-                    if (e.target.value !== 'custom') {
-                      updated[idx].linkedExpenseCategory = undefined;
-                    }
+                    updated[idx].linkedExpenseCategory = undefined;
+                    updated[idx].name = '';
                     setCategories(updated);
                   }}
                   className="rounded-md border border-slate-700 bg-slate-800 px-2 py-2 text-white text-sm"
@@ -2280,7 +2279,23 @@ function ReglasTab({
                   <option value="discretionary">Discrecional</option>
                   <option value="custom">Custom</option>
                 </select>
-                {cat.expenseType === 'custom' && (
+                {cat.expenseType && cat.expenseType !== 'custom' ? (
+                  <select
+                    value={cat.linkedExpenseCategory || ''}
+                    onChange={(e) => {
+                      const updated = [...categories];
+                      updated[idx].linkedExpenseCategory = e.target.value;
+                      updated[idx].name = e.target.value;
+                      setCategories(updated);
+                    }}
+                    className="rounded-md border border-slate-700 bg-slate-800 px-2 py-2 text-white text-sm flex-1"
+                  >
+                    <option value="">Seleccionar categoría...</option>
+                    {[...new Set(expenses.filter(e => e.type === cat.expenseType).map(e => e.category))].sort().map(catName => (
+                      <option key={catName} value={catName}>{catName}</option>
+                    ))}
+                  </select>
+                ) : (
                   <select
                     value={cat.linkedExpenseCategory || ''}
                     onChange={(e) => {
