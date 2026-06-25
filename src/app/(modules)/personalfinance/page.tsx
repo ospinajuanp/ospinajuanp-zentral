@@ -195,7 +195,14 @@ export default function PersonalFinanceDashboard() {
   const prevTabRef = useRef<Tab | null>(null);
 
   useEffect(() => {
+    const isInitialLoad = prevTabRef.current === null;
+
+    if (!isInitialLoad && prevTabRef.current !== activeTab) {
+      setQuotaVersion((v) => v + 1);
+    }
+
     prevTabRef.current = activeTab;
+
     if (activeTab === 'principal') {
       Promise.all([
         fetch(`/api/modules/personalfinance/incomes?year=${selectedYear}&month=${selectedMonth}`),
