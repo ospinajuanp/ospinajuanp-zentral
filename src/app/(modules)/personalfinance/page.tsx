@@ -914,8 +914,9 @@ function EgresosTab({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-                placeholder={isEmergencyFund ? 'Se calcula' : '0'}
-                readOnly={isEmergencyFund && !!emergencyFundTarget && !!monthsToEmergencyFund}
+                placeholder={isEmergencyFund && emergencyFundTarget && monthsToEmergencyFund
+                  ? formatCurrency(parseFloat(emergencyFundTarget) / parseInt(monthsToEmergencyFund))
+                  : '0'}
               />
             </div>
             {!isEmergencyFund && (
