@@ -431,9 +431,17 @@ function PrincipalTab({
         );
         if (!emergencyFundExpense) return null;
         const target = emergencyFundExpense.emergencyFundTarget || 0;
-        const months = emergencyFundExpense.monthsToEmergencyFund || 1;
+        const totalMonths = emergencyFundExpense.monthsToEmergencyFund || 1;
         const monthlyAmount = emergencyFundExpense.amount;
-        const progress = target > 0 ? (monthlyAmount * months) / target : 0;
+        const startDate = new Date(emergencyFundExpense.date);
+        const now = new Date();
+        const monthsElapsed = Math.min(
+          Math.floor((now.getTime() - startDate.getTime()) / (30 * 24 * 60 * 60 * 1000)),
+          totalMonths
+        );
+        const monthsRemaining = Math.max(totalMonths - monthsElapsed, 0);
+        const savedAmount = monthlyAmount * monthsElapsed;
+        const progress = target > 0 ? savedAmount / target : 0;
         return (
           <div className="rounded-lg border border-green-900 bg-slate-900 p-5">
             <h3 className="text-lg font-semibold text-white">Fondo de Emergencia</h3>
@@ -447,8 +455,16 @@ function PrincipalTab({
                 <span className="text-sm font-medium text-green-400">{formatCurrency(monthlyAmount)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-slate-400">Meses para meta:</span>
-                <span className="text-sm font-medium text-white">{months}</span>
+                <span className="text-sm text-slate-400">Progreso:</span>
+                <span className="text-sm font-medium text-white">{monthsElapsed}/{totalMonths} meses</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-400">Meses restantes:</span>
+                <span className="text-sm font-medium text-orange-400">{monthsRemaining}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-400">Acumulado:</span>
+                <span className="text-sm font-medium text-green-400">{formatCurrency(savedAmount)}</span>
               </div>
               <div className="mt-3">
                 <div className="flex justify-between text-sm">
