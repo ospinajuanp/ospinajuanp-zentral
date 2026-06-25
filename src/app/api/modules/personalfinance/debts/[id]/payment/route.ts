@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db/mongoose';
 import { getApiAuth } from '@/lib/auth/api';
 import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { PersonalFinanceDebt } from '@/lib/models/personalfinance-debt';
+import { DebtPayment } from '@/lib/models/debt-payment';
 import { consumeQuota } from '@/lib/modules/personalfinance/quota';
 import type { IPersonalFinanceDebt } from '@/lib/models/personalfinance-debt';
 
@@ -47,6 +48,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const paymentAmount = parseFloat(amount);
   const newBalance = Math.max(0, debt.currentBalance - paymentAmount);
+
+  const interestPortion = debt.currentBalance * (debt.interestRate / 100);
+  const principalPortion = Math.min(paymentAmount, debt.currentBalance) - interestPortion;
+
+  await DebtPayment.create({
+    workspace: auth.workspaceId,
+    user: auth.userId,
+    debtId: debt._id,
+    amount: paymentAmount,
+    principalPortion: Math.max(0, principalPortion),
+    interestPortion: Math.max(0, interestPortion),
+    balanceAfter: newBalance,
+    paymentDate: new Date(),
+  });
 
   const updatedDebt = await PersonalFinanceDebt.findByIdAndUpdate(
     id,
