@@ -316,6 +316,7 @@ export default function PersonalFinanceDashboard() {
             loading={loadingExpenses}
             formatCurrency={formatCurrency}
             onRefresh={fetchExpenses}
+            onRefreshIncomes={fetchIncomes}
             onQuotaChange={() => setQuotaVersion((v) => v + 1)}
             totalExpenses={totalExpenses}
             totalIncomes={totalIncomes}
@@ -732,6 +733,7 @@ function EgresosTab({
   loading,
   formatCurrency,
   onRefresh,
+  onRefreshIncomes,
   onQuotaChange,
   totalExpenses,
   totalIncomes,
@@ -740,6 +742,7 @@ function EgresosTab({
   loading: boolean;
   formatCurrency: (n: number) => string;
   onRefresh: () => void;
+  onRefreshIncomes: () => void;
   onQuotaChange: () => void;
   totalExpenses: number;
   totalIncomes: number;
@@ -763,6 +766,7 @@ function EgresosTab({
   const calculatedEmergencyFundTarget = totalExpenses * 6;
 
   function calculateMonthsForEmergencyFund(target: number, income: number) {
+    if (!income || income <= 0) return 12;
     const maxMonthlyAmount = income * 0.10;
     let months = 1;
     while (months < 120 && target / months > maxMonthlyAmount) {
@@ -770,6 +774,16 @@ function EgresosTab({
     }
     return months;
   }
+
+  useEffect(() => {
+    if (isEmergencyFund && totalIncomes > 0 && !monthsToEmergencyFund) {
+      const target = calculatedEmergencyFundTarget;
+      const months = calculateMonthsForEmergencyFund(target, totalIncomes);
+      setEmergencyFundTarget(target.toString());
+      setMonthsToEmergencyFund(months.toString());
+      setAmount((target / months).toFixed(0));
+    }
+  }, [isEmergencyFund, totalIncomes]);
 
   useEffect(() => {
     if (isEmergencyFund && emergencyFundTarget && monthsToEmergencyFund) {
@@ -886,10 +900,16 @@ function EgresosTab({
                   setCategory(e.target.value);
                   if (e.target.value === 'Ahorro emergencia') {
                     const target = calculatedEmergencyFundTarget;
-                    const months = calculateMonthsForEmergencyFund(target, totalIncomes);
                     setEmergencyFundTarget(target.toString());
-                    setMonthsToEmergencyFund(months.toString());
-                    setAmount((target / months).toFixed(0));
+                    if (totalIncomes > 0) {
+                      const months = calculateMonthsForEmergencyFund(target, totalIncomes);
+                      setMonthsToEmergencyFund(months.toString());
+                      setAmount((target / months).toFixed(0));
+                    } else {
+                      setMonthsToEmergencyFund('');
+                      setAmount('');
+                      onRefreshIncomes();
+                    }
                     setIsRecurrent(true);
                   } else {
                     setEmergencyFundTarget('');
