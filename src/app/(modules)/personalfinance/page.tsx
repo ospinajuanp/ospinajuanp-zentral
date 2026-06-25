@@ -318,6 +318,7 @@ export default function PersonalFinanceDashboard() {
             onRefresh={fetchExpenses}
             onQuotaChange={() => setQuotaVersion((v) => v + 1)}
             totalExpenses={totalExpenses}
+            totalIncomes={totalIncomes}
           />
         )}
         {activeTab === 'deudas' && (
@@ -734,6 +735,7 @@ function EgresosTab({
   onRefresh,
   onQuotaChange,
   totalExpenses,
+  totalIncomes,
 }: {
   expenses: Expense[];
   loading: boolean;
@@ -741,6 +743,7 @@ function EgresosTab({
   onRefresh: () => void;
   onQuotaChange: () => void;
   totalExpenses: number;
+  totalIncomes: number;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [type, setType] = useState<ExpenseType>('obligatory');
@@ -759,6 +762,15 @@ function EgresosTab({
   const isEmergencyFund = category === 'Ahorro emergencia';
 
   const calculatedEmergencyFundTarget = totalExpenses * 6;
+
+  function calculateMonthsForEmergencyFund(target: number, income: number) {
+    const maxMonthlyAmount = income * 0.10;
+    let months = 12;
+    while (months > 1 && target / months > maxMonthlyAmount) {
+      months--;
+    }
+    return months;
+  }
 
   useEffect(() => {
     if (isEmergencyFund && emergencyFundTarget && monthsToEmergencyFund) {
@@ -874,9 +886,11 @@ function EgresosTab({
                 onChange={(e) => {
                   setCategory(e.target.value);
                   if (e.target.value === 'Ahorro emergencia') {
-                    setEmergencyFundTarget(calculatedEmergencyFundTarget.toString());
-                    setMonthsToEmergencyFund('12');
-                    setAmount((calculatedEmergencyFundTarget / 12).toFixed(0));
+                    const target = calculatedEmergencyFundTarget;
+                    const months = calculateMonthsForEmergencyFund(target, totalIncomes);
+                    setEmergencyFundTarget(target.toString());
+                    setMonthsToEmergencyFund(months.toString());
+                    setAmount((target / months).toFixed(0));
                     setIsRecurrent(true);
                   } else {
                     setEmergencyFundTarget('');
