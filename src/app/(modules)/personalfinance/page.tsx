@@ -440,7 +440,7 @@ function PrincipalTab({
         const startMonth = startDate.getFullYear() * 12 + startDate.getMonth();
         const currentMonth = now.getFullYear() * 12 + now.getMonth();
         const monthsElapsed = Math.min(Math.max(currentMonth - startMonth + 1, 1), totalMonths);
-        const monthsSaving = Math.max(totalMonths - monthsElapsed, 0);
+        const monthsSaving = monthsElapsed;
         const savedAmount = monthlyAmount * monthsElapsed;
         const progress = target > 0 ? savedAmount / target : 0;
         return (
