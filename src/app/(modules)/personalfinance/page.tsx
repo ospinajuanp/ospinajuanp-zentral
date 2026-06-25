@@ -193,10 +193,11 @@ export default function PersonalFinanceDashboard() {
   }, []);
 
   const prevTabRef = useRef<Tab | null>(null);
+  const hasConsumedQuota = useRef(false);
 
   useEffect(() => {
-    if (prevTabRef.current === null) {
-      prevTabRef.current = activeTab;
+    if (!hasConsumedQuota.current) {
+      hasConsumedQuota.current = true;
       setQuotaVersion((v) => v + 1);
       return;
     }
