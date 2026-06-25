@@ -1784,16 +1784,16 @@ src/app/(modules)/personalfinance/page.tsx
 
 **Fix crítico implementado (2026-06-24):** El endpoint de payment (`POST /debts/[id]/payment`) ejecutaba `dbConnect()` después de `checkFeatureEnabled()`, causando timeout en Vercel. Solución: agregar `dbConnect()` dentro de `getAppSettings()` en `src/lib/models/app-settings.ts`.
 
-### ITERACIÓN 3: Reglas Presupuestarias
+### ITERACIÓN 3: Reglas Presupuestarias ✅
 **Objetivo:** Motor de reglas con validación 100% y análisis visual
 
 **Pasos:**
-1. [ ] Crear esquema BudgetRule con validación 100%
-2. [ ] Crear API routes: budget-rules (CRUD) + activate
-3. [ ] Implementar utils analyzeBudgetRule()
-4. [ ] UI: tabs de reglas 
-5. [ ] UI: subtab en reglas de predefinidas (50/30/20, 70/20/10) y subtab personalizada con campos editables crud para los porcentajes maximo 100%
-6. [ ] UI: Gráfica de análisis con colores (rojo/verde/amarillo)
+1. [x] Crear esquema BudgetRule con validación 100%
+2. [x] Crear API routes: budget-rules (CRUD) + activate
+3. [x] Implementar utils analyzeBudgetRule()
+4. [x] UI: Tab Reglas con cards para cada regla
+5. [x] UI: Reglas predefinidas (50/30/20, 70/20/10) + regla personalizada con campos editables
+6. [x] UI: Análisis visual con colores (verde/amarillo/rojo) según compliance
 7. [ ] Test: Crear regla custom suma != 100 → error de validación
 8. [ ] Test: Gastar 67% en obligatorios con regla 50/30/20 → muestra +17% en rojo
 9. [ ] Test: Activar regla desactiva otras

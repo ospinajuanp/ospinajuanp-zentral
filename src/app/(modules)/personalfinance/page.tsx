@@ -396,6 +396,8 @@ export default function PersonalFinanceDashboard() {
             expenses={expenses}
             formatCurrency={formatCurrency}
             totalIncomes={totalIncomes}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
             onQuotaChange={() => setQuotaVersion((v) => v + 1)}
           />
         )}
@@ -1922,18 +1924,25 @@ function analyzeBudgetRule(
 }
 
 function ReglasTab({
-  expenses,
+  expenses: expensesProp,
   formatCurrency,
-  totalIncomes,
+  totalIncomes: totalIncomesProp,
+  selectedMonth,
+  selectedYear,
   onQuotaChange,
 }: {
   expenses: Expense[];
   formatCurrency: (n: number) => string;
   totalIncomes: number;
+  selectedMonth: number;
+  selectedYear: number;
   onQuotaChange: () => void;
 }) {
   const [rules, setRules] = useState<BudgetRule[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>(expensesProp);
+  const [totalIncomes, setTotalIncomes] = useState<number>(totalIncomesProp);
   const [loading, setLoading] = useState(true);
+  const [loadingData, setLoadingData] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -1944,6 +1953,33 @@ function ReglasTab({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const toast = useToastContext();
+
+  useEffect(() => {
+    setExpenses(expensesProp);
+    setTotalIncomes(totalIncomesProp);
+  }, [expensesProp, totalIncomesProp]);
+
+  const fetchExpensesAndIncomes = useCallback(async () => {
+    setLoadingData(true);
+    try {
+      const [expRes, incRes] = await Promise.all([
+        fetch(`/api/modules/personalfinance/expenses?year=${selectedYear}&month=${selectedMonth}`),
+        fetch(`/api/modules/personalfinance/incomes?year=${selectedYear}&month=${selectedMonth}`),
+      ]);
+      const expData = await expRes.json();
+      const incData = await incRes.json();
+      setExpenses(expData.items || []);
+      const incTotal = (incData.items || []).reduce((sum: number, i: { amount: number }) => sum + i.amount, 0);
+      setTotalIncomes(incTotal);
+    } catch {
+    } finally {
+      setLoadingData(false);
+    }
+  }, [selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    fetchExpensesAndIncomes();
+  }, [fetchExpensesAndIncomes]);
 
   const totalObligatory = expenses.filter(e => e.type === 'obligatory').reduce((sum, e) => sum + e.amount, 0);
   const totalSavingsInvestment = expenses.filter(e => e.type === 'savings_investment').reduce((sum, e) => sum + e.amount, 0);
@@ -2079,6 +2115,14 @@ function ReglasTab({
     if (status === 'warning') return 'bg-yellow-900';
     return 'bg-red-900';
   };
+
+  if (loading || loadingData) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
