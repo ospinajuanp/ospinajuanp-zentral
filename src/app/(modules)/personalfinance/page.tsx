@@ -106,6 +106,8 @@ export default function PersonalFinanceDashboard() {
   const [debtSummary, setDebtSummary] = useState<{ totalBalance: number; totalMonthlyPayment: number } | null>(null);
   const [loadingDebts, setLoadingDebts] = useState(false);
   const [emergencyFundData, setEmergencyFundData] = useState<{ savedAmount: number; monthsCompleted: number } | null>(null);
+  const [financialPosition, setFinancialPosition] = useState<any>(null);
+  const [savingsInvestments, setSavingsInvestments] = useState<any[]>([]);
 
   const toast = useToastContext();
 
@@ -192,6 +194,21 @@ export default function PersonalFinanceDashboard() {
     }
   }, []);
 
+  const fetchFinancialPosition = useCallback(async () => {
+    try {
+      const [fpRes, siRes] = await Promise.all([
+        fetch('/api/modules/personalfinance/financial-position'),
+        fetch('/api/modules/personalfinance/savings-investments'),
+      ]);
+      const fpData = await fpRes.json();
+      const siData = await siRes.json();
+      setFinancialPosition(fpData);
+      setSavingsInvestments(siData.items || []);
+    } catch {
+      // silent fail
+    }
+  }, []);
+
   const prevTabRef = useRef<Tab | null>(null);
   const hasConsumedOnMount = useRef(false);
 
@@ -211,6 +228,7 @@ export default function PersonalFinanceDashboard() {
         fetch(`/api/modules/personalfinance/incomes?year=${selectedYear}&month=${selectedMonth}`),
         fetch(`/api/modules/personalfinance/expenses?year=${selectedYear}&month=${selectedMonth}`),
         fetch('/api/modules/personalfinance/debts?status=active'),
+        fetchFinancialPosition(),
       ])
         .then(([incomesRes, expensesRes, debtsRes]) => Promise.all([incomesRes.json(), expensesRes.json(), debtsRes.json()]))
         .then(([incomesData, expensesData, debtsData]) => {
@@ -223,7 +241,7 @@ export default function PersonalFinanceDashboard() {
     if (activeTab === 'ingresos') fetchIncomes();
     if (activeTab === 'egresos') fetchExpenses();
     if (activeTab === 'deudas') fetchDebts();
-  }, [activeTab, selectedMonth, selectedYear]);
+  }, [activeTab, selectedMonth, selectedYear, fetchFinancialPosition]);
 
   const totalIncomes = incomes.reduce((sum, i) => sum + i.amount, 0);
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -323,6 +341,8 @@ export default function PersonalFinanceDashboard() {
             expenses={expenses}
             emergencyFundData={emergencyFundData}
             fetchEmergencyFund={fetchEmergencyFund}
+            financialPosition={financialPosition}
+            savingsInvestments={savingsInvestments}
           />
         )}
         {activeTab === 'ingresos' && (
@@ -378,6 +398,8 @@ function PrincipalTab({
   expenses,
   emergencyFundData,
   fetchEmergencyFund,
+  financialPosition,
+  savingsInvestments,
 }: {
   summary: Summary | null;
   totalIncomes: number;
@@ -393,6 +415,8 @@ function PrincipalTab({
   expenses: Expense[];
   emergencyFundData: { savedAmount: number; monthsCompleted: number } | null;
   fetchEmergencyFund: () => void;
+  financialPosition: any;
+  savingsInvestments: any[];
 }) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -427,19 +451,23 @@ function PrincipalTab({
         </select>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-          <p className="text-sm font-medium text-slate-400">Ingresos</p>
-          <p className="mt-2 text-2xl font-bold text-green-400">{formatCurrency(totalIncomes)}</p>
+          <p className="text-sm font-medium text-slate-400">Total Ingresos</p>
+          <p className="mt-2 text-2xl font-bold text-green-400">{formatCurrency(financialPosition?.totalIncome || totalIncomes)}</p>
         </div>
         <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-          <p className="text-sm font-medium text-slate-400">Gastos</p>
-          <p className="mt-2 text-2xl font-bold text-red-400">{formatCurrency(totalExpenses)}</p>
+          <p className="text-sm font-medium text-slate-400">Total Gastos</p>
+          <p className="mt-2 text-2xl font-bold text-red-400">{formatCurrency(financialPosition?.totalExpenses || totalExpenses)}</p>
         </div>
         <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-          <p className="text-sm font-medium text-slate-400">Saldo Neto</p>
-          <p className={`mt-2 text-2xl font-bold ${netBalance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {formatCurrency(netBalance)}
+          <p className="text-sm font-medium text-slate-400">Deuda Total</p>
+          <p className="mt-2 text-2xl font-bold text-orange-400">{formatCurrency(financialPosition?.totalDebtBalance || debtSummary?.totalBalance || 0)}</p>
+        </div>
+        <div className="rounded-lg border border-green-900 bg-slate-900 p-5">
+          <p className="text-sm font-medium text-slate-400">Patrimonio</p>
+          <p className={`mt-2 text-2xl font-bold ${(financialPosition?.availableMoney || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {formatCurrency(financialPosition?.availableMoney || netBalance)}
           </p>
         </div>
       </div>
@@ -511,6 +539,34 @@ function PrincipalTab({
           </div>
         );
       })()}
+
+      {savingsInvestments.length > 0 && (
+        <div className="rounded-lg border border-blue-900 bg-slate-900 p-5">
+          <h3 className="text-lg font-semibold text-white">Otros Ahorros e Inversiones</h3>
+          <div className="mt-3 space-y-2">
+            {savingsInvestments.map((saving: any) => (
+              <div key={saving._id} className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-white">{saving.name}</p>
+                  <p className="text-xs text-slate-400">{saving.type}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-green-400">{formatCurrency(saving.currentBalance)}</p>
+                  {saving.interestRate > 0 && (
+                    <p className="text-xs text-slate-400">{saving.interestRate}% EA</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-700 flex justify-between">
+            <span className="text-sm font-medium text-white">Total Otros Ahorros:</span>
+            <span className="text-sm font-bold text-green-400">
+              {formatCurrency(financialPosition?.totalSavingsInvested || 0)}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
