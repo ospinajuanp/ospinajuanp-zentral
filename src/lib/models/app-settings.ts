@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
+import dbConnect from '@/lib/db/mongoose';
 
 export interface IAppSettings extends Document {
   registrationEnabled: boolean;
@@ -64,6 +65,7 @@ export async function getAppSettings(): Promise<IAppSettings> {
   const now = Date.now();
   if (_cached && now - _cachedAt < CACHE_TTL) return _cached;
 
+  await dbConnect();
   let settings = await AppSettings.findOne().lean();
   if (!settings) {
     const created = await AppSettings.create({});
