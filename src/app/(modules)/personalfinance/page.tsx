@@ -871,7 +871,20 @@ function EgresosTab({
               <label className="block text-sm text-slate-400">Categoría</label>
               <select
                 value={category}
-                onChange={(e) => { setCategory(e.target.value); setEmergencyFundTarget(''); setMonthsToEmergencyFund(''); setAmount(''); setIsRecurrent(true); }}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  if (e.target.value === 'Ahorro emergencia') {
+                    setEmergencyFundTarget(calculatedEmergencyFundTarget.toString());
+                    setMonthsToEmergencyFund('12');
+                    setAmount((calculatedEmergencyFundTarget / 12).toFixed(0));
+                    setIsRecurrent(true);
+                  } else {
+                    setEmergencyFundTarget('');
+                    setMonthsToEmergencyFund('');
+                    setAmount('');
+                    setIsRecurrent(false);
+                  }
+                }}
                 className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
               >
                 <option value="">Seleccionar...</option>
