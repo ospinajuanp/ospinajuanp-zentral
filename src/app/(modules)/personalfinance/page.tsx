@@ -1869,6 +1869,7 @@ interface BudgetCategory {
   name: string;
   percentage: number;
   expenseType?: 'obligatory' | 'savings_investment' | 'discretionary' | 'custom';
+  linkedExpenseCategory?: string;
 }
 
 interface BudgetRule {
@@ -1904,6 +1905,7 @@ function analyzeBudgetRule(
   actualSpend: { obligatory: number; savingsInvestment: number; discretionary: number },
   categories: BudgetCategory[],
   totalIncome: number,
+  expenses: { category: string; amount: number }[],
   formatFn?: (n: number) => string
 ): BudgetAnalysis {
   const safeCategories: BudgetCategory[] = Array.isArray(categories) ? categories : [];
@@ -1928,15 +1930,19 @@ function analyzeBudgetRule(
     };
   };
 
-  const getActualAmountByType = (expenseType?: string): number => {
-    if (expenseType === 'obligatory') return actualSpend.obligatory;
-    if (expenseType === 'savings_investment') return actualSpend.savingsInvestment;
-    if (expenseType === 'discretionary') return actualSpend.discretionary;
+  const getActualAmountByType = (cat: BudgetCategory): number => {
+    if (cat.expenseType === 'obligatory') return actualSpend.obligatory;
+    if (cat.expenseType === 'savings_investment') return actualSpend.savingsInvestment;
+    if (cat.expenseType === 'discretionary') return actualSpend.discretionary;
+    if (cat.expenseType === 'custom' && cat.linkedExpenseCategory) {
+      const linkedExpenses = expenses.filter(e => e.category === cat.linkedExpenseCategory);
+      return linkedExpenses.reduce((sum, e) => sum + e.amount, 0);
+    }
     return 0;
   };
 
   const categoryAnalyses = safeCategories.map(cat => {
-    const actualAmount = getActualAmountByType(cat.expenseType);
+    const actualAmount = getActualAmountByType(cat);
     return analyzeCategory(cat, actualAmount);
   });
 
@@ -2053,7 +2059,7 @@ function ReglasTab({
 
   const normalizedRules = rules.map(normalizeRule);
   const activeRule = normalizedRules.find((r: any) => r.isActive);
-  const analysis = activeRule ? analyzeBudgetRule(actualSpend, activeRule.percentages, totalIncomes, formatCurrency) : null;
+  const analysis = activeRule ? analyzeBudgetRule(actualSpend, activeRule.percentages, totalIncomes, expenses, formatCurrency) : null;
 
   const fetchRules = useCallback(async () => {
     setLoading(true);
@@ -2094,6 +2100,7 @@ function ReglasTab({
       name: p.name,
       percentage: p.percentage,
       expenseType: p.expenseType || 'custom',
+      linkedExpenseCategory: p.linkedExpenseCategory,
     })));
     setShowForm(true);
   }
@@ -2261,6 +2268,9 @@ function ReglasTab({
                   onChange={(e) => {
                     const updated = [...categories];
                     updated[idx].expenseType = e.target.value as any;
+                    if (e.target.value !== 'custom') {
+                      updated[idx].linkedExpenseCategory = undefined;
+                    }
                     setCategories(updated);
                   }}
                   className="rounded-md border border-slate-700 bg-slate-800 px-2 py-2 text-white text-sm"
@@ -2270,6 +2280,23 @@ function ReglasTab({
                   <option value="discretionary">Discrecional</option>
                   <option value="custom">Custom</option>
                 </select>
+                {cat.expenseType === 'custom' && (
+                  <select
+                    value={cat.linkedExpenseCategory || ''}
+                    onChange={(e) => {
+                      const updated = [...categories];
+                      updated[idx].linkedExpenseCategory = e.target.value;
+                      updated[idx].name = e.target.value;
+                      setCategories(updated);
+                    }}
+                    className="rounded-md border border-slate-700 bg-slate-800 px-2 py-2 text-white text-sm flex-1"
+                  >
+                    <option value="">Seleccionar egreso...</option>
+                    {[...new Set(expenses.map(e => e.category))].sort().map(catName => (
+                      <option key={catName} value={catName}>{catName}</option>
+                    ))}
+                  </select>
+                )}
                 {categories.length > 1 && (
                   <button
                     type="button"
