@@ -107,15 +107,17 @@ export default function AdminUsersPage() {
           <div className="flex items-center gap-3">
             <Link
               href={`/users/${u._id}`}
-              className="text-sm font-medium text-indigo-400 underline underline-offset-2 hover:text-white"
+              className="cursor-pointer rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+              title="Editar"
             >
-              Editar
+              ✏️
             </Link>
             <button
               onClick={() => setDeleteTarget({ id: u._id, name: u.name })}
-              className="text-sm font-medium text-rose-400 underline underline-offset-2 hover:text-rose-300"
+              className="cursor-pointer rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-red-400"
+              title="Eliminar"
             >
-              Eliminar
+              🗑️
             </button>
           </div>
         )}

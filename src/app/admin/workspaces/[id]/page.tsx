@@ -604,15 +604,17 @@ export default function WorkspaceDetailPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => startEditSub(sub)}
-                          className="text-xs font-medium text-indigo-400 hover:text-white"
+                          className="cursor-pointer rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+                          title="Editar"
                         >
-                          Editar
+                          ✏️
                         </button>
                         <button
                           onClick={() => setRemoveSubId(sub._id)}
-                          className="text-xs font-medium text-rose-400 hover:text-rose-300"
+                          className="cursor-pointer rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-red-400"
+                          title="Quitar"
                         >
-                          Quitar
+                          🗑️
                         </button>
                       </div>
                     </div>

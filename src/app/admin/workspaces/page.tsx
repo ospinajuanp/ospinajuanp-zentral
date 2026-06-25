@@ -72,9 +72,10 @@ export default function WorkspacesPage() {
       actions={(ws) => (
         <Link
           href={`/admin/workspaces/${ws._id}`}
-          className="text-sm font-medium text-indigo-400 underline underline-offset-2 hover:text-white"
+          className="cursor-pointer rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+          title="Editar"
         >
-          Editar
+          ✏️
         </Link>
       )}
     />
