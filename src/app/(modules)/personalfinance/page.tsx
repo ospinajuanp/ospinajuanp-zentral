@@ -871,7 +871,7 @@ function EgresosTab({
               <label className="block text-sm text-slate-400">Categoría</label>
               <select
                 value={category}
-                onChange={(e) => { setCategory(e.target.value); setEmergencyFundTarget(''); setMonthsToEmergencyFund(''); setAmount(''); }}
+                onChange={(e) => { setCategory(e.target.value); setEmergencyFundTarget(''); setMonthsToEmergencyFund(''); setAmount(''); setIsRecurrent(true); }}
                 className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
               >
                 <option value="">Seleccionar...</option>
@@ -918,16 +918,18 @@ function EgresosTab({
                 readOnly={isEmergencyFund && !!emergencyFundTarget && !!monthsToEmergencyFund}
               />
             </div>
-            <div className="flex items-center gap-2 pt-6">
-              <input
-                type="checkbox"
-                id="isRecurrent"
-                checked={isRecurrent}
-                onChange={(e) => setIsRecurrent(e.target.checked)}
-                className="rounded border-slate-700"
-              />
-              <label htmlFor="isRecurrent" className="text-sm text-slate-400">Recurrente</label>
-            </div>
+            {!isEmergencyFund && (
+              <div className="flex items-center gap-2 pt-6">
+                <input
+                  type="checkbox"
+                  id="isRecurrent"
+                  checked={isRecurrent}
+                  onChange={(e) => setIsRecurrent(e.target.checked)}
+                  className="rounded border-slate-700"
+                />
+                <label htmlFor="isRecurrent" className="text-sm text-slate-400">Recurrente</label>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label className="block text-sm text-slate-400">Descripción (opcional)</label>
               <input
