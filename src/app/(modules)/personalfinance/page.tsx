@@ -54,18 +54,6 @@ interface Debt {
   notes?: string;
 }
 
-interface BudgetRule {
-  _id: string;
-  name: string;
-  percentages: {
-    obligatory: number;
-    savingsInvestment: number;
-    discretionary: number;
-  };
-  isActive: boolean;
-  isCustom: boolean;
-}
-
 const INCOME_CATEGORIES = {
   recurrent: ['Salario', 'Pensión', 'Arriendo', 'Honorarios', 'Inversiones/Fondos'],
   occasional: ['Bonificación', 'Prima', 'Freelance', 'Venta de activos', 'Herencia/Regalo', 'Reembolso', 'Otros'],
@@ -1877,50 +1865,110 @@ function DeudasTab({
   );
 }
 
+interface BudgetCategory {
+  name: string;
+  percentage: number;
+  expenseType?: 'obligatory' | 'savings_investment' | 'discretionary' | 'custom';
+}
+
+interface BudgetRule {
+  _id: string;
+  name: string;
+  percentages: BudgetCategory[];
+  isActive: boolean;
+  isCustom: boolean;
+}
+
+interface CategoryAnalysis {
+  name: string;
+  theoreticalPercentage: number;
+  actualPercentage: number;
+  actualAmount: number;
+  difference: number;
+  status: 'ok' | 'warning' | 'over';
+}
+
+interface BudgetAnalysis {
+  isCompliant: boolean;
+  categories: CategoryAnalysis[];
+  totalIncome: number;
+  totalSpent: number;
+  overview: {
+    percentage: number;
+    status: 'ok' | 'warning' | 'over';
+  };
+  warningMessage?: string;
+}
+
 function analyzeBudgetRule(
   actualSpend: { obligatory: number; savingsInvestment: number; discretionary: number },
-  percentages: { obligatory: number; savingsInvestment: number; discretionary: number },
-  totalIncome: number
-) {
-  if (totalIncome <= 0) {
-    return {
-      isCompliant: false,
-      obligatory: { theoreticalPercentage: percentages.obligatory, actualPercentage: 0, actualAmount: 0, difference: 0, status: 'ok' as const },
-      savingsInvestment: { theoreticalPercentage: percentages.savingsInvestment, actualPercentage: 0, actualAmount: 0, difference: 0, status: 'ok' as const },
-      discretionary: { theoreticalPercentage: percentages.discretionary, actualPercentage: 0, actualAmount: 0, difference: 0, status: 'ok' as const },
-      totalIncome: 0,
-      totalSpent: 0,
-      overview: { percentage: 0, status: 'ok' as const },
-    };
-  }
-
+  categories: BudgetCategory[],
+  totalIncome: number,
+  formatFn?: (n: number) => string
+): BudgetAnalysis {
   const totalSpent = actualSpend.obligatory + actualSpend.savingsInvestment + actualSpend.discretionary;
-  const overallPercentage = (totalSpent / totalIncome) * 100;
+  const overallPercentage = totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
 
-  const analyzeCategory = (actual: number, theoretical: number) => {
-    const actualPercentage = (actual / totalIncome) * 100;
-    const difference = actual - (totalIncome * (theoretical / 100));
-    const diffPercent = Math.abs(actualPercentage - theoretical);
+  const analyzeCategory = (cat: BudgetCategory, actualAmount: number): CategoryAnalysis => {
+    const theoreticalPercentage = cat.percentage;
+    const actualPct = totalIncome > 0 ? (actualAmount / totalIncome) * 100 : 0;
+    const difference = actualAmount - (totalIncome * (theoreticalPercentage / 100));
+    const diffPercent = Math.abs(actualPct - theoreticalPercentage);
     let status: 'ok' | 'warning' | 'over' = 'ok';
     if (diffPercent > 10) status = 'over';
     else if (diffPercent > 5) status = 'warning';
-    return { theoreticalPercentage: theoretical, actualPercentage, actualAmount: actual, difference, status };
+    return {
+      name: cat.name,
+      theoreticalPercentage,
+      actualPercentage: actualPct,
+      actualAmount,
+      difference,
+      status,
+    };
   };
 
-  const obligatory = analyzeCategory(actualSpend.obligatory, percentages.obligatory);
-  const savingsInvestment = analyzeCategory(actualSpend.savingsInvestment, percentages.savingsInvestment);
-  const discretionary = analyzeCategory(actualSpend.discretionary, percentages.discretionary);
+  const getActualAmountByType = (expenseType?: string): number => {
+    if (expenseType === 'obligatory') return actualSpend.obligatory;
+    if (expenseType === 'savings_investment') return actualSpend.savingsInvestment;
+    if (expenseType === 'discretionary') return actualSpend.discretionary;
+    return 0;
+  };
 
-  const allOk = obligatory.status === 'ok' && savingsInvestment.status === 'ok' && discretionary.status === 'ok';
+  const categoryAnalyses = categories.map(cat => {
+    const actualAmount = getActualAmountByType(cat.expenseType);
+    return analyzeCategory(cat, actualAmount);
+  });
+
+  const allOk = categoryAnalyses.every(c => c.status === 'ok');
+  const anyOver = categoryAnalyses.some(c => c.status === 'over');
+  const anyWarning = categoryAnalyses.some(c => c.status === 'warning');
 
   let overallStatus: 'ok' | 'warning' | 'over' = 'ok';
-  if (obligatory.status === 'over' || savingsInvestment.status === 'over' || discretionary.status === 'over') {
-    overallStatus = 'over';
-  } else if (obligatory.status === 'warning' || savingsInvestment.status === 'warning' || discretionary.status === 'warning') {
-    overallStatus = 'warning';
+  if (anyOver) overallStatus = 'over';
+  else if (anyWarning) overallStatus = 'warning';
+
+  let warningMessage: string | undefined;
+  if (overallStatus !== 'ok') {
+    const issues = categoryAnalyses.filter(c => c.status !== 'ok');
+    const fmt = formatFn || ((n: number) => n.toLocaleString('es-CO'));
+    warningMessage = issues.map(c => {
+      const diff = Math.abs(c.difference);
+      if (c.status === 'over') {
+        return `${c.name}: excedido por ${fmt(diff)}`;
+      } else {
+        return `${c.name}: falta ${fmt(diff)}`;
+      }
+    }).join('. ');
   }
 
-  return { isCompliant: allOk, obligatory, savingsInvestment, discretionary, totalIncome, totalSpent, overview: { percentage: overallPercentage, status: overallStatus } };
+  return {
+    isCompliant: allOk,
+    categories: categoryAnalyses,
+    totalIncome,
+    totalSpent,
+    overview: { percentage: overallPercentage, status: overallStatus },
+    warningMessage,
+  };
 }
 
 function ReglasTab({
@@ -1945,10 +1993,12 @@ function ReglasTab({
   const [loadingData, setLoadingData] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [obligatory, setObligatory] = useState('');
-  const [savingsInvestment, setSavingsInvestment] = useState('');
-  const [discretionary, setDiscretionary] = useState('');
+  const [ruleName, setRuleName] = useState('');
+  const [categories, setCategories] = useState<BudgetCategory[]>([
+    { name: '', percentage: 0, expenseType: 'obligatory' },
+    { name: '', percentage: 0, expenseType: 'savings_investment' },
+    { name: '', percentage: 0, expenseType: 'discretionary' },
+  ]);
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -1988,7 +2038,7 @@ function ReglasTab({
   const actualSpend = { obligatory: totalObligatory, savingsInvestment: totalSavingsInvestment, discretionary: totalDiscretionary };
 
   const activeRule = rules.find(r => r.isActive);
-  const analysis = activeRule ? analyzeBudgetRule(actualSpend, activeRule.percentages, totalIncomes) : null;
+  const analysis = activeRule ? analyzeBudgetRule(actualSpend, activeRule.percentages, totalIncomes, formatCurrency) : null;
 
   const fetchRules = useCallback(async () => {
     setLoading(true);
@@ -2023,33 +2073,38 @@ function ReglasTab({
 
   function handleEdit(rule: BudgetRule) {
     setEditId(rule._id);
-    setName(rule.name);
-    setObligatory(rule.percentages.obligatory.toString());
-    setSavingsInvestment(rule.percentages.savingsInvestment.toString());
-    setDiscretionary(rule.percentages.discretionary.toString());
+    setRuleName(rule.name);
+    setCategories(rule.percentages.map(p => ({
+      name: p.name,
+      percentage: p.percentage,
+      expenseType: p.expenseType || 'custom',
+    })));
     setShowForm(true);
   }
 
   function resetForm() {
     setEditId(null);
-    setName('');
-    setObligatory('');
-    setSavingsInvestment('');
-    setDiscretionary('');
+    setRuleName('');
+    setCategories([
+      { name: '', percentage: 0, expenseType: 'obligatory' },
+      { name: '', percentage: 0, expenseType: 'savings_investment' },
+      { name: '', percentage: 0, expenseType: 'discretionary' },
+    ]);
     setShowForm(false);
   }
 
+  const totalPercentage = categories.reduce((sum, c) => sum + (parseInt(String(c.percentage)) || 0), 0);
+  const isValidPercentage = totalPercentage <= 100;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const obl = parseInt(obligatory) || 0;
-    const sav = parseInt(savingsInvestment) || 0;
-    const dis = parseInt(discretionary) || 0;
-    if (obl + sav + dis !== 100) {
-      toast.error('Los porcentajes deben sumar 100%');
+    if (!ruleName) {
+      toast.error('El nombre es requerido');
       return;
     }
-    if (!name) {
-      toast.error('El nombre es requerido');
+    const validCategories = categories.filter(c => c.name && c.percentage > 0);
+    if (validCategories.length === 0) {
+      toast.error('Debe haber al menos una categoría con nombre y porcentaje');
       return;
     }
 
@@ -2063,8 +2118,8 @@ function ReglasTab({
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
-          percentages: { obligatory: obl, savingsInvestment: sav, discretionary: dis },
+          name: ruleName,
+          percentages: validCategories,
           isActive: true,
         }),
       });
@@ -2137,67 +2192,106 @@ function ReglasTab({
 
       {showForm && (
         <form onSubmit={handleSubmit} className="rounded-lg border border-slate-800 bg-slate-900 p-4 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm text-slate-400">Nombre de la regla</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-                placeholder="Mi regla personalizada"
-              />
-            </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">Nombre de la regla</label>
+            <input
+              type="text"
+              value={ruleName}
+              onChange={(e) => setRuleName(e.target.value)}
+              className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+              placeholder="Mi regla personalizada"
+            />
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className="block text-sm text-slate-400">Obligatorios (%)</label>
-              <input
-                type="number"
-                value={obligatory}
-                onChange={(e) => setObligatory(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-                placeholder="50"
-                min="0"
-                max="100"
-              />
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="block text-sm text-slate-400">Categorías</label>
+              <button
+                type="button"
+                onClick={() => setCategories([...categories, { name: '', percentage: 0, expenseType: 'custom' }])}
+                className="text-xs text-indigo-400 hover:text-indigo-300"
+              >
+                + Agregar categoría
+              </button>
             </div>
-            <div>
-              <label className="block text-sm text-slate-400">Ahorro/Inversión (%)</label>
-              <input
-                type="number"
-                value={savingsInvestment}
-                onChange={(e) => setSavingsInvestment(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-                placeholder="30"
-                min="0"
-                max="100"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-400">Discrecional (%)</label>
-              <input
-                type="number"
-                value={discretionary}
-                onChange={(e) => setDiscretionary(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-                placeholder="20"
-                min="0"
-                max="100"
-              />
-            </div>
+            {categories.map((cat, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={cat.name}
+                  onChange={(e) => {
+                    const updated = [...categories];
+                    updated[idx].name = e.target.value;
+                    setCategories(updated);
+                  }}
+                  className="flex-1 rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white text-sm"
+                  placeholder="Nombre categoría"
+                />
+                <input
+                  type="number"
+                  value={cat.percentage || ''}
+                  onChange={(e) => {
+                    const updated = [...categories];
+                    updated[idx].percentage = parseInt(e.target.value) || 0;
+                    setCategories(updated);
+                  }}
+                  className="w-20 rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white text-sm"
+                  placeholder="%"
+                  min="0"
+                  max="100"
+                />
+                <select
+                  value={cat.expenseType || 'custom'}
+                  onChange={(e) => {
+                    const updated = [...categories];
+                    updated[idx].expenseType = e.target.value as any;
+                    setCategories(updated);
+                  }}
+                  className="rounded-md border border-slate-700 bg-slate-800 px-2 py-2 text-white text-sm"
+                >
+                  <option value="obligatory">Obligatorio</option>
+                  <option value="savings_investment">Ahorro/Inv</option>
+                  <option value="discretionary">Discrecional</option>
+                  <option value="custom">Custom</option>
+                </select>
+                {categories.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setCategories(categories.filter((_, i) => i !== idx))}
+                    className="text-red-400 hover:text-red-300 text-sm"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
-          <div className="flex justify-between items-center">
-            <p className={`text-sm ${(parseInt(obligatory || '0') + parseInt(savingsInvestment || '0') + parseInt(discretionary || '0')) === 100 ? 'text-green-400' : 'text-red-400'}`}>
-              Total: {parseInt(obligatory || '0') + parseInt(savingsInvestment || '0') + parseInt(discretionary || '0')}%
-            </p>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {submitting ? 'Guardando...' : 'Guardar Regla'}
-            </button>
+
+          <div className="flex justify-between items-center pt-2">
+            <div className="flex items-center gap-2">
+              <p className={`text-sm ${isValidPercentage ? 'text-green-400' : 'text-red-400'}`}>
+                Total: {totalPercentage}%
+              </p>
+              {!isValidPercentage && (
+                <span className="text-xs text-red-400">(excede 100%)</span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !isValidPercentage}
+                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {submitting ? 'Guardando...' : 'Guardar Regla'}
+              </button>
+            </div>
           </div>
         </form>
       )}
@@ -2224,18 +2318,12 @@ function ReglasTab({
                   )}
                 </div>
                 <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Obligatorios:</span>
-                    <span className="text-white">{rule.percentages.obligatory}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Ahorro/Inv:</span>
-                    <span className="text-white">{rule.percentages.savingsInvestment}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Discrecional:</span>
-                    <span className="text-white">{rule.percentages.discretionary}%</span>
-                  </div>
+                  {rule.percentages.map((cat, idx) => (
+                    <div key={idx} className="flex justify-between">
+                      <span className="text-slate-400">{cat.name}:</span>
+                      <span className="text-white">{cat.percentage}%</span>
+                    </div>
+                  ))}
                 </div>
                 <div className="mt-4 flex gap-2">
                   <button
@@ -2277,48 +2365,20 @@ function ReglasTab({
                   <p className="text-xl font-bold text-white">{formatCurrency(analysis.totalSpent)}</p>
                   <p className="text-xs text-slate-400">{analysis.overview.percentage.toFixed(1)}% de ingresos</p>
                 </div>
-                <div className={`rounded-lg p-3 ${getStatusBg(analysis.obligatory.status)}`}>
-                  <p className="text-sm text-slate-400">Obligatorios</p>
-                  <p className="text-xl font-bold text-white">{formatCurrency(analysis.obligatory.actualAmount)}</p>
-                  <p className="text-xs text-slate-400">Teórico: {analysis.obligatory.theoreticalPercentage}%</p>
-                  <p className={`text-xs ${getStatusColor(analysis.obligatory.status)}`}>
-                    Real: {analysis.obligatory.actualPercentage.toFixed(1)}%
-                  </p>
-                </div>
-                <div className={`rounded-lg p-3 ${getStatusBg(analysis.savingsInvestment.status)}`}>
-                  <p className="text-sm text-slate-400">Ahorro/Inv</p>
-                  <p className="text-xl font-bold text-white">{formatCurrency(analysis.savingsInvestment.actualAmount)}</p>
-                  <p className="text-xs text-slate-400">Teórico: {analysis.savingsInvestment.theoreticalPercentage}%</p>
-                  <p className={`text-xs ${getStatusColor(analysis.savingsInvestment.status)}`}>
-                    Real: {analysis.savingsInvestment.actualPercentage.toFixed(1)}%
-                  </p>
-                </div>
-                <div className={`rounded-lg p-3 ${getStatusBg(analysis.discretionary.status)}`}>
-                  <p className="text-sm text-slate-400">Discrecional</p>
-                  <p className="text-xl font-bold text-white">{formatCurrency(analysis.discretionary.actualAmount)}</p>
-                  <p className="text-xs text-slate-400">Teórico: {analysis.discretionary.theoreticalPercentage}%</p>
-                  <p className={`text-xs ${getStatusColor(analysis.discretionary.status)}`}>
-                    Real: {analysis.discretionary.actualPercentage.toFixed(1)}%
-                  </p>
-                </div>
+                {analysis.categories.map((cat, idx) => (
+                  <div key={idx} className={`rounded-lg p-3 ${getStatusBg(cat.status)}`}>
+                    <p className="text-sm text-slate-400">{cat.name}</p>
+                    <p className="text-xl font-bold text-white">{formatCurrency(cat.actualAmount)}</p>
+                    <p className="text-xs text-slate-400">Teórico: {cat.theoreticalPercentage}%</p>
+                    <p className={`text-xs ${getStatusColor(cat.status)}`}>
+                      Real: {cat.actualPercentage.toFixed(1)}%
+                    </p>
+                  </div>
+                ))}
               </div>
               <div className="mt-4 space-y-2">
-                {analysis.obligatory.status !== 'ok' && (
-                  <p className="text-sm text-red-400">
-                    ⚠️ Excediste en Obligatorios. Diferencia: {formatCurrency(Math.abs(analysis.obligatory.difference))}
-                  </p>
-                )}
-                {analysis.savingsInvestment.status !== 'ok' && (
-                  <p className="text-sm text-yellow-400">
-                    ⚠️ Ahorro/Inversión {analysis.savingsInvestment.difference > 0 ? 'sobredimensionado' : 'insuficiente'}.
-                    Diferencia: {formatCurrency(Math.abs(analysis.savingsInvestment.difference))}
-                  </p>
-                )}
-                {analysis.discretionary.status !== 'ok' && (
-                  <p className="text-sm text-orange-400">
-                    ⚠️ Gastos Discrecionales {analysis.discretionary.difference > 0 ? 'excedidos' : 'por debajo'}.
-                    Diferencia: {formatCurrency(Math.abs(analysis.discretionary.difference))}
-                  </p>
+                {analysis.warningMessage && (
+                  <p className="text-sm text-yellow-400">⚠️ {analysis.warningMessage}</p>
                 )}
                 {analysis.isCompliant && (
                   <p className="text-sm text-green-400">✅ Estás dentro de tu regla presupuestaria.</p>

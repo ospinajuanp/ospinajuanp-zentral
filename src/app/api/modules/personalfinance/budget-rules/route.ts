@@ -5,11 +5,36 @@ import { getApiAuth } from '@/lib/auth/api';
 import { checkFeatureEnabled } from '@/lib/settings/guard';
 import { BudgetRule } from '@/lib/models/personalfinance-budget-rule';
 import { consumeQuota } from '@/lib/modules/personalfinance/quota';
-import type { IBudgetRule } from '@/lib/models/personalfinance-budget-rule';
+import type { IBudgetCategory } from '@/lib/models/personalfinance-budget-rule';
 
 const DEFAULT_RULES = [
-  { name: '50/30/20', percentages: { obligatory: 50, savingsInvestment: 30, discretionary: 20 }, isCustom: false },
-  { name: '70/20/10', percentages: { obligatory: 70, savingsInvestment: 20, discretionary: 10 }, isCustom: false },
+  {
+    name: '50/30/20',
+    percentages: [
+      { name: 'Obligatorios', percentage: 50, expenseType: 'obligatory' as const },
+      { name: 'Ahorro/Inversión', percentage: 30, expenseType: 'savings_investment' as const },
+      { name: 'Discrecional', percentage: 20, expenseType: 'discretionary' as const },
+    ],
+    isCustom: false,
+  },
+  {
+    name: '70/20/10',
+    percentages: [
+      { name: 'Obligatorios', percentage: 70, expenseType: 'obligatory' as const },
+      { name: 'Ahorro/Inversión', percentage: 20, expenseType: 'savings_investment' as const },
+      { name: 'Discrecional', percentage: 10, expenseType: 'discretionary' as const },
+    ],
+    isCustom: false,
+  },
+  {
+    name: '40/30/30',
+    percentages: [
+      { name: 'Obligatorios', percentage: 40, expenseType: 'obligatory' as const },
+      { name: 'Ahorro/Inversión', percentage: 30, expenseType: 'savings_investment' as const },
+      { name: 'Discrecional', percentage: 30, expenseType: 'discretionary' as const },
+    ],
+    isCustom: false,
+  },
 ];
 
 export async function GET(req: NextRequest) {
@@ -28,32 +53,37 @@ export async function GET(req: NextRequest) {
     user: auth.userId,
   }).lean();
 
-  const customRules = rules as unknown as IBudgetRule[];
-  const activeRules = customRules.filter((r) => r.isActive);
-  const hasDefaultRules = customRules.some((r) => !r.isCustom && r.name === '50/30/20');
+  const customRules = rules as unknown as any[];
+  const activeRule = customRules.find((r: any) => r.isActive);
+  const activeRuleName = activeRule?.name || null;
 
-  const response: any = {
-    items: customRules,
-    total: customRules.length,
-    activeRule: activeRules.length > 0 ? activeRules[0] : null,
+  const allRules = [
+    ...DEFAULT_RULES.map((r) => ({
+      ...r,
+      _id: `default-${r.name}`,
+      workspace: auth.workspaceId,
+      user: auth.userId,
+      isActive: activeRuleName === r.name,
+      totalPercentage: r.percentages.reduce((s, p) => s + p.percentage, 0),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })),
+    ...customRules.map((r: any) => ({
+      ...r,
+      _id: r._id.toString(),
+      isActive: r.isActive,
+    })),
+  ];
+
+  const response = {
+    items: allRules,
+    total: allRules.length,
+    activeRule: activeRule
+      ? { ...activeRule, _id: activeRule._id.toString() }
+      : activeRuleName
+        ? allRules.find((r) => r._id === `default-${activeRuleName}`)
+        : null,
   };
-
-  if (!hasDefaultRules) {
-    const allRules = [
-      ...DEFAULT_RULES.map((r) => ({
-        ...r,
-        _id: `default-${r.name}`,
-        workspace: auth.workspaceId,
-        user: auth.userId,
-        isActive: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })),
-      ...customRules,
-    ];
-    response.items = allRules;
-    response.total = allRules.length;
-  }
 
   return NextResponse.json(response);
 }
@@ -75,18 +105,12 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { name, percentages, isActive } = body;
 
-  if (!name || !percentages) {
+  if (!name || !percentages || !Array.isArray(percentages)) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
   }
 
-  const { obligatory, savingsInvestment, discretionary } = percentages;
-  const total = (obligatory || 0) + (savingsInvestment || 0) + (discretionary || 0);
-
-  if (total !== 100) {
-    return NextResponse.json(
-      { error: `Los porcentajes deben sumar exactamente 100%. Suma actual: ${total}%` },
-      { status: 400 }
-    );
+  if (percentages.length === 0) {
+    return NextResponse.json({ error: 'Debe haber al menos una categoría' }, { status: 400 });
   }
 
   await dbConnect();
@@ -98,14 +122,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const totalPercentage = (percentages as IBudgetCategory[]).reduce((sum, p) => sum + (p.percentage || 0), 0);
+
   const rule = await BudgetRule.create({
     workspace: auth.workspaceId,
     user: auth.userId,
     name,
     percentages,
+    totalPercentage,
     isActive: isActive || false,
     isCustom: true,
   });
 
-  return NextResponse.json(JSON.parse(JSON.stringify(rule)) as IBudgetRule, { status: 201 });
+  return NextResponse.json(JSON.parse(JSON.stringify(rule)) as any, { status: 201 });
 }
